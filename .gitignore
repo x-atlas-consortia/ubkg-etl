@@ -1,0 +1,23 @@
+.idea/
+.DS_Store
+server.bak/
+venv/
+**/*.bak
+\#*\#
+**~
+neo4j/import*
+neo4j/data/
+generation_framework/builds/logs/*.log
+generation_framework/resources/
+generation_framework/pkt_kg/
+generation_framework/owlnets_output*
+generation_framework/owl
+generation_framework/venv
+generation_framework/.python-version
+generation_framework/robot
+generation_framework/.openapi-generator
+
+
+# log files in any path
+**/*.log
+

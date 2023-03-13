@@ -1,0 +1,206 @@
+{
+  "CCFOLD": {
+    "owl_url": "https://ccf-ontology.hubmapconsortium.org/ccf.owl",
+    "comment": "Currently has just AS (using ccf_part_of as the relationship)"
+  },
+  "CCFASCTB": {
+    "owl_url": "https://ccf-ontology.hubmapconsortium.org/ccf-asctb.owl",
+    "comment": "From Indiana: First version of the ASCT+B tables as OWL",
+    "sab": "CCFV1"
+  },
+  "CCF": {
+    "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/11/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "comment": "HuBMAP Common Coordinate Framework",
+    "sab": "CCF"
+  },
+  "CCO": {
+    "owl_url": "http://brg.ai.sri.com/CCO/downloads/cco.owl",
+    "home_url": "http://brg.ai.sri.com/CCO/",
+    "comment": "Cell Component Ontology"
+  },
+  "CHEBI": {
+    "owl_url": "http://purl.obolibrary.org/obo/chebi.owl",
+    "home_url": "http://www.obofoundry.org/ontology/chebi.html",
+    "comment": "Chemical Entities of Biological Interest"
+  },
+  "CL": {
+    "owl_url": "http://purl.obolibrary.org/obo/cl.owl",
+    "home_url": "http://www.obofoundry.org/ontology/cl.html",
+    "comment": "Complete cell ontology, plus inter-ontology axioms, and imports modules"
+  },
+  "CL_BASE": {
+    "owl_url": "http://purl.obolibrary.org/obo/cl/cl-base.owl",
+    "home_url": "http://www.obofoundry.org/ontology/cl.html",
+    "comment": "Complete cell ontology, but with no imports or external axioms",
+    "sab": "CL"
+  },
+  "DOID": {
+    "owl_url": "http://purl.obolibrary.org/obo/doid.owl",
+    "home_url": "https://disease-ontology.org/",
+    "comment": "Human Disease Ontology"
+  },
+  "EDAM": {
+    "owl_url": "http://edamontology.org/EDAM.owl",
+    "home_url": "http://edamontology.org/page",
+    "comment": "Ontology of bioscientific data analysis and data management"
+  },
+  "HSAPDV": {
+    "owl_url": "http://purl.obolibrary.org/obo/hsapdv.owl",
+    "home_url": "https://www.ebi.ac.uk/ols/ontologies/hsapdv",
+    "comment": "Life cycle stages for Human"
+  },
+  "MI": {
+    "owl_url": "http://purl.obolibrary.org/obo/mi.owl",
+    "home_url": "https://www.ebi.ac.uk/ols/ontologies/mi",
+    "comment": "A structured controlled vocabulary for the annotation of experiments concerned with protein-protein interactions"
+  },
+  "MP": {
+    "owl_url": "http://purl.obolibrary.org/obo/mp.owl",
+    "home_url": "http://obofoundry.org/ontology/mp.html",
+    "comment": "Standard terms for annotating mammalian phenotypic data"
+  },
+  "OBI": {
+    "owl_url": "http://purl.obolibrary.org/obo/obi.owl",
+    "home_url": "http://obi-ontology.org/",
+    "comment": "Ontology for Biomedical Investigations"
+  },
+  "OGI": {
+    "owl_url": "https://data.bioontology.org/ontologies/OGI/submissions/18/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/OGI",
+    "comment": "Ontology for Genetic Interval",
+    "download_owl_url_to_file_name": "ogi.owl",
+    "sab": "OGI"
+  },
+  "ORDO": {
+    "owl_url": "https://data.bioontology.org/ontologies/ORDO/submissions/22/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/ORDO",
+    "comment": "Orphanet Rare Disease Ontology",
+    "download_owl_url_to_file_name": "ordo.owl",
+    "sab": "ORDO"
+  },
+  "PATO": {
+    "owl_url": "http://purl.obolibrary.org/obo/pato.owl",
+    "home_url": "http://www.obofoundry.org/ontology/pato.html",
+    "comment": "Phenotype And Trait Ontology "
+  },
+  "PR": {
+    "owl_url": "http://purl.obolibrary.org/obo/pr.owl",
+    "home_url": "http://www.obofoundry.org/ontology/pr.html",
+    "comment": "Protein Ontology. Specify an organism (e.g., human) via the optional -p argument to filter the nodes to a manageable size."
+  },
+  "RO": {
+    "owl_url": "http://purl.obolibrary.org/obo/ro.owl",
+    "home_url": "http://www.obofoundry.org/ontology/ro.html",
+    "comment": "This Relation Ontology should get relationships and inverses and the RO code where we want the name"
+  },
+  "SBO": {
+    "owl_url": "http://www.ebi.ac.uk/sbo/exports/Main/SBO_OWL.owl",
+    "home_url": "https://www.ebi.ac.uk/sbo/main/",
+    "comment": "Systems Biology Ontology",
+    "sab": "SBO"
+  },
+  "UBERON": {
+    "owl_url": "http://purl.obolibrary.org/obo/uberon.owl",
+    "home_url": "https://uberon.github.io/downloads.html",
+    "comment": "UBER-anatomy ONtology: An integrated cross-species ontology covering anatomical structures in animals. This one contains data without references"
+  },
+  "UNIPROTKB": {
+    "home_url": "https://www.uniprot.org/uniprot/?query=facets=reviewed%3Atrue&fil=organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22",
+    "comment": "Data from UniProtKB exported to OWLNETS format. Supply -s argument to call to use existing UniProtKB data file.",
+    "execute": "./uniprotkb/uniprotkb_owlnets.py -s"
+  },
+  "VARIO": {
+    "owl_url": "http://www.variationontology.org/vario_download/vario.owl",
+    "home_url": "http://www.variationontology.org/download.shtml",
+    "comment": "A Variation Ontology: for standardized, systematic description of effects, consequences and mechanisms of variations"
+  },
+  "HUBMAP": {
+    "comment": "HubMAP application ontology, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py SimpleKnowledgeHuBMAP.xlsx HUBMAP"
+  },
+  "SENNET": {
+    "comment": "SenNet application ontology, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py SimpleKnowledgeSenNet.xlsx SENNET"
+  },
+  "SWO": {
+    "owl_url": "http://purl.obolibrary.org/obo/swo.owl",
+    "home_url": "https://github.com/allysonlister/swo",
+    "comment": "The Software Ontology (SWO): a resource for reproducibility in biomedical data analysis, curation and digital preservation"
+  },
+  "BAO": {
+    "owl_url": "https://data.bioontology.org/ontologies/BAO/submissions/41/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/BAO",
+    "comment": "The BioAssay Ontology (BAO) describes chemical biology screening assays and their results"
+  },
+  "CCF": {
+    "owl_url": "https://hubmapconsortium.github.io/hubmap-ontology/ccf.owl",
+    "home_url": "https://hubmapconsortium.github.io/ccf/pages/ccf-ontology.html",
+    "comment": "HuBMAP CCF Ontology"
+  },
+  "UO": {
+    "owl_url": "https://data.bioontology.org/ontologies/UO/submissions/216/download?apikey=4983e1fe-1f54-412e-99bb-74764d659cb0",
+    "comment": "Unit Ontology"
+  },
+  "MONDO": {
+    "owl_url": "http://purl.obolibrary.org/obo/mondo.owl",
+    "home_url": "https://obofoundry.org/ontology/mondo.html",
+    "comment": "The Mondo Disease Ontology (MONDO): a global community effort to harmonize multiple disease resources to yield a coherent merged ontology"
+  },
+  "EFO": {
+    "owl_url": "https://data.bioontology.org/ontologies/EFO/submissions/244/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/EFO",
+    "comment": "The Experimental Factor Ontology (EFO) is an application focused ontology modelling the experimental variables in multiple resources at the EBI and Open Targets."
+  },
+  "EDGENODETEST": {
+    "comment": "Test to import files in UBKG edges/nodes format",
+    "execute": "./UBKG_edges_nodes/UBKG_edges_nodes.py EDGENODETEST"
+  },
+  "FALDO": {
+    "owl_url": "https://data.bioontology.org/ontologies/FALDO/submissions/18/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/FALDO",
+    "comment": "FALDO is the Feature Annotation Location Description Ontology. (Part of GlyGen ingestion)"
+  },
+  "UNIPROT": {
+    "owl_url": "https://ftp.uniprot.org/pub/databases/uniprot/current_release/rdf/core.owl",
+    "home_url": "https://ftp.uniprot.org/pub/databases/uniprot/README",
+    "comment": "UniProt"
+  },
+  "GLYCORDF": {
+    "owl_url": "https://raw.githubusercontent.com/glycoinfo/GlycoRDF/master/ontology/glycan.rdf",
+    "home_url": "https://github.com/glycoinfo/GlycoRDF",
+    "comment": "GlycoRDF OWL in RDF/XML"
+  },
+  "GLYCOCOO": {
+    "owl_url": "https://raw.githubusercontent.com/glycoinfo/GlycoCoO/master/ontology/glycocoo.owl",
+    "home_url": "https://github.com/glycoinfo/GlycoCoO",
+    "comment": "GlycoCoO in Turtle"
+  },
+  "OBIB": {
+    "owl_url": "https://data.bioontology.org/ontologies/OBIB/submissions/13/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/OBIB",
+    "comment": "The ontology for Biobanking (OBIB) is an ontology built for annotation and modeling of biobank repository and biobanking administration."
+  },
+  "XCO": {
+    "home_url": "https://bioportal.bioontology.org/ontologies/XCO",
+    "comment": "XCO from GZipped CSV",
+    "execute": "./gzip_csv/gzip_csv_owlnets.py 'https://data.bioontology.org/ontologies/XCO/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=csv' XCO"
+   },
+  "HRAVS": {
+    "home_url": "https://bioportal.bioontology.org/ontologies/HRAVS",
+    "comment": "The value set for the Human Reference Atlas metadata records as part of the Human BioMolecular Atlas Program (HuBMAP)",
+    "execute": "./gzip_csv/gzip_csv_owlnets.py 'https://data.bioontology.org/ontologies/HRAVS/download?apikey=4983e1fe-1f54-412e-99bb-74764d659cb0&download_format=csv' HRAVS"
+  },
+  "NPO": {
+    "owl_url": "https://data.bioontology.org/ontologies/NPOKB/submissions/8/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/NPOKB?p=summary",
+    "comment": "NPO in Turtle"
+  },
+  "LINCS": {
+    "comment": "LINCS data in edges/nodes format",
+    "execute": "./UBKG_edges_nodes/UBKG_edges_nodes.py LINCS"
+  },
+  "AZ": {
+    "comment": "Azimuth annotations, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py SimpleKnowledgeAzimuth.xlsx AZ"
+  }
+}
