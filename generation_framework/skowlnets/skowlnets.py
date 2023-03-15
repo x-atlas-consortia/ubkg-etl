@@ -27,13 +27,13 @@ import logging.config
 
 # JAS FEB 2023
 # This script uses the codeReplacements function, which is currently in the module
-# scripts/ubkg_utilities/parsetools.py
+# generation_framework/ubkg_utilities/parsetools.py
 # The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
 # Find the absolute path. (This assumes that this script is being called from build_csv.py.)
 fpath = os.path.dirname(os.getcwd())
-fpath = os.path.join(fpath,'scripts/ubkg_utilities')
+fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
-import parsetools
+import ubkg_parsetools as uparse
 
 # Parse an argument that identifies the version of the UMLS in Neptune from which to build
 # the CSV files.
@@ -148,7 +148,7 @@ with open(edgelist_path, 'w') as out:
                     listobjects = objects.split(',')
                     for obj in listobjects:
                         if col == 4:
-                            objcode = parsetools.codeReplacements(obj)
+                            objcode = uparse.codeReplacements(obj)
                         else:
                             # Match object terms with their respective codes (Column A),
                             # which will result in a dataframe of one row.

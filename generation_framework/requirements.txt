@@ -14,8 +14,7 @@ openpyxl==3.0.10
 # PheKnowLator package and its dependencies
 pkt_kg==3.0.0
 # March 2023 - the latest Python distribution supported by ray is 3.10.
-# However, ray is not used anywhere.
-#ray==2.1.0
+ray==2.1.0
 rdflib~=6.2.0
 lxml~=4.9.1
 psutil==2.0

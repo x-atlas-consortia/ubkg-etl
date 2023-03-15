@@ -39,13 +39,13 @@ import fileinput
 # JAS FEB 2023
 # The codeReplacements function was originally part of this script. Because the function is now
 # needed by both this script and the skowlnets.py script, the function has been moved to the module
-# scripts/ubkg_utilities/parsetools.py.
+# generation_framework/ubkg_utilities/parsetools.py.
 # The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
 # Find the absolute path. (This assumes that this script is being called from build_csv.py.)
 fpath = os.path.dirname(os.getcwd())
-fpath = os.path.join(fpath,'scripts/ubkg_utilities')
+fpath = os.path.join(fpath,'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
-import parsetools
+import upkg_parsetools as uparse
 
 def owlnets_path(file: str) -> str:
     return os.path.join(sys.argv[1], file)
@@ -259,12 +259,12 @@ else:
 
 # edgelist['subject'] = \
 # edgelist['subject'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
-edgelist['subject'] = parsetools.codeReplacements(edgelist['subject'],OWL_SAB)
+edgelist['subject'] = uparse.codeReplacements(edgelist['subject'],OWL_SAB)
 
 # JAS 15 NOV 2022
 # Deprecate all prior code that handled object nodes, including from October 2022, in favor of the
 # improved codeReplacements function.
-edgelist['object'] = parsetools.codeReplacements(edgelist['object'],OWL_SAB)
+edgelist['object'] = uparse.codeReplacements(edgelist['object'],OWL_SAB)
 
 # ------------- DEPRECATED
 # JAS 13 OCT 2022
@@ -537,7 +537,7 @@ print('Cleaning up node metadata...')
 # JAS 15 November string replacements moved to codeReplacements function.
 # node_metadata['node_id'] = \
 # node_metadata['node_id'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
-node_metadata['node_id'] = parsetools.codeReplacements(node_metadata['node_id'],OWL_SAB)
+node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'],OWL_SAB)
 
 # synonyms .loc of notna to control for owl with no syns
 node_metadata.loc[node_metadata['node_synonyms'].notna(), 'node_synonyms'] = \
@@ -551,7 +551,7 @@ node_metadata.loc[node_metadata['node_dbxrefs'].notna(), 'node_dbxrefs'] = \
 node_metadata['node_dbxrefs'] = node_metadata['node_dbxrefs'].str.split('|')
 explode_dbxrefs = node_metadata.explode('node_dbxrefs')[['node_id', 'node_dbxrefs']].dropna().astype(
     str).drop_duplicates().reset_index(drop=True)
-explode_dbxrefs['node_dbxrefs'] = parsetools.codeReplacements(explode_dbxrefs['node_dbxrefs'],OWL_SAB)
+explode_dbxrefs['node_dbxrefs'] = uparse.codeReplacements(explode_dbxrefs['node_dbxrefs'],OWL_SAB)
 
 # Add SAB and CODE columns
 # JAS 12 JAN 2023 - force uppercase for SAB
