@@ -19,6 +19,12 @@ rdflib~=6.2.0
 lxml~=4.9.1
 psutil==2.0
 tqdm==4.62.0
+# March 2023
+# The PheKnowlator package uses NetworkX, and calls the write_pickle function.
+# The NetworkX package deprecated the write_pickle function in version 3.0.
+# Downgrade NetworkX to a stable previous version.
+networkx==2.8
+
 
 # Dependencies without references in code. Kept for archival.
 # setuptools~=65.3.0

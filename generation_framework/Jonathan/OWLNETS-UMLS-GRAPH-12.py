@@ -45,7 +45,7 @@ import fileinput
 fpath = os.path.dirname(os.getcwd())
 fpath = os.path.join(fpath,'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
-import upkg_parsetools as uparse
+import ubkg_parsetools as uparse
 
 def owlnets_path(file: str) -> str:
     return os.path.join(sys.argv[1], file)

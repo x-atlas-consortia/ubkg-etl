@@ -49,7 +49,7 @@ The file [ontologies.json](https://github.com/dbmi-pitt/UBKG/blob/main/Generatio
 * "owl_url": the URL to download the OWL file
 * "home_url": the URL that describes the OWL
 
-- For ontologies or data sources with custom converters, the "execute" key/value specifies the location of the conversion script.
+- For ontologies or data sources with custom converters, the "execute" key/value specifies the relative location of the conversion script. 
 
 
 ```
