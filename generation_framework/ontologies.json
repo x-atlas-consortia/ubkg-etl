@@ -151,10 +151,6 @@
     "home_url": "https://bioportal.bioontology.org/ontologies/EFO",
     "comment": "The Experimental Factor Ontology (EFO) is an application focused ontology modelling the experimental variables in multiple resources at the EBI and Open Targets."
   },
-  "EDGENODETEST": {
-    "comment": "Test to import files in UBKG edges/nodes format",
-    "execute": "./UBKG_edges_nodes/UBKG_edges_nodes.py EDGENODETEST"
-  },
   "FALDO": {
     "owl_url": "https://data.bioontology.org/ontologies/FALDO/submissions/18/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/FALDO",
@@ -197,7 +193,7 @@
   },
   "LINCS": {
     "comment": "LINCS data in edges/nodes format",
-    "execute": "./UBKG_edges_nodes/UBKG_edges_nodes.py LINCS"
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py LINCS"
   },
   "AZ": {
     "comment": "Azimuth annotations, obtained from input spreadsheet in SimpleKnowledge format",

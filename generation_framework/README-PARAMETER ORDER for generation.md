@@ -35,7 +35,7 @@ the following ontologies:
 - UO
 - MONDO
 - EFO
-- AZ
+- AZ (Azimuth)
 
 ## HubMAP/SenNet ontologies
 The HubMAP/SenNet knowledge graph should also include assertions from:
