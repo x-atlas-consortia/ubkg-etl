@@ -1,7 +1,8 @@
-# Parameters and order for build_csv.sh
+# Parameters and order for build_csv.sh / build_csv.py
 
 ## Background
-The UBKG generation framework script **build_csv.sh** takes
+Both the UBKG generation framework shell script **build_csv.sh** and the 
+Python script **build_csv.py** take
 as parameters a set of space-delimited acronyms that identify sets of assertions (onotologies).
 
 Because some ontologies are based on classes that are
@@ -17,11 +18,11 @@ See the uppermost README.md for details.
 ## Base set of ontologies
 All UBKG instances should contain assertions from
 the following ontologies:
-- PATO 
 - UBERON 
+- PATO
 - CL 
 - DOID 
-- CCFASCTB 
+- CCF
 - OBI 
 - EDAM
 - HSAPDV
@@ -34,6 +35,7 @@ the following ontologies:
 - UO
 - MONDO
 - EFO
+- AZ
 
 ## HubMAP/SenNet ontologies
 The HubMAP/SenNet knowledge graph should also include assertions from:
@@ -41,8 +43,7 @@ The HubMAP/SenNet knowledge graph should also include assertions from:
 - OBIB 
 - XCO 
 - HRAVS 
-- HUBMAP 
-- CCF  
+- HUBMAP
 - SENNET
 
 ## Data Distillery
@@ -62,13 +63,3 @@ A Data Distillery KG **will** include assertions from:
 
 ### Others
 - LINCS
-
-## To generate a HubMAP/SenNet knowledge graph (in one line)
-```
-./build_csv.sh -v -s PATO UBERON CL DOID CCFASCTB OBI EDAM HSAPDV SBO MI CHEBI MP ORDO UNIPROTKB UO OBIB XCO HRAVS HUBMAP CCF MONDO EFO SENNET 
-```
-
-## To generate a minimal Data Distillery knowledge graph (in one line)
-```
-./build_csv.sh -v -s PATO UBERON CL DOID CCFASCTB OBI EDAM HSAPDV SBO MI CHEBI MP ORDO UNIPROTKB UO FALDO UNIPROT GLYCORDF GLYCOCOO NPO LINCS
-```

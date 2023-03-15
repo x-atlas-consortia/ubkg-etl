@@ -1,10 +1,11 @@
-# Unified Biomedical Knowledge Graph Generation Framework
+# Unified Biomedical Knowledge Graph 
+## Generation Framework
 
 ## Background
 The application architecture that supports the UBKG includes a knowledge graph representing a polyhierarchical organization of 
 interconnected ontologies. 
 
-The scripts in this folder path are used to convert data from ontologies into 
+The scripts in this repository are used to convert data from ontologies into 
 formats that can be appended to the set of UMLS CSV files.
 
 ![generation_framework](https://user-images.githubusercontent.com/10928372/202733307-d9a7c76d-8a0a-401f-a0e2-011d8449ac41.jpg)
@@ -106,7 +107,7 @@ In other words, relationships between ontologies determines the order in which t
 
 The content of a particular implementation of a UBKG database depends on the set of assertiions integrated. Different implementations may integrate different sets of assertions: for example, project one may include assertions from the set {PATO,UBERON,CL,DOID,EDAM}, while another may include {PATO,UBERON,CL,DOID,CHEBI,ORDO}.
 
-The file [README-PARAMETER ORDER for generation.md](https://github.com/dbmi-pitt/ubkg/blob/main/scripts/README-PARAMETER%20ORDER%20for%20generation.md) provides the most current recommendations for generating different
+The file **README-PARAMETER ORDER for generation.md** provides the most current recommendations for generating different
 instances of the UBKG.
 
 ### Sample triplet conversion times by ontology
@@ -119,7 +120,7 @@ Sample OWLNETS conversion times per ontology when run on a MacBook Pro 32 GB M1 
 * UBERON: 4 minutes
 * CL: 3 minutes
 * DOID: 2 minutes
-* CCFASCTB: 1 minute
+* CCF: 1 minute
 * OBI: 1 minute
 * EDAM: 1 minute
 * HSAPDV: 1 minute
