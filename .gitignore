@@ -28,3 +28,5 @@ generation_framework/robot
 # log files in any path
 **/*.log
 
+api/*
+
