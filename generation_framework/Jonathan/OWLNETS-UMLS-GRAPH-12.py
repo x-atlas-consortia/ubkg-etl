@@ -795,8 +795,8 @@ print('Appending to CUI-CUIs.csv...')
 # JAS 6 JAN 2023 Add evidence_class column to file.
 print('Adding evidence_class column to CUI-CUIs.csv...')
 fcsv = csv_path('CUI-CUIs.csv')
-# evidence_class should be a number.
-new_header_columns = [':START_ID', ':END_ID', ':TYPE,SAB', 'evidence_class:float']
+# evidence_class should be a string.
+new_header_columns = [':START_ID', ':END_ID', ':TYPE,SAB', 'evidence_class:string']
 update_columns_to_csv_header(fcsv, new_header_columns)
 
 # forward ones
