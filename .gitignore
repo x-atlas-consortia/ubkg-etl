@@ -1,5 +1,8 @@
+# JetBrains products, including PyCharm
 .idea/
+# MacOs files
 .DS_Store
+
 server.bak/
 venv/
 **/*.bak
