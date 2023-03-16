@@ -208,7 +208,14 @@ def log_files_and_sizes(dir: str) -> None:
 def look_for_none_in_node_metadata_file(dir: str) -> None:
     file: str = dir + os.path.sep + 'OWLNETS_node_metadata.txt'
     print(f'Searching {file}')
-    data = pd.read_csv(file, sep='\t')
+    # JAS 16 MAR 2023
+    # Added parameters:
+    #   engine='python' - use the Python parser engine instead of the C parser engine.
+    #   on_bad_lines='skip'
+    # This accounts for nodes files with erroneous characters, such as EOFs
+    # (https://www.shanelynn.ie/pandas-csv-error-error-tokenizing-data-c-error-eof-inside-string-starting-at-line/)
+    # Use case that occasioned this change: GLYCORDF
+    data = pd.read_csv(file, sep='\t',engine='python',on_bad_lines='skip')
 
     # TODO: We will potentially find ontologies without synonyms.
     message: str = f"Total columns in {file}: {len(data['node_synonyms'])}"
