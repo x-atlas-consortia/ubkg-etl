@@ -5,5 +5,5 @@
 # The formats for the files are described in the UBKG user guide in the source repo.
 
 # Unlike ontologies that are available as either OWL files or SimpleKnowledge format, the "edges and nodes"
-# files will be downloaded manually and stored in the OWL path.
+# files will be downloaded manually and stored in the owlnets_output path.
 
