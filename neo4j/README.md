@@ -1,6 +1,12 @@
 # UBKG
 ## neo4j folder
 
+**This folder does not contain an neo4j instance; instead, it
+holds CSV files that can be used to create an instance.**
+
+**These files should be excluded in a .gitignore file.**
+
+
 The UBKG source and generation frameworks work with a set of 
 CSV files that is intended to be the source of an import into a 
 neo4j database. 
@@ -13,6 +19,5 @@ For example, directories may include:
 - a "base set" directory of CSV files that represent the UMLS set, appended with ontologies that are common to all UBKG implementation.
 - folders with names that start with "save", that are intermediate folders created in the generation framework workflow.
 
-These files should be excluded in a .gitignore file.
 
 Eventually, the neo4j path should move to a Globus collection.
