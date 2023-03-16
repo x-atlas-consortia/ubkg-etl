@@ -24,7 +24,9 @@ logger = logging.getLogger(__name__)
 OWLNETS_SCRIPT: str = './owlnets_script/__main__.py'
 FIX_OWLNETS_TSV_SCRIPT: str = './owlnets_script/fix_tsv_file.py'
 VALIDATION_SCRIPT: str = './blackbox_validation/__main__.py'
-UMLS_GRAPH_SCRIPT: str = './Jonathan/OWLNETS-UMLS-GRAPH-12.py'
+#UMLS_GRAPH_SCRIPT: str = './Jonathan/OWLNETS-UMLS-GRAPH-12.py'
+# JAS 16 Mar 2023 renamed folder to OWLNETS-UMLS-GRAPH script.
+UMLS_GRAPH_SCRIPT: str = './owlnets_umls_graph/OWLNETS-UMLS-GRAPH-12.py'
 
 # This one needs processing (see https://robot.obolibrary.org/merge ) to include references...
 # UBERON_EXT_OWL_URL: str = 'http://purl.obolibrary.org/obo/uberon/ext.owl'
