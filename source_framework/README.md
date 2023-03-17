@@ -1,18 +1,30 @@
-# NOTE
+# Unified Biomedical Knowledge Graph
+## Source Framework
+
+### Note
 This README.md contains references to other documentation in markdown files. In some cases, this documentation is for an earlier prototype deployment.
 
-## Framework
-The following image describes the current source framework. The operation of the framework is also described in the general README.md for UBKG.
+## Architecture
+The following image describes the current UBKG source framework. The operation of the framework is also described in the general README.md for UBKG.
+DBMI's process for exrtracting source data from the UMLS is described in **UMLS Extraction Process.md**, in the same folder as this README.
 
-DBMI's process for exrtracting source data from the UMLS is described in **UMLS Extraction Process (Linux).md**, in the same folder as this README.
 
 ![Source_framework](https://user-images.githubusercontent.com/10928372/202453373-6e2f73ba-e7ae-4d8f-9ece-31b0b0732a74.jpg)
 
+### Dependencies
 
-# UMLS-Graph 
-This corresponds to the set of **UMLS CSVs** that can be used to generate a knowledge graph of the UMLS.
+This architecture assumes a specific environment--the environment owned by
+the Department of Biomedical Informatics (DBMI) at the University of Pittsburgh, which is
+based in Linux and includes and Oracle data warehouse (referred to as _Neptune_).
 
-UMLS Graph database for semantic queries.
+Another significant dependency is that use of data from the UMLS requires a UMLS license.
+
+The document **UMLS Extraction Process** (in this folder) describes licensing and other technical requirements in detail.
+
+# UMLS CSVs
+This is a set of **CSVs** that can be used to generate a knowledge graph of the UMLS.
+
+# UMLS Graph database for semantic queries
 
 This project extracts from UMLS Metathesauras and Semantic Network files in Oracle, transforms, loads, deploys, and queries the resulting neo4j knowledge graph.
 It uses the conceptual model pictured here:
