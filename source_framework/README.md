@@ -1,6 +1,16 @@
 # Unified Biomedical Knowledge Graph
 ## Source Framework
 
+The components of the UBKG include:
+- The **source framework** that extracts ontology information from the UMLS to create a set of CSV files (**UMLS CSVs**)
+- The **generation framework** that appends to the UMLS CSVs assertion data from other ontologies to create a set of **ontology CSVs**.
+- A neo4j **ontology knowledge graph** populated from the ontology CSVS.
+- An API server that provides RESTful endpoints to query the ontology knowledge graph.
+
+This repository contains the source for the source framework.
+
+
+
 ### Note
 This README.md contains references to other documentation in markdown files. In some cases, this documentation is for an earlier prototype deployment.
 
