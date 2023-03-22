@@ -22,4 +22,4 @@ scripts that
 
 ## Additional information
 
-For more information on the UBKG, consult the [GitHub Docs site](https://github.com/x-atlas-consortia/ubkg-docs).
+For more information on the UBKG, consult the [GitHub Docs site](https://ubkg.docs.xconsortia.org/).
