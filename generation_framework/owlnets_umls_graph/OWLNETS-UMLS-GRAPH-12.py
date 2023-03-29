@@ -27,6 +27,7 @@
 # 3. SAB for the set of assertions/ontology that is being ingested
 # sys.argv is used instead of argparse because this script is designed to be called as a subprocess.
 
+# -----------------------------------------------------
 # ### SETUP
 
 # In[1]:
@@ -94,7 +95,8 @@ def update_columns_to_csv_header(file: str, new_columns: list):
         print(newline)
     return
 
-
+# -----------------------------------------------------
+# START OF SCRIPT
 # Asssignnment of SAB for CUI-CUI relationships (edgelist) - typically use file name before .owl in CAPS
 OWL_SAB = sys.argv[3].upper()
 
@@ -334,8 +336,8 @@ edgelist['object'] = uparse.codeReplacements(edgelist['object'],OWL_SAB)
 # ------------- DEPRECATED
 
 
-# ----------------------------------------
-# RELATIONSHIPS AND INVERSE RELATIONSHIPS
+# -------------------------------------------------------------
+# IDENTIFY RELATIONSHIPS AND INVERSE RELATIONSHIPS
 
 # JAS 8 NOV 2022
 # Obtain descriptions of relationships and their inverses from the Relations Ontology JSON.
@@ -738,6 +740,11 @@ def base64it(x):
     return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
 
 # The CUI for the node will be the base64-encoded value of the concatenated SAB and code.
+# JAS MARCH 2023
+# EXPLANATION: the base64-encoded CUI will be assigned to a node if the node is brand new to the
+# knowledge graph--i.e., if it cannot be associated by either direct reference or cross-reference to another
+# CUI that already exists in the knowledge graph at the time of ingestion.
+
 node_metadata['base64cui'] = node_metadata['node_id'].apply(base64it)
 
 # ### Add cuis list and preferred cui to complete the node "atoms" (code, label, syns, xrefs, cuis, CUI)
@@ -764,17 +771,36 @@ node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for i in x if i
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for row in x for i in row])
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).apply(list)
 
-# JAS 21 MAR 2023
-# Assign the CUI in order of precedence. This should be the first element in the list of cuis.
+# JAS 27 MAR 2023
+# Assign the preferred CUI for the node.
+# The list for a node is ordered in terms of preference (see above) by type. In addition, we assume
+# that if XrefCUIs and CUI_CODEs are lists that the elements in the list are arranged in order of preference--
+# e.g., as codes are listed in dbxref. For these reasons, the first element in the cuilist for a node is
+# assumed to have the highest preference.
+
+# It is possible for multiple nodes to be associated with the same CUI. However, this is a
+# requirement for ontologies that have higher resolution than the ontologies to which they cross-reference:
+# e.g., Azimuth cell mappings to CL codes.
+# Because a cross-reference in a nodes file may already have been cross-referenced in a prior ingestion, it
+# is possible that the assignment of a cross-referenced CUI will result in in self-referential mappings--
+# i.e., relationships in format CUI X (relationship) CUI X, where X=X.
+# Self-referential mappings will be removed prior to appending to CUI-CUIs.CSV.
+
+# The following code has been compared with the block that it replaces and has been confirmed to be faster, require fewer resources, and result
+# in more consistent assignments.
 node_metadata['CUI']=node_metadata['cuis'].str[0]
 
 """
-JAS 21 MAR 2023 - DEPRECATED
+#JAS 27 MAR 2023
+#----------
+# DEPRECATED - replaced by preceding line.
+
 # iterate to select one CUI from cuis in row order - we ensure each node_id has its own distinct CUI
 # each node_id is assigned one CUI distinct from all others' CUIs to ensure no self-reference in edgelist
 
 node_idCUIs = []
 nmCUI = []
+itest = 0
 for index, rows in node_metadata.iterrows():
     addedone = False
     for x in rows.cuis:
@@ -784,20 +810,19 @@ for index, rows in node_metadata.iterrows():
             nmCUI.append(x)
             node_idCUIs.append(x)
             addedone = True
-    # JAS 17 oct 2022
-    # For the edge case in which multiple nodes have the same cross-reference AND the
-    # cross-reference maps to a single CUI (the case for around 20 nodes in MP--e.g., all
-    # those that share CL 0000959 as a cross-reference), only one of the nodes will be
-    # assigned the CUI of the cross-reference. The rest of the nodes will lose the
-    # cross-reference.
-    # The following block keeps the nmCUI list the same size as node_metadata['CUI'].
+    # JAS 27 MAR 2023
+    # If a unique CUI cannot be found, assign a blank CUI. This preserves the size of the CUI array, but
+    # results in the node being dropped from the ingestion.
+    # This handles the edge case in which multiple nodes have the same cross-reference AND there 
+    # are more nodes than available CUIs (e.g., the case for nodes in MP that share CL 0000959 as a cross-reference).
+    
     if addedone == False:
+        print('node:',rows.node_id,'with cuilist', rows.cuis,'has no available CUIs; assigning blank')
         nmCUI.append('')
         node_idCUIs.append('')
-
+        
 node_metadata['CUI'] = nmCUI
 """
-
 # -----------------------------------------
 
 # ### Join CUI from node_metadata to each edgelist subject and object
@@ -895,10 +920,23 @@ edgelist = edgelist.dropna(subset=subset).drop_duplicates(subset=subset).reset_i
 
 edgelist['SAB'] = OWL_SAB
 
+# -------------------------------------------------
+# JAS 27 MAR 2023
+# Remove "self-references"--i.e., assertions in which the CUIs for subject and object nodes are identical.
+# Self-references are introduced in the assignment of nodes to preferred CUIs, in the case where the CUI is for
+# a cross-reference that is itself cross-referenced to another CUI.
+
+print('Removing self-reference edges...')
+edgelist = edgelist[edgelist['CUI1']!=edgelist['CUI2']]
+
+
 # --------------------------------------------------
 # ## Write out files
 
 # ### Test existence when appropriate in original csvs and then add data for each csv
+
+# JAS MARCH 2023 - EXPLANATION
+# CUI-CUIs.csv contains information on relationships between concepts.
 
 # #### Write CUI-CUIs (':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class')
 # (no prior-existence-check because want them in this SAB)
@@ -930,6 +968,9 @@ del edgelist
 
 # #### Write CODEs (CodeID:ID,SAB,CODE,value,lowerbound,upperbound,unit) - with existence check against CUI-CODE.csv
 
+# JAS MARCH 2023 - EXPLANATION
+# CODEs.csv contains information on codes in the SABs that are in the knowledge graph.
+
 # In[20]:
 
 print('Appending to CODEs.csv...')
@@ -957,6 +998,9 @@ del newCODEs
 
 # #### Write CUIs (CUI:ID) - with existence check against CUI-CODE.csv
 
+# JAS MARCH 2023 - EXPLANATION:
+# CUIs.CSV contains CUIs for all concepts in the knowledge graph.
+
 # In[21]:
 
 print('Appending to CUIs.csv...')
@@ -980,6 +1024,19 @@ newCUIs.to_csv(csv_path('CUIs.csv'), mode='a', header=False, index=False)
 
 
 # #### Write CUI-CODEs (:START_ID,:END_ID) - with existence check against CUI-CODE.csv
+
+# JAS March 2023
+# EXPLANATION:
+# CUI-CODEs.csv links codes (in different SABs) to concepts.
+
+# The purpose of the prior code that assigns a "preferred CUI" for each node is to optimize the association
+# of nodes with CUIs that were defined prior to the current ingestion. The "base64" CUI is the CUI of
+# last resort, and corresponds to a CUI that was created during this ingestion.
+# At this point in the script, each node is associated with one of the following, in order of preference:
+# 1. a UMLS CUI that is a direct reference
+# 2. a UMLS CUI that is a cross-reference
+# 3. a non-UMLS CUI (i.e., from a prior ingestion) that is a cross-reference
+# 4. a new base64 CUI
 
 # In[22]:
 print('Appending to CUI_CODES.csv...')
@@ -1010,6 +1067,8 @@ del df
 del newCUI_CODEs
 
 # #### Load SUIs from csv
+
+# JAS March 2023 - explanation: SUIs correspond to term values.
 
 # In[23]:
 
@@ -1046,6 +1105,9 @@ newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
 
 
 # #### Write CUI-SUIs (:START_ID,:END_ID)
+# JAS MARCH 2023
+# EXPLANATION: CUI-SUIs links terms for concepts--i.e., Terms with relationship PREF_TERM.
+
 print('Appending to CUI-SUIs.csv...')
 # In[25]:
 
@@ -1066,6 +1128,8 @@ newCUI_SUIs.to_csv(csv_path('CUI-SUIs.csv'), mode='a', header=False, index=False
 
 
 # #### Load CODE-SUIs and reduce to PT or SY
+# JAS MARCH 2023
+# EXPLANATION: CODE-SUIs.csv links terms for codes--i.e., terms with relationships that are either PT or SY.
 
 # In[26]:
 
@@ -1082,7 +1146,7 @@ CODE_SUIs = CODE_SUIs.dropna().drop_duplicates().reset_index(drop=True)
 
 # JAS MARCH 2023 - change to address issue #42.
 
-# JCS original comment:
+# JCS original comment (for archival; issue has been addressed)
 # This does NOT (yet) address two different owl files asserting two different SUIs as PT with the same CUI,CodeID
 # by choosing the first one in the build process (by comparing only three columns in the existence check)
 # - a Code/CUI would thus have only one PT relationship (to only one SUI) so that is not guaranteed right now
@@ -1192,6 +1256,8 @@ newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=Fal
 del newCODE_SUIs
 
 # #### Write DEFs (ATUI:ID, SAB, DEF) and DEFrel (:END_ID, :START_ID) - with check for any DEFs and existence check
+# JAS MARCH 2023
+# EXPLANATION: DEF.csv and DEFrel.csv contain information on Definition nodes in the knowledge graph.
 
 # In[30]:
 print('Appending to DEFs.csv and DEFrel.csv...')
