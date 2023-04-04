@@ -12,6 +12,8 @@ import subprocess
 from datetime import timedelta
 import json
 from typing import List
+import sys
+import shlex
 
 
 log_dir, log, log_config = 'builds/logs', 'pkt_build_log.log', glob.glob('**/logging.ini', recursive=True)
@@ -179,11 +181,33 @@ def verify_ontologies_json_file(ontologies: dict, ontologies_filename: str) -> N
 def fix_owlnets_metadata_file(working_owlnets_dir: str) -> None:
     owlnets_metadata_file: str = os.path.join(working_owlnets_dir, 'OWLNETS_node_metadata.txt')
     owlnets_metadata_orig_file: str = os.path.join(working_owlnets_dir, 'OWLNETS_node_metadata_orig.txt')
-    os.system(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
+    # JAS 4 APR 2023 - Replaced os.system call with subprocess and error handling.
+    #os.system(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
+    call_subprocess(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
+
     fix_owlnets_tsv_script: str = f"{FIX_OWLNETS_TSV_SCRIPT} --fix {owlnets_metadata_file} {owlnets_metadata_orig_file}"
     print_and_logger_info(f"Running: {fix_owlnets_tsv_script}")
-    os.system(fix_owlnets_tsv_script)
+    #os.system(fix_owlnets_tsv_script)
+    call_subprocess(fix_owlnets_tsv_script)
 
+# JAS APR 2023
+# subprocess handling to replace calls to sys.os
+def call_subprocess(command_line_str: str) -> None:
+
+    # Format arguments list.
+    # The assumption is that the argument was originally built for a call to sys.os.
+
+    runargs = shlex.split(command_line_str)
+
+    try:
+        subprocess.run(runargs, check=True)
+    except subprocess.CalledProcessError as e:
+        # Because capture_output was False, the exception from the subprocess will be displayed. Simply exit.
+        sys.exit()
+    return
+
+# ----------------------------
+# Start of main script
 
 ontology_names = [s.upper() for s in args.ontologies]
 
@@ -262,13 +286,17 @@ for ontology_name in ontology_names:
             with_imports = '--with_imports'
         owlnets_script: str = f"{OWLNETS_SCRIPT} --ignore_owl_md5 {clean} {force_owl_download} {with_imports} -l {args.owlnets_dir} -t {args.owltools_dir} -o {args.owl_dir} {owl_url} {owl_sab}"
         print_and_logger_info(f"Running: {owlnets_script}")
-        os.system(owlnets_script)
+        # JAS APR 2023 replaced call to os.system
+        # os.system(owlnets_script)
+        call_subprocess(owlnets_script)
 
         fix_owlnets_metadata_file(working_owlnets_dir)
     elif 'execute' in ontology_record:
         script: str = ontology_record['execute']
         print_and_logger_info(f"Running: {script}")
-        os.system(script)
+        # JAS 4 APR 2023 replaced call to os.system
+        # os.system(script)
+        call_subprocess(script)
     # JAS 13 OCT 2022 - allows skipping of PheKnowLator processing
     else:
         print_and_logger_info(f"Skipping PheKnowLator processing for Ontology: {ontology_name}.")
@@ -286,7 +314,10 @@ for ontology_name in ontology_names:
     # JAS 19 OCT 2022 added organism argument
     umls_graph_script: str = f"{UMLS_GRAPH_SCRIPT} {working_owlnets_dir} {args.umls_csvs_dir} {owl_sab}"
     print_and_logger_info(f"Running: {umls_graph_script}")
-    os.system(umls_graph_script)
+
+    # JAS 4 APR 2023 - Replaced os.system call with subprocess and error handling.
+    # os.system(umls_graph_script)
+    call_subprocess(umls_graph_script)
 
     lines_in_csv_files(args.umls_csvs_dir, save_csv_dir)
 
