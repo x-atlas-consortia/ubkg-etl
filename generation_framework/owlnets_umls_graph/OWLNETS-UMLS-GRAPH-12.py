@@ -515,6 +515,25 @@ if relations_file_exists:
                          'inverse_RO_frompredicatejoinlabel', 'relation_label_RO', 'inverse_RO']].rename(
         columns={'relation_label_RO': 'relation_label_RO_fromfilelabeljoinlabel',
                  'inverse_RO': 'inverse_RO_fromfilelabeljoinlabel'})
+# JAS APR 2023 - Add null columns if no relations file.
+else:
+    edgelist['relation_label_RO_fromfilelabeljoinlabel']=np.nan
+    edgelist['inverse_RO_fromfilelabeljoinlabel']=np.nan
+
+# JAS APR 2023 - Check for relationships in RO, considering the edgelist predicate as an abbreviated IRI
+# in format RO:code. (Use case: GTEX)
+# First, try to reformat the predicate string as a full IRI.
+edgelist['predicate_expanded'] = 'http://purl.obolibrary.org/obo/' + edgelist['predicate'].str.replace(':', '_')
+edgelist = edgelist.merge(dfrelationtriples, how='left', left_on='predicate_expanded',
+                          right_on='IRI').drop_duplicates().reset_index(drop=True)
+
+edgelist = edgelist[['subject', 'predicate', 'object', 'evidence_class', 'relation_label_from_file',
+                         'relation_label_RO_fromIRIjoin','inverse_RO_fromIRIjoin',
+                         'relation_label_RO_frompredicatejoinlabel','inverse_RO_frompredicatejoinlabel',
+                         'relation_label_RO_fromfilelabeljoinlabel','inverse_RO_fromfilelabeljoinlabel',
+                         'relation_label_RO', 'inverse_RO']].rename(
+        columns={'relation_label_RO': 'relation_label_RO_fromexpandedpredicate',
+                 'inverse_RO': 'inverse_RO_fromexpandedpredicate'})
 
 # We now have labels for relations and inverses for the following scenarios:
 # 1. relation_label_RO_fromIRIjoin/inverse_fromIRIjoin - predicate was a full IRI that was in RO
@@ -523,17 +542,28 @@ if relations_file_exists:
 # 3. relation_label_from_file/(null inverse) - relation label from the OWLNETS_relations.txt.
 #    The label is either the label of a relationship with IRI not in RO or a custom relationship label.
 # 4. predicate/(null inverse) - a custom relationship label
+# JAS APR 2023
+# 5. relation_label_RO_fromexpandedpredicate/inverse_RO_fromexpandedpredicate -
+#    The predicate was formatted as RO:code instead of as a full IRI.
 
 # Order of precedence for relationship/inverse relationship data:
 # 1. label from the edgelist predicate joined to RO by IRI
-# 2. label from the edgelist predicate joined to RO by label
-# 3. label from OWLNETS_relations.txt, joined against RO
-# 4. label from OWLNETS_relations.txt, not joined against RO
-# 5. predicate from edgelist
-# 6. 'subClassOf' predicates converted to 'isa'
-# 7. JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
+# JAS APR 2023
+# 2. label from the edgelist predicate formatted as RO:code, joined to RO by IRI
+# JAS APR 2023
+# 3. label from the edgelist predicate joined to RO by label
+# 4. label from OWLNETS_relations.txt, joined against RO
+# 5. label from OWLNETS_relations.txt, not joined against RO
+# 6. predicate from edgelist
+# 7. 'subClassOf' predicates converted to 'isa'
+# 8. JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
 
 edgelist['relation_label'] = edgelist['relation_label_RO_fromIRIjoin']
+
+# JAS APR 2023
+edgelist['relation_label'] = np.where(edgelist['relation_label'].isnull(),
+                                      edgelist['relation_label_RO_fromexpandedpredicate'], edgelist['relation_label'])
+
 edgelist['relation_label'] = np.where(edgelist['relation_label'].isnull(),
                                       edgelist['relation_label_RO_frompredicatejoinlabel'], edgelist['relation_label'])
 if relations_file_exists:
@@ -553,7 +583,14 @@ edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http:/
 # The algorithm for inverses is simpler: if one was derived from RO, use it; else leave empty, and
 # the script will create a pseudo-inverse.
 edgelist['inverse'] = edgelist['inverse_RO_fromIRIjoin']
+
+# JAS APR 2023
+edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_fromexpandedpredicate'],
+                               edgelist['inverse'])
+
 edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_frompredicatejoinlabel'],
+                               edgelist['inverse'])
+edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_fromexpandedpredicate'],
                                edgelist['inverse'])
 if relations_file_exists:
     edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_fromfilelabeljoinlabel'],
