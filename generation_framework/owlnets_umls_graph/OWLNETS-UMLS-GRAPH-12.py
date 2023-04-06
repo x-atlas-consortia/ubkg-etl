@@ -44,6 +44,7 @@ import json
 import os
 import fileinput
 
+
 # JAS FEB 2023
 # The codeReplacements function was originally part of this script. Because the function is now
 # needed by both this script and the skowlnets.py script, the function has been moved to the module
@@ -112,18 +113,20 @@ pd.set_option('display.max_colwidth', None)
 
 # In[2]:
 
-print('Reading OWLNETS files for ontology...')
+print('READING DATA FILES (edges, nodes, relations)...')
 
 # JAS 6 JAN 2023
 # The node file will be in one of two formats:
 # 1. OWLNETS
 # 2. UBKG edge/nodes
 
+
 nodefilelist = ['OWLNETS_node_metadata.txt','nodes.txt','nodes.tsv']
 nodepath = identify_source_file(nodefilelist)
 
 # JAS 6 JAN 2023 add optional columns (value, lowerbound, upperbound, unit) for UBKG edges/nodes files.
 # JAS 6 JAN 2023 skip bad rows. (There is at least one in line 6814 of the node_metadata file generated from EFO.)
+print('-- Reading nodes file...')
 node_metadata = pd.read_csv(owlnets_path(nodepath), sep='\t', on_bad_lines='skip')
 if 'value' not in node_metadata.columns:
     # This set of assertions does not have optional property/relationship columns.
@@ -132,13 +135,13 @@ if 'value' not in node_metadata.columns:
     node_metadata['upperbound'] = np.nan
     node_metadata['unit'] = np.nan
 
-
 # JAS Feb 2023 ignore 'node_namespace'. This is an artifact of the PheKnowLator output.
 # node_metadata = node_metadata[['node_id', 'node_namespace', 'node_label', 'node_definition', 'node_synonyms',
                                # 'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
+
 node_metadata = node_metadata[['node_id', 'node_label', 'node_definition', 'node_synonyms',
                                'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
-
+print('---- Dropping duplicate nodes...')
 # Replace 'None' with nan
 node_metadata = node_metadata.replace({'None': np.nan})
 # Drop nodes for which node_id is nan.
@@ -170,11 +173,11 @@ node_metadata = node_metadata.dropna(subset=['node_id']).drop_duplicates(subset=
 #    custom string.
 # Possible enhancement: identify relationship properties outside of RO. This would entail finding
 # equivalents of ro.json, or perhaps some form of API call.
-
+print('-- Reading optional relations file...')
 relations_file_exists = os.path.exists(owlnets_path('OWLNETS_relations.txt'))
 
 if relations_file_exists:
-    print('Obtaining relations data from relations metadata file.')
+    print('---- Relations metadata found; obtaining relations data from relations metadata file.')
     relations = pd.read_csv(owlnets_path("OWLNETS_relations.txt"), sep='\t')
     relations = relations.replace({'None': np.nan})
     relations = relations.dropna(subset=['relation_id']).drop_duplicates(subset='relation_id').reset_index(drop=True)
@@ -182,7 +185,7 @@ if relations_file_exists:
     relations.loc[relations['relation_label'].isnull(), 'relation_label'] = relations['relation_id'].str.split('#').str[
         -1]
 else:
-    print('No relations metadata found, so obtaining relations data from edgelist file.')
+    print('---- No relations metadata found; obtaining relations data from edgelist file.')
 
 # -------------------------------------------------------
 # EDGE LIST INFORMATION
@@ -194,9 +197,11 @@ else:
 # 1. OWLNETS
 # 2. UBKG edge/nodes
 
+print('-- Reading edge file...')
 edgefilelist = ['OWLNETS_edgelist.txt','edges.txt','edges.tsv']
 edgepath = identify_source_file(edgefilelist)
 
+print('---- Dropping duplicates, empty rows, and self-referential edges...')
 # JAS 6 JAN 2023 - add evidence_class; limit columns.
 edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
@@ -227,12 +232,13 @@ edgelist = edgelist[edgelist['subject'] != edgelist['object']].reset_index(drop=
 
 edgecount = len(edgelist.index)
 nodecount = len(node_metadata.index)
+print('-- Checking file statistics...')
+print('---- Number of edges in edgelist.txt:', edgecount)
+print('---- Number of nodes in node_metadata.txt', nodecount)
 
-print('Number of edges in edgelist.txt:', edgecount)
-print('Number of nodes in node_metadata.txt', nodecount)
 
 if edgecount > 500000 or nodecount > 500000:
-    print('WARNING: Large OWLNETS files may cause the script to terminate from memory issues.')
+    print('***** WARNING: Large data files may cause the script to terminate from memory issues.')
 
 
 # JAS 15 NOV 2022
@@ -265,7 +271,7 @@ if edgecount > 500000 or nodecount > 500000:
 # ### Join relation_label in edgelist, convert subClassOf to isa and space to _, CodeID formatting
 
 # In[7]:
-print('Establishing edges and inverse edges...')
+print('IDENTIFYING EDGES AND INVERSE EDGES...')
 
 # JAS 8 Nov 2022
 # The OWLNETS_relations.txt file is no longer required; however, if it is available, it will contain information for
@@ -294,7 +300,7 @@ else:
 # JAS string replacements moved to codeReplacements function.
 # edgelist['subject'] = \
 # edgelist['subject'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
-
+print('-- Formatting node IDs...')
 edgelist['subject'] = uparse.codeReplacements(edgelist['subject'],OWL_SAB)
 
 # JAS 15 NOV 2022
@@ -350,6 +356,7 @@ edgelist['object'] = uparse.codeReplacements(edgelist['object'],OWL_SAB)
 # or
 # "expresses" inverseOf "expressed in"
 
+print('-- Obtaining relationship reference information from Relations Ontology...')
 # Fetch the RO JSON.
 dfro = pd.read_json("https://raw.githubusercontent.com/oborel/obo-relations/master/ro.json")
 
@@ -467,6 +474,8 @@ dfrelationtriples = dfrelationtriples.drop(columns='inverse_IRI')
 # Perform a series of joins and rename resulting columns to keep track of the source of
 # relationship labels and inverse relationship labels.
 
+print('-- Translating predicates in edges file to relationships from Relations Ontology...')
+
 # Check for relationships in RO, considering the edgelist predicate as a *full IRI*.
 edgelist = edgelist.merge(dfrelationtriples, how='left', left_on='predicate',
                           right_on='IRI').drop_duplicates().reset_index(drop=True)
@@ -506,6 +515,25 @@ if relations_file_exists:
                          'inverse_RO_frompredicatejoinlabel', 'relation_label_RO', 'inverse_RO']].rename(
         columns={'relation_label_RO': 'relation_label_RO_fromfilelabeljoinlabel',
                  'inverse_RO': 'inverse_RO_fromfilelabeljoinlabel'})
+# JAS APR 2023 - Add null columns if no relations file.
+else:
+    edgelist['relation_label_RO_fromfilelabeljoinlabel']=np.nan
+    edgelist['inverse_RO_fromfilelabeljoinlabel']=np.nan
+
+# JAS APR 2023 - Check for relationships in RO, considering the edgelist predicate as an abbreviated IRI
+# in format RO:code. (Use case: GTEX)
+# First, try to reformat the predicate string as a full IRI.
+edgelist['predicate_expanded'] = 'http://purl.obolibrary.org/obo/' + edgelist['predicate'].str.replace(':', '_')
+edgelist = edgelist.merge(dfrelationtriples, how='left', left_on='predicate_expanded',
+                          right_on='IRI').drop_duplicates().reset_index(drop=True)
+
+edgelist = edgelist[['subject', 'predicate', 'object', 'evidence_class', 'relation_label_from_file',
+                         'relation_label_RO_fromIRIjoin','inverse_RO_fromIRIjoin',
+                         'relation_label_RO_frompredicatejoinlabel','inverse_RO_frompredicatejoinlabel',
+                         'relation_label_RO_fromfilelabeljoinlabel','inverse_RO_fromfilelabeljoinlabel',
+                         'relation_label_RO', 'inverse_RO']].rename(
+        columns={'relation_label_RO': 'relation_label_RO_fromexpandedpredicate',
+                 'inverse_RO': 'inverse_RO_fromexpandedpredicate'})
 
 # We now have labels for relations and inverses for the following scenarios:
 # 1. relation_label_RO_fromIRIjoin/inverse_fromIRIjoin - predicate was a full IRI that was in RO
@@ -514,17 +542,28 @@ if relations_file_exists:
 # 3. relation_label_from_file/(null inverse) - relation label from the OWLNETS_relations.txt.
 #    The label is either the label of a relationship with IRI not in RO or a custom relationship label.
 # 4. predicate/(null inverse) - a custom relationship label
+# JAS APR 2023
+# 5. relation_label_RO_fromexpandedpredicate/inverse_RO_fromexpandedpredicate -
+#    The predicate was formatted as RO:code instead of as a full IRI.
 
 # Order of precedence for relationship/inverse relationship data:
 # 1. label from the edgelist predicate joined to RO by IRI
-# 2. label from the edgelist predicate joined to RO by label
-# 3. label from OWLNETS_relations.txt, joined against RO
-# 4. label from OWLNETS_relations.txt, not joined against RO
-# 5. predicate from edgelist
-# 6. 'subClassOf' predicates converted to 'isa'
-# 7. JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
+# JAS APR 2023
+# 2. label from the edgelist predicate formatted as RO:code, joined to RO by IRI
+# JAS APR 2023
+# 3. label from the edgelist predicate joined to RO by label
+# 4. label from OWLNETS_relations.txt, joined against RO
+# 5. label from OWLNETS_relations.txt, not joined against RO
+# 6. predicate from edgelist
+# 7. 'subClassOf' predicates converted to 'isa'
+# 8. JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
 
 edgelist['relation_label'] = edgelist['relation_label_RO_fromIRIjoin']
+
+# JAS APR 2023
+edgelist['relation_label'] = np.where(edgelist['relation_label'].isnull(),
+                                      edgelist['relation_label_RO_fromexpandedpredicate'], edgelist['relation_label'])
+
 edgelist['relation_label'] = np.where(edgelist['relation_label'].isnull(),
                                       edgelist['relation_label_RO_frompredicatejoinlabel'], edgelist['relation_label'])
 if relations_file_exists:
@@ -544,7 +583,14 @@ edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http:/
 # The algorithm for inverses is simpler: if one was derived from RO, use it; else leave empty, and
 # the script will create a pseudo-inverse.
 edgelist['inverse'] = edgelist['inverse_RO_fromIRIjoin']
+
+# JAS APR 2023
+edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_fromexpandedpredicate'],
+                               edgelist['inverse'])
+
 edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_frompredicatejoinlabel'],
+                               edgelist['inverse'])
+edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_fromexpandedpredicate'],
                                edgelist['inverse'])
 if relations_file_exists:
     edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_fromfilelabeljoinlabel'],
@@ -580,13 +626,14 @@ edgelist.loc[edgelist['inverse'].isnull(), 'inverse'] = 'inverse_' + edgelist['r
 
 # In[11]:
 
-print('Cleaning up node metadata...')
+print('Translating node metadata...')
 
 # JAS 15 November string replacements moved to codeReplacements function.
 # node_metadata['node_id'] = \
 # node_metadata['node_id'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
 
 # Standardize format for node codes.
+print('-- Formatting node ids...')
 node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'], OWL_SAB)
 
 # NODE SYNONYMS
@@ -595,9 +642,11 @@ node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'], OWL
 # Synonyms for a node are in the node_synonyms column as a pipe-delimited string--e.g., "synonym 1|synonym 2".
 # Split the delimited string into a list. Each list element will become a separate Term node with a relationship
 # type SY with the node code.
+print('-- Preparing synonyms...')
 node_metadata.loc[node_metadata['node_synonyms'].notna(), 'node_synonyms'] = \
     node_metadata[node_metadata['node_synonyms'].notna()]['node_synonyms'].astype('str').str.split('|')
 
+print('-- Preparing cross-references: splitting and formatting...')
 # CROSS-REFERENCES
 # The dbxrefs column is, in general, a string in format
 # SAB<SAB-CODE delimiter>CODE<CODE-CODE delimiter>...
@@ -653,7 +702,7 @@ node_metadata['CODE'] = node_metadata['node_id'].str.split(' ').str[-1]
 
 # In[12]:
 
-print('Identifying cross-references that are UMLS CUIs...')
+print('-- Identifying cross-references that are UMLS CUIs...')
 
 # Separate code/CUI from SAB for each cross-reference.
 explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(' ').str[-1]
@@ -679,7 +728,7 @@ del explode_dbxrefs['nodeXrefCodes']
 # In[13]:
 
 # Read the large CUI-CODES.csv reference.
-print('--reading CUI-CODES.csv...')
+print('-- Reading existing CUIs from CUI-CODES.csv...')
 CUI_CODEs = pd.read_csv(csv_path("CUI-CODEs.csv"))
 CUI_CODEs = CUI_CODEs.dropna().drop_duplicates().reset_index(drop=True)
 
@@ -698,10 +747,10 @@ CUI_CODEs = CUI_CODEs.dropna().drop_duplicates().reset_index(drop=True)
 
 # In[14]:
 
-print('--flattening data from CUI_CODEs...')
+print('-- Flattening data from CUI_CODEs...')
 CODE_CUIs = CUI_CODEs.groupby(':END_ID', sort=False)[':START_ID'].apply(list).reset_index(name='CUI_CODEs')
 # JAS the call to upper is new.
-print('--merging data from CUI_CODEs to node metadata...')
+print('-- Merging data from CUI_CODEs with node metadata...')
 node_metadata = node_metadata.merge(CODE_CUIs, how='left', left_on='node_id', right_on=CODE_CUIs[':END_ID'].str.upper())
 del CODE_CUIs
 del node_metadata[':END_ID']
@@ -722,6 +771,9 @@ del node_metadata[':END_ID']
 # Original code
 # node_xref_cui = explode_dbxrefs.merge(CUI_CODEs, how='inner', left_on='node_dbxrefs', right_on=':END_ID')
 # New code uses upper.
+
+print('-- Identifying non-UMLS cross-references from CUI-CODEs.csv...')
+
 node_xref_cui = explode_dbxrefs.merge(CUI_CODEs, how='inner', left_on='node_dbxrefs',
                                       right_on=CUI_CODEs[':END_ID'].str.upper())
 # JAS FEB 2023 Adding group_keys=False to silence the FutureWarning.
@@ -744,14 +796,14 @@ def base64it(x):
 # EXPLANATION: the base64-encoded CUI will be assigned to a node if the node is brand new to the
 # knowledge graph--i.e., if it cannot be associated by either direct reference or cross-reference to another
 # CUI that already exists in the knowledge graph at the time of ingestion.
-
+print('-- Defining base64 CUIs for nodes...')
 node_metadata['base64cui'] = node_metadata['node_id'].apply(base64it)
 
 # ### Add cuis list and preferred cui to complete the node "atoms" (code, label, syns, xrefs, cuis, CUI)
 
 # In[17]:
 
-print('--Assigning preferred CUIs to nodes...')
+print('-- Assigning CUIs to nodes in order of preference (UMLS cross-reference CUI > UMLS direct reference CUI > non-UMLS cross-reference CUI > base64 CUI) ...')
 # create correct length lists
 node_metadata['cuis'] = node_metadata['base64cui']
 node_metadata['CUI'] = ''
@@ -828,7 +880,7 @@ node_metadata['CUI'] = nmCUI
 # ### Join CUI from node_metadata to each edgelist subject and object
 
 # #### Assemble CUI-CUIs
-print('Assembling CUI-CUI relationships...')
+print('-- Assembling CUI-CUI (concept-concept) relationships...')
 # In[18]:
 # Merge subject and object nodes with their CUIs; drop the codes; and add the SAB.
 
@@ -926,12 +978,13 @@ edgelist['SAB'] = OWL_SAB
 # Self-references are introduced in the assignment of nodes to preferred CUIs, in the case where the CUI is for
 # a cross-reference that is itself cross-referenced to another CUI.
 
-print('Removing self-reference edges...')
+print('-- Removing self-reference edges introduced from CUI assignment...')
 edgelist = edgelist[edgelist['CUI1']!=edgelist['CUI2']]
 
 
 # --------------------------------------------------
 # ## Write out files
+print('APPENDING TO ONTOLOGY CSVs...')
 
 # ### Test existence when appropriate in original csvs and then add data for each csv
 
@@ -942,23 +995,24 @@ edgelist = edgelist[edgelist['CUI1']!=edgelist['CUI2']]
 # (no prior-existence-check because want them in this SAB)
 
 # In[19]:
-print('Appending to CUI-CUIs.csv...')
+print('-- Appending to CUI-CUIs.csv...')
 
 # TWO WRITES comment out during development
 
 # JAS 6 JAN 2023 Add evidence_class column to file.
-print('Adding evidence_class column to CUI-CUIs.csv...')
+print('---- Adding evidence_class column to CUI-CUIs.csv...')
 fcsv = csv_path('CUI-CUIs.csv')
 # evidence_class should be a string.
 new_header_columns = [':START_ID', ':END_ID', ':TYPE,SAB', 'evidence_class:string']
 update_columns_to_csv_header(fcsv, new_header_columns)
 
+print('---- Appending forward relationships...')
 # forward ones
 # JAS 6 JAN 2023 Add evidence_class. (The SAB column was added after evidence_class above.)
 edgelist.columns = [':START_ID', ':TYPE', ':END_ID', 'inverse', 'evidence_class', 'SAB']
 edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']].to_csv(csv_path('CUI-CUIs.csv'), mode='a',
                                                                             header=False, index=False)
-
+print('---- Appending inverse relationships...')
 # reverse ones
 # JAS 6 JAN 2023 Add evidence_class. (The SAB column was added after evidence_class above.)
 edgelist.columns = [':END_ID', 'relation_label', ':START_ID', ':TYPE', 'evidence_class', 'SAB']
@@ -973,10 +1027,10 @@ del edgelist
 
 # In[20]:
 
-print('Appending to CODEs.csv...')
+print('-- Appending to CODEs.csv...')
 
 # JAS 6 JAN 2023 Add value, lowerbound, upperbound, unit column to file.
-print('Adding value, lowerbound, upperbound, unit columns to CODES.csv...')
+print('---- Adding value, lowerbound, upperbound, unit columns to CODES.csv...')
 fcsv = csv_path('CODEs.csv')
 # value, lowerbound, and upperbound should be numbers.
 new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit']
@@ -989,9 +1043,10 @@ newCODEs = newCODEs.drop(columns=['CUI_CODEs'])
 newCODEs = newCODEs.rename({'node_id': 'CodeID:ID'}, axis=1)
 
 # JAS 6 JAN 2023 add subset to ignore optional columns. Add fillna to remove NaNs from optional columns.
-subset = subset = ['CodeID:ID', 'SAB', 'CODE']
+subset = ['CodeID:ID', 'SAB', 'CODE']
 newCODEs = newCODEs.dropna(subset=subset).drop_duplicates(subset=subset).reset_index(drop=True).fillna('')
 # write/append - comment out during development
+print('---- Appending...')
 newCODEs.to_csv(csv_path('CODEs.csv'), mode='a', header=False, index=False)
 
 del newCODEs
@@ -1003,7 +1058,7 @@ del newCODEs
 
 # In[21]:
 
-print('Appending to CUIs.csv...')
+print('-- Appending to CUIs.csv...')
 CUIs = CUI_CODEs[[':START_ID']].dropna().drop_duplicates().reset_index(drop=True)
 CUIs.columns = ['CUI:ID']
 
@@ -1039,7 +1094,7 @@ newCUIs.to_csv(csv_path('CUIs.csv'), mode='a', header=False, index=False)
 # 4. a new base64 CUI
 
 # In[22]:
-print('Appending to CUI_CODES.csv...')
+print('-- Appending to CUI_CODES.csv...')
 
 # The last CUI in cuis is always base64 of node_id - here we grab those only if they are the selected CUI (and all CUIs)
 newCUI_CODEsCUI = node_metadata[['CUI', 'node_id']]
@@ -1080,26 +1135,30 @@ SUIs = SUIs.dropna().drop_duplicates().reset_index(drop=True)
 # #### Write SUIs (SUI:ID,name) part 1, from label - with existence check
 
 # In[24]:
-print('Appending to SUIs.csv...')
+print('-- Appending terms to SUIs.csv...')
 
-newSUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[
-    ['node_id', 'node_label', 'CUI', 'SUI:ID', 'name']]
+# JAS APR 2023
+# Only look for SUIs if the nodes in the node file have labels.
 
-# for Term.name that don't join with node_label update the SUI:ID with base64 of node_label
-newSUIs.loc[(newSUIs['name'] != newSUIs['node_label']), 'SUI:ID'] = \
-    newSUIs[newSUIs['name'] != newSUIs['node_label']]['node_label'].apply(base64it).str[0]
+if node_metadata['node_label'].notna().values.any():
+    newSUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['node_id', 'node_label', 'CUI', 'SUI:ID', 'name']]
 
-# change field names and isolate non-matched ones (don't exist in SUIs file)
-newSUIs.columns = ['node_id', 'name', 'CUI', 'SUI:ID', 'OLDname']
-newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI', 'SUI:ID']]
-newSUIs = newSUIs.dropna().drop_duplicates().reset_index(drop=True)
-newSUIs = newSUIs[['SUI:ID', 'name']]
+    # for Term.name that don't join with node_label update the SUI:ID with base64 of node_label
+    newSUIs.loc[(newSUIs['name'] != newSUIs['node_label']), 'SUI:ID'] = \
+        newSUIs[newSUIs['name'] != newSUIs['node_label']]['node_label'].apply(base64it).str[0]
 
-# update the SUIs dataframe to total those that will be in SUIs.csv
-SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
+    # change field names and isolate non-matched ones (don't exist in SUIs file)
+    newSUIs.columns = ['node_id', 'name', 'CUI', 'SUI:ID', 'OLDname']
+    newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI', 'SUI:ID']]
+    newSUIs = newSUIs.dropna().drop_duplicates().reset_index(drop=True)
+    newSUIs = newSUIs[['SUI:ID', 'name']]
 
-# write out newSUIs - comment out during development
-newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
+    # update the SUIs dataframe to total those that will be in SUIs.csv
+    SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
+
+    # write out newSUIs - comment out during development
+    newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
+
 
 # del newSUIs - not here because we use this dataframe name later
 
@@ -1108,20 +1167,24 @@ newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
 # JAS MARCH 2023
 # EXPLANATION: CUI-SUIs links terms for concepts--i.e., Terms with relationship PREF_TERM.
 
-print('Appending to CUI-SUIs.csv...')
+print('-- Appending terms to CUI-SUIs.csv...')
 # In[25]:
+
 
 # get the newCUIs associated metadata (CUIs are unique in node_metadata)
 newCUI_SUIs = newCUIs.merge(node_metadata, how='inner', left_on='CUI:ID', right_on='CUI')
-newCUI_SUIs = newCUI_SUIs[['node_label', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
-# get the SUIs matches
-newCUI_SUIs = newCUI_SUIs.merge(SUIs, how='left', left_on='node_label', right_on='name')[
+# JAS APR 2023 Only look for SUIs if there are values for node_label.
+if newCUI_SUIs['node_label'].notna().values.any():
+    newCUI_SUIs = newCUI_SUIs[['node_label', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
+
+    # get the SUIs matches
+    newCUI_SUIs = newCUI_SUIs.merge(SUIs, how='left', left_on='node_label', right_on='name')[
     ['CUI', 'SUI:ID']].dropna().drop_duplicates().reset_index(drop=True)
-newCUI_SUIs.columns = [':START:ID', ':END_ID']
+    newCUI_SUIs.columns = [':START:ID', ':END_ID']
 
-# write/append - comment out during development
-newCUI_SUIs.to_csv(csv_path('CUI-SUIs.csv'), mode='a', header=False, index=False)
+    # write/append - comment out during development
+    newCUI_SUIs.to_csv(csv_path('CUI-SUIs.csv'), mode='a', header=False, index=False)
 
 # del newCUIs
 # del newCUI_SUIs
@@ -1133,7 +1196,7 @@ newCUI_SUIs.to_csv(csv_path('CUI-SUIs.csv'), mode='a', header=False, index=False
 
 # In[26]:
 
-print('Appending to CODE-SUIs.csv...')
+print('-- Appending terms to CODE-SUIs.csv...')
 
 CODE_SUIs = pd.read_csv(csv_path("CODE-SUIs.csv"))
 CODE_SUIs = CODE_SUIs[((CODE_SUIs[':TYPE'] == 'PT') | (CODE_SUIs[':TYPE'] == 'SY'))]
@@ -1163,41 +1226,45 @@ CODE_SUIs = CODE_SUIs.dropna().drop_duplicates().reset_index(drop=True)
 #   If the SAB for the assertion set/ontology is the same as the SAB for the code, then PT
 #   else <SAB>_PT
 # get the SUIs matches for SUIs
-newCODE_SUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
-newCODE_SUIs.insert(2, ':TYPE', 'PT')
+# JAS APR 2023:
+# Only check for SUIs if there is a value for node_label.
+if node_metadata['node_label'].notna().values.any():
+    newCODE_SUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
-# Change: if a term is being associated with a code by an ontology/set of assertions, it should be a PT only
-# if the code belongs to the ontology; otherwise, the term should be a "SAB PT".
-# For example, suppose that the following order of ingestion occurs:
-# PATO, MP, UBERON
-# The MP ontology uses codes from PATO, UBERON, and MP.
+    newCODE_SUIs.insert(2, ':TYPE', 'PT')
 
-# 1. MP codes will have a PT term.
-# 2. PATO codes will have terms with the following relationships:
-#    a. PT - from the ingestion of PATO
-#    b. MP_PT - from the ingestion of MP
-# 3. UBERON codes will have terms with the following relationships:
-#    a. PT - from the ingestion of UBERON
-#    b. PATO_PT - from the ingestion of PATO
-#    c. MP_PT - from the ingestion of MP
+    # Change: if a term is being associated with a code by an ontology/set of assertions, it should be a PT only
+    # if the code belongs to the ontology; otherwise, the term should be a "SAB PT".
+    # For example, suppose that the following order of ingestion occurs:
+    # PATO, MP, UBERON
+    # The MP ontology uses codes from PATO, UBERON, and MP.
 
-# If terms for codes are different in the different ontologies (e.g. MP, UBERON, and PATO used different terms to
-# describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
-# there would be just one term, but with multiple relationships.
+    # 1. MP codes will have a PT term.
+    # 2. PATO codes will have terms with the following relationships:
+    #    a. PT - from the ingestion of PATO
+    #    b. MP_PT - from the ingestion of MP
+    # 3. UBERON codes will have terms with the following relationships:
+    #    a. PT - from the ingestion of UBERON
+    #    b. PATO_PT - from the ingestion of PATO
+    #    c. MP_PT - from the ingestion of MP
 
-newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]),'PT',OWL_SAB+'_PT')
+    # If terms for codes are different in the different ontologies (e.g. MP, UBERON, and PATO used different terms to
+    # describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
+    # there would be just one term, but with multiple relationships.
 
-newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]),'PT',OWL_SAB+'_PT')
 
-# Here we isolate only the rows not already matching in existing files
-df = newCODE_SUIs.drop_duplicates().merge(CODE_SUIs.drop_duplicates(), on=CODE_SUIs.columns.to_list(), how='left',
+    newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+
+    # Here we isolate only the rows not already matching in existing files
+    df = newCODE_SUIs.drop_duplicates().merge(CODE_SUIs.drop_duplicates(), on=CODE_SUIs.columns.to_list(), how='left',
                                           indicator=True)
-newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
-newCODE_SUIs.reset_index(drop=True, inplace=True)
+    newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
+    newCODE_SUIs.reset_index(drop=True, inplace=True)
 
-# write out newCODE_SUIs - comment out during development
-newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
+    # write out newCODE_SUIs - comment out during development
+    newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
 
 # del newCODE_SUIs - will use this variable again later (though its overwrite)
 
@@ -1208,59 +1275,65 @@ newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=Fal
 
 
 # explode and merge the synonyms
+print ('-- Appending synonyms to SUIs.csv...')
 explode_syns = node_metadata.explode('node_synonyms')[
     ['node_id', 'node_synonyms', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
-newSUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
+
+# JAS APR 2023 only check SUIs if there are values for node_synonyms.
+if explode_syns['node_synonyms'].notna().values.any():
+    newSUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
     ['node_id', 'node_synonyms', 'CUI', 'SUI:ID', 'name']]
 
-# for Term.name that don't join with node_synonyms update the SUI:ID with base64 of node_synonyms
-newSUIs.loc[(newSUIs['name'] != newSUIs['node_synonyms']), 'SUI:ID'] = \
+    # for Term.name that don't join with node_synonyms update the SUI:ID with base64 of node_synonyms
+    newSUIs.loc[(newSUIs['name'] != newSUIs['node_synonyms']), 'SUI:ID'] = \
     newSUIs[newSUIs['name'] != newSUIs['node_synonyms']]['node_synonyms'].apply(base64it).str[0]
 
-# change field names and isolate non-matched ones (don't exist in SUIs file)
-newSUIs.columns = ['node_id', 'name', 'CUI', 'SUI:ID', 'OLDname']
-newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI', 'SUI:ID']]
-newSUIs = newSUIs.dropna().drop_duplicates().reset_index(drop=True)
-newSUIs = newSUIs[['SUI:ID', 'name']]
+    # change field names and isolate non-matched ones (don't exist in SUIs file)
+    newSUIs.columns = ['node_id', 'name', 'CUI', 'SUI:ID', 'OLDname']
+    newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI', 'SUI:ID']]
+    newSUIs = newSUIs.dropna().drop_duplicates().reset_index(drop=True)
+    newSUIs = newSUIs[['SUI:ID', 'name']]
 
-# update the SUIs dataframe to total those that will be in SUIs.csv
-SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
+    # update the SUIs dataframe to total those that will be in SUIs.csv
+    SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
 
-# write out newSUIs - comment out during development
-newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
+    # write out newSUIs - comment out during development
+    newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
 
-del newSUIs
+    del newSUIs
 # del explode_syns
 
 
 # #### Write CODE-SUIs (:END_ID,:START_ID,:TYPE,CUI) part 2, from synonyms - with existence check
 
 # In[29]:
-
-
+print('-- Appending synonyms to CODE-SUIs.csv...')
 # get the SUIs matches
-newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
+
+# JAS APR 2023 only merge if node_synonyms has values.
+if explode_syns['node_synonyms'].notna().values.any():
+    newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
     ['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
-newCODE_SUIs.insert(2, ':TYPE', 'SY')
-newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+    newCODE_SUIs.insert(2, ':TYPE', 'SY')
+    newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
-# Compare the new and old retaining only new
-df = newCODE_SUIs.drop_duplicates().merge(CODE_SUIs.drop_duplicates(), on=CODE_SUIs.columns.to_list(), how='left',
+    # Compare the new and old retaining only new
+    df = newCODE_SUIs.drop_duplicates().merge(CODE_SUIs.drop_duplicates(), on=CODE_SUIs.columns.to_list(), how='left',
                                           indicator=True)
-newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
-newCODE_SUIs.reset_index(drop=True, inplace=True)
+    newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
+    newCODE_SUIs.reset_index(drop=True, inplace=True)
 
-# write out newCODE_SUIs - comment out during development
-newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
+    # write out newCODE_SUIs - comment out during development
+    newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
 
-del newCODE_SUIs
+    del newCODE_SUIs
 
 # #### Write DEFs (ATUI:ID, SAB, DEF) and DEFrel (:END_ID, :START_ID) - with check for any DEFs and existence check
 # JAS MARCH 2023
 # EXPLANATION: DEF.csv and DEFrel.csv contain information on Definition nodes in the knowledge graph.
 
 # In[30]:
-print('Appending to DEFs.csv and DEFrel.csv...')
+print('--Appending to DEFs.csv and DEFrel.csv...')
 
 if node_metadata['node_definition'].notna().values.any():
     DEFs = pd.read_csv(csv_path("DEFs.csv"))

@@ -124,6 +124,9 @@ def codeReplacements(x, ingestSAB: str):
     ret = np.where(x.str.contains('http://purl.humanatlas.io/valueset/'), 'HRAVS ' + x.str.split('/').str[-1], ret)
     ret = np.where(x.str.contains('Thesaurus.owl'), 'NCI ' + x.str.split('#').str[-1], ret)
 
+    # JAS APR 2023 - Special case: GTEX, which formats the SAB as GTEX_(subcategory) (code).
+    ret = np.where(x.str.contains('GTEX_'),x.str.split(' ').str[0]+' '+ x.str.split(' ').str[-1],ret)
+
     # JAS 12 JAN 2023 - Force SAB to uppercase.
     # The CodeId will be in format SAB <space> <other string>, and <other string> can be mixed case.
     # <other string> can also have spaces.

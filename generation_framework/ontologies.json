@@ -198,5 +198,13 @@
   "AZ": {
     "comment": "Azimuth annotations, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py SimpleKnowledgeAzimuth.xlsx AZ"
+  },
+  "GTEX_EXP": {
+    "comment": "GTEX_EXP data in edges/nodes format",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEX_EXP"
+  },
+  "GTEX_COEXP": {
+    "comment": "GTEX_COEXP data in edges/nodes format",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEX_COEXP"
   }
 }
