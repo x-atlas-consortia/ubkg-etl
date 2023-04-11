@@ -85,18 +85,17 @@ class RawTextArgumentDefaultsHelpFormatter(
 
 # https://docs.python.org/3/howto/argparse.html
 parser = argparse.ArgumentParser(
-    description='Build .csv files from .owl files using PheKnowLator and Jonathan''s script',
+    description='Build .csv files from source files, including OWL files',
     formatter_class=RawTextArgumentDefaultsHelpFormatter)
 parser.add_argument('ontologies', nargs='*')
 parser.add_argument("-f", '--ontologies_json', type=str, default='./ontologies.json',
                     help='file containing the ontology definitions referenced by the command line arguments')
 parser.add_argument("-u", '--umls_csvs_dir', type=str, default='../neo4j/import/current',
-                    help='directory containing the UMLS Graph Extract .csv files modified by Jonathan''s script')
+                    help='directory containing the ontology CSV files')
 parser.add_argument("-l", "--owlnets_dir", type=str, default='./owlnets_output',
-                    help='directory containing the owlnets directories from a run of PheKnowLator'
-                         ' which is used by Jonathan''s script')
+                    help='directory containing the owlnets directories from a run of PheKnowLator')
 parser.add_argument("-t", "--owltools_dir", type=str, default='./pkt_kg/libs',
-                    help='directory where the owltools executable is downloaded to')
+                    help='directory where the PheKnowLator owltools executable is downloaded to')
 parser.add_argument("-o", "--owl_dir", type=str, default='./owl',
                     help='directory used for the owl input files')
 parser.add_argument("-O", "--oneOwl", type=str, default=None,

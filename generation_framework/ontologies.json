@@ -180,7 +180,7 @@
     "home_url": "https://bioportal.bioontology.org/ontologies/XCO",
     "comment": "XCO from GZipped CSV",
     "execute": "./gzip_csv/gzip_csv_owlnets.py 'https://data.bioontology.org/ontologies/XCO/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=csv' XCO"
-   },
+  },
   "HRAVS": {
     "home_url": "https://bioportal.bioontology.org/ontologies/HRAVS",
     "comment": "The value set for the Human Reference Atlas metadata records as part of the Human BioMolecular Atlas Program (HuBMAP)",
@@ -206,5 +206,14 @@
   "GTEX_COEXP": {
     "comment": "GTEX_COEXP data in edges/nodes format",
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEX_COEXP"
+  },
+  "GENCODE": {
+    "comment": "Data from GenCode",
+    "execute": "./gencode/gencode.py"
+  },
+  "NPOSKCAN": {
+    "owl_url": "https://github.com/SciCrunch/NIF-Ontology/releases/download/sckan-2023-01-23/npo-simple-sckan-merged.ttl",
+    "home_url": "https://github.com/SciCrunch/NIF-Ontology",
+    "comment": "NPO-SKCAN in Turtle"
   }
 }
