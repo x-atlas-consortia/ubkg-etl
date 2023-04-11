@@ -7,7 +7,10 @@
 import os
 import sys
 import argparse
+from tqdm import tqdm
 import pandas as pd
+import numpy as np
+
 
 # Import the GZIP extraction module, which is in a directory that is at the same level as the script directory.
 # Go "up and over" for an absolute path.
@@ -46,12 +49,44 @@ def get_source_files(owl_dir: str, owlnets_dir: str)-> list[str]:
 
     return list_gtf
 
+def load_GTF_into_DataFrame(file_pattern:str, path: str, skip_lines:int=0) -> pd.DataFrame:
+
+    # Loads a GTF file into a Pandas DataFrame.
+    # file_pattern: portion of a name of a GTF file--e.g., "annotation"
+    # path: path to folder containing GTF files.
+    # skip_lines: number of lines to skip
+
+    list_gtf = os.listdir(path)
+
+    for filename in list_gtf:
+        if file_pattern in filename:
+            gtffile = os.path.join(path,filename)
+            ulog.print_and_logger_info(f'Loading {gtffile} into Pandas.')
+
+            # Get number of lines in file.
+            with open(gtffile, 'r') as fp:
+                lines = len(fp.readlines())
+            # Read file in chunks, updating progress bar after each chunk.
+            listdf = []
+            with tqdm(total=lines,desc='Loading file') as bar:
+                for chunk in pd.read_csv(gtffile,chunksize=1000,comment='#',sep='\t',nrows=5):
+                    listdf.append(chunk)
+                    bar.update(chunk.shape[0])
+
+            df = pd.concat(listdf,axis=0,ignore_index=True)
+            return df
+
+    ulog.print_and_logger_info(f'Error: missing file with name that includes \'{file_pattern}\'.')
+    exit(1)
+
 
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
     argparse.RawTextHelpFormatter
 ):
     pass
+
+
 
 # ---------------------------------
 # START
@@ -69,12 +104,18 @@ args = parser.parse_args()
 
 # Download and decompress GZIP files of GENCODE content from FTP site.
 if args.skipExtract is True:
-    ulog.print_and_logger_info('Skipping download of source files from GenCode')
+    ulog.print_and_logger_info('Skipping download of source files from GenCode.')
     list_gtf = os.listdir(args.owlnets_dir)
 else:
     list_gtf = get_source_files(args.owl_dir,args.owlnets_dir)
 
-print(list_gtf)
+
+# Read GTF files into DataFrames.
+dfAnnotation = load_GTF_into_DataFrame(file_pattern="annotation",path=args.owlnets_dir,skip_lines=5)
+dfAnnotation.columns=['chromosome_name','annotation_source','feature_type','genomic_start_location','genomic_end_location','score','genomic_strand','genomic_phase','column_9']
+
+print(dfAnnotation)
+
 
 raise Exception ("DEBUG")
 

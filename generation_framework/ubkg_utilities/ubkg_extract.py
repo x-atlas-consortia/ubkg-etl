@@ -9,7 +9,7 @@ import requests
 import os
 import gzip
 from tqdm import tqdm
-import mmap
+
 
 import ubkg_logging as ulog
 
