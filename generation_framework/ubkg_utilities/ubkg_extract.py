@@ -13,61 +13,80 @@ import mmap
 
 import ubkg_logging as ulog
 
-def download_file(url: str, fname: str, chunk_size=1024):
+def download_file(url: str, download_full_path: str, encoding: str,chunk_size=1024):
 
     # Downloads a file, displaying a TQDM progress bar.
 
-    # Get the size of the response (downloaded file).
-    headers = {'Accept-encoding': 'gzip'}
-    resp = requests.get(url, stream=True,headers=headers)
-    total = int(resp.headers.get('content-length', 0))
+    # Arguments:
+    # url - URL to execute to download file.
+    # download_full_path - full path for local storage of file, including file name.
+    #                      (Some download URLs, such as in NCBO BioPortal, are complex, with things like API keys, so
+    #                      extracting file names may not be simple.)
+    # encoding: allows for various forms of encoding. This has only been validated for the following cases:
+    #           1. gzip
+    #           2. no encoding
+    # chunk_size: used to set the resolution of the progress update.
 
-    ulog.print_and_logger_info(f'Downloading...')
+    # Passing gzip encoding will trigger automatic gzip decompression.
+    if encoding !='':
+        headers = {'Accept-encoding': encoding}
+
+    response = requests.get(url, stream=True,headers=headers)
+
+    # Get the size of the response (downloaded file).
+    #total = int(resp.headers.get('content-length', 0))
+    total = int(response.headers.get('content-length', 0))
+
     # Download the file, updating the progress bar.
-    with open(fname, 'wb') as file, tqdm(
-        desc=fname,
+    ulog.print_and_logger_info(f'Downloading...')
+    with open(download_full_path, 'wb') as file, tqdm(
+        desc=download_full_path,
         total=total,
         unit='iB',
         unit_scale=True,
         unit_divisor=1024,
     ) as bar:
-        for data in resp.iter_content(chunk_size=chunk_size):
+        for data in response.iter_content(chunk_size=chunk_size):
             size = file.write(data)
             bar.update(size)
 
     return
 
-def extract_from_gzip(zipfilename: str, outputpath: str):
+def extract_from_gzip(zipfilename: str, outputpath: str) -> str:
 
     # Extracts a file from the GZIP archive with file name zipfilename to outputpath.
+    # Returns the full path to the extracted file.
 
-    # Write output to a file with the same name as the Zip, minus the file extension.
-    extract_filename = zipfilename[0:zipfilename.rfind('.')]
-    extract_filename = extract_filename[extract_filename.rfind('/')+1:]
-    extract_path = os.path.join(outputpath,extract_filename)
-    ulog.print_and_logger_info(f'Expanding to {extract_path}')
+    # Assumptions:
+    # 1. The GZIP contains one file.
+    # 2. The GZIP file is likely to have a file extension of GZ.
+    # 3. The GZIP file is binary.
+    # 4. The file is UTF-8 encoded.
 
-    with gzip.open(zipfilename, 'rb') as fzip:
+    #Decompress
+    with open(zipfilename,'rb') as fzip:
+        file_content = gzip.decompress(fzip.read()).decode('utf-8')
 
-        fileread= fzip.read()
-        try:
-            file_content = gzip.decompress(fileread)
-        except gzip.BadGzipFile as e:
-            file_content = fileread
-            ulog.print_and_logger_info(f'Not a GZipped file: {zipfilename}')
+    # Write output to a file with the same name as the Zip, minus the GZ file extension, if applicable.
+    extract_filename = zipfilename[zipfilename.rfind('/') + 1:]
+    extract_extension = extract_filename[extract_filename.rfind('.'):len(extract_filename)]
+    if extract_extension.lower() == '.gz':
+        extract_filename = extract_filename[0:extract_filename.rfind(extract_extension)]
 
-        ulog.print_and_logger_info('Writing to output...')
-        with open(extract_path, 'wt') as fout:
-            fout.write(str(file_content, 'utf-8'))
+    extract_path = os.path.join(outputpath, extract_filename)
+    ulog.print_and_logger_info(f'Writing to {extract_path}')
+    with open(extract_path, 'w') as fout:
+        fout.write(file_content)
+    return extract_path
 
-    return
+def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str) -> str:
 
-def get_gzipped_file(gzip_url: str, owl_path: str, owlnets_path: str):
-
-    # Downloads a GZIP archive and extracts the contents to the specified path.
+    # Downloads a GZIP archive to the specified folder and extracts the contents to the specified path.
+    # Returns the full path to the extracted file.
 
     # Arguments:
-    # gzip_url - full URL to GZIP file
+    # gzip_url - full URL to file
+    # zip_path - path of directory to which to download the ZIP file
     # extract_path - path of directory for file to be extracted from GZIP.
 
     # Assumptions:
@@ -76,13 +95,10 @@ def get_gzipped_file(gzip_url: str, owl_path: str, owlnets_path: str):
 
     # The URL contains the filename.
     zip_filename = gzip_url.split('/')[-1]
-    zip_path = os.path.join(owl_path, zip_filename)
+    zip_full_path = os.path.join(zip_path, zip_filename)
 
     # Download GZIP file.
-
-    download_file(url=gzip_url,fname=zip_path,chunk_size=1024)
+    download_file(url=gzip_url,download_full_path=zip_full_path,encoding='gzip',chunk_size=1024)
 
     # Extract compressed content.
-    extract_from_gzip(zipfilename=zip_path,outputpath=owlnets_path)
-
-    return
+    return extract_from_gzip(zipfilename=zip_full_path,outputpath=extract_path)

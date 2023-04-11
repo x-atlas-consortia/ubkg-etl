@@ -1,2 +1,0 @@
-https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/gencode.v41.annotation.gtf.gz
-https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/gencode.v41.metadata.EntrezGene.gz
