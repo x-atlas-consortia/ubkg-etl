@@ -30,3 +30,5 @@ generation_framework/robot
 
 api/*
 
+# Jupyter
+.ipynb_checkpoints
