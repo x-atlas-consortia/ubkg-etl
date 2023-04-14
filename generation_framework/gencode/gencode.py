@@ -12,17 +12,19 @@ import pandas as pd
 import numpy as np
 
 
-# Import the GZIP extraction module, which is in a directory that is at the same level as the script directory.
+# Import UBKG utilities which is in a directory that is at the same level as the script directory.
 # Go "up and over" for an absolute path.
 fpath = os.path.dirname(os.getcwd())
 fpath = os.path.join(fpath,'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
+# Extraction module
 import ubkg_extract as uextract
+# Logging module
 import ubkg_logging as ulog
 
 #-----------------------------
 
-def get_source_files(owl_dir: str, owlnets_dir: str)-> list[str]:
+def download_source_files(owl_dir: str, owlnets_dir: str)-> list[str]:
     # Obtains source files from GENCODE FTP site.
 
     # Returns a list of full paths to files extracted from downloaded files.
@@ -42,8 +44,8 @@ def get_source_files(owl_dir: str, owlnets_dir: str)-> list[str]:
                 list_gtf.append(uextract.get_gzipped_file(url, owl_dir, owlnets_dir))
 
     except FileNotFoundError as e:
-        ulog.print_and_logger_info(
-            'Missing file of URLs of files to download named \'gencode_urls.txt\'.')
+        raise(e)
+        ulog.print_and_logger_info('Missing file of URLs of files to download named \'gencode_urls.txt\'.')
         exit(1)
 
 
@@ -62,32 +64,13 @@ def load_GTF_into_DataFrame(file_pattern:str, path: str, skip_lines: int=0, rows
     for filename in list_gtf:
         if file_pattern in filename:
             gtffile = os.path.join(path,filename)
-            ulog.print_and_logger_info(f'Loading {gtffile} into Pandas.')
-
-            # Get number of lines in file.
-            with open(gtffile, 'r') as fp:
-                lines = len(fp.readlines())
-
-            if rows_to_read == 0:
-                nrows = lines
-            else:
-                nrows = rows_to_read
-
-            # Read file in chunks, updating progress bar after each chunk.
-            listdf = []
-            with tqdm(total=lines,desc='Loading file') as bar:
-                for chunk in pd.read_csv(gtffile,chunksize=1000,comment='#',sep='\t',nrows=nrows):
-                    listdf.append(chunk)
-                    bar.update(chunk.shape[0])
-
-            df = pd.concat(listdf,axis=0,ignore_index=True)
-
-            return df
+            ulog.print_and_logger_info(f'Reading {gtffile}')
+            return uextract.read_csv_with_progress_bar(path=gtffile,rows_to_read=rows_to_read,comment='#',sep='\t')
 
     ulog.print_and_logger_info(f'Error: missing file with name that includes \'{file_pattern}\'.')
     exit(1)
 
-def build_key_value_column(dfGTFl1: pd.DataFrame, search_key: str) -> pd.DataFrame:
+def build_key_value_column(dfGTFl1: pd.DataFrame, search_key: str):
 
     # Builds a consolidated value column from a key-value column in GTF format and adds it to the
     # input DataFrame.
@@ -112,7 +95,10 @@ def build_key_value_column(dfGTFl1: pd.DataFrame, search_key: str) -> pd.DataFra
         # Split each key/value pair column into separate key and value columns, using the space delimiter.
         # The strip function removes leading spaces that can be mistaken for delimiters, such as occurs in the
         # first key-value column.
-        dfSplit_level_2 = dfGTFl1[col].str.strip().str.split(' ', expand=True)
+        # Incorporate a progress bar.
+        # tqdm.pandas(desc='splitting')
+        dfSplit_level_2 = dfGTFl1[col].str.split(' ', expand=True).apply(lambda x: x.str.strip())
+
         # The split gives the key and value columns numeric names. Rename for clarity.
         dfSplit_level_2.columns = ['key','value']
 
@@ -154,7 +140,10 @@ def split_column9_level1(dfGTF: pd.DataFrame) ->pd.DataFrame:
     key_value_column = dfGTF['column_9']
 
     # Split the key/value pairs using the colon delimiter.
-    dfSplit_level_1 = key_value_column.str.split(';', expand=True)
+    # Incorporate a progress bar.
+    tqdm.pandas(desc='Splitting')
+    dfSplit_level_1 = key_value_column.str.split(';', expand=True).progress_apply(lambda x: x.str.strip())
+
     # Normalize empty column empty values to NaN.
     dfSplit_level_1 = dfSplit_level_1.replace({'None': np.nan}).replace({None: np.nan}).replace({'': np.nan})
     # Remove completely empty columns.
@@ -177,7 +166,7 @@ def build_Annotation_DataFrame(path: str) -> pd.DataFrame:
     # Because the GenCode version is part of the file name (e.g., gencode.v41.annotation.gtf),
     # search on a file pattern.
     # The first five rows of the annotation file are comments.
-    print('DEBUG: reading < total rows from annotation file.')
+    print('**********DEBUG: reading < total rows from annotation file.**********')
     dfGTF = load_GTF_into_DataFrame(file_pattern="annotation", path=args.owlnets_dir, skip_lines=5,rows_to_read=1000)
 
     # The GTF file does not have column headers. Add these with values from the specification.
@@ -251,13 +240,14 @@ def build_Annotation_DataFrame(path: str) -> pd.DataFrame:
     # 4 50,60
 
     # Level 1 split
-    ulog.print_and_logger_info('Splitting the 9th column into individual key-value columns...')
+    ulog.print_and_logger_info('-- Splitting the key-value column (9th) of the annotation file into individual key-value columns...')
+
     dfGTF['column_9'] = dfGTF['column_9'].str.replace('"', '')
     dfGTF = split_column9_level1(dfGTF)
 
     # Level 2 split and collect
-    ulog.print_and_logger_info('Collecting values from key-value pairs...')
-    for k in tqdm(list_keys):
+    ulog.print_and_logger_info('-- Collecting values from key-value columns...')
+    for k in tqdm(list_keys,desc='Collecting'):
         build_key_value_column(dfGTF,k)
 
     # Remove intermediate Level 1 columns.
@@ -286,13 +276,51 @@ def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[
 
     return dfGTF
 
+def buildTranslatedAnnotationDataFrame(from_path: str, to_path: str)-> pd.DataFrame:
+
+    # Builds a DataFrame that:
+    # 1. Translates the annotation GTF file.
+    # 2. Combines translated GTF annotation data with metadata, joining by transcript_id.
+
+    # Read GTF files into DataFrames.
+
+    ulog.print_and_logger_info('** BUILDING TRANSLATED GTF ANNOTATION FILE **')
+    # Load and translate annotation file.
+    dfAnnotation = build_Annotation_DataFrame(path=args.owlnets_dir)
+
+    # Metadata
+    # Entrez file
+    dfEntrez = build_Metadata_DataFrame(file_pattern='EntrezGene', path=args.owlnets_dir,
+                                        column_headers=['transcript_id', 'Entrez_Gene_id'])
+    # RefSeq file
+    dfReqSeq = build_Metadata_DataFrame(file_pattern='RefSeq', path=args.owlnets_dir,
+                                        column_headers=['transcript_id', 'RefSeq_RNA_id', 'RefSeq_protein_id'])
+    # SwissProt file
+    dfSwissProt = build_Metadata_DataFrame(file_pattern='SwissProt', path=args.owlnets_dir,
+                                           column_headers=['transcript_id', 'UNIPROTKB_SwissProt_AN',
+                                                           'UNIPROTKB_SwissProt_AN2'])
+    # TrEMBL file
+    dfTrEMBL = build_Metadata_DataFrame(file_pattern='TrEMBL', path=args.owlnets_dir,
+                                        column_headers=['transcript_id', 'UNIPROTKB_TrEMBL_AN', 'UNIPROTKB_TrEMBL_AN2'])
+
+    # Join Metadata files to Annotation file.
+    ulog.print_and_logger_info('-- Merging annotation and metadata.')
+    dfAnnotation = dfAnnotation.merge(dfEntrez, how='left', on='transcript_id')
+    dfAnnotation = dfAnnotation.merge(dfReqSeq, how='left', on='transcript_id')
+    dfAnnotation = dfAnnotation.merge(dfSwissProt, how='left', on='transcript_id')
+    dfAnnotation = dfAnnotation.merge(dfTrEMBL, how='left', on='transcript_id')
+
+    # Write translated annotation file.
+    outfile_ann = os.path.join(to_path, 'TranslatedAnnotationGTF.csv')
+    ulog.print_and_logger_info(f'-- Writing to {outfile_ann}')
+    uextract.to_csv_with_progress_bar(df=dfAnnotation, path=outfile_ann)
+    return dfAnnotation
+
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
     argparse.RawTextHelpFormatter
 ):
     pass
-
-
 
 # ---------------------------------
 # START
@@ -313,40 +341,10 @@ if args.skipExtract is True:
     ulog.print_and_logger_info('Skipping download of source files from GenCode.')
     list_gtf = os.listdir(args.owlnets_dir)
 else:
-    list_gtf = get_source_files(args.owl_dir,args.owlnets_dir)
+    list_gtf = download_source_files(args.owl_dir,args.owlnets_dir)
 
-
-# Read GTF files into DataFrames.
-
-# 1. Annotation file
-dfAnnotation = build_Annotation_DataFrame(path=args.owlnets_dir)
-outfile_ann = os.path.join(args.owlnets_dir,'TranslatedAnnotationGTF.csv')
-outfile_entrez = os.path.join(args.owlnets_dir,'EntrezGene.csv')
-
-# Metadata
-# 2. Entrez file
-dfEntrez = build_Metadata_DataFrame(file_pattern='EntrezGene',path=args.owlnets_dir,column_headers=['transcript_id','Entrez_Gene_id'])
-#dfEntrez.to_csv(outfile_entrez,index=False)
-
-# 3. RefSeq file
-dfReqSeq = build_Metadata_DataFrame(file_pattern='RefSeq',path=args.owlnets_dir,column_headers=['transcript_id','RefSeq_RNA_id','RefSeq_protein_id'])
-
-# 4. SwissProt file
-dfSwissProt = build_Metadata_DataFrame(file_pattern='SwissProt',path=args.owlnets_dir,column_headers=['transcript_id','UNIPROTKB_SwissProt_AN','UNIPROTKB_SwissProt_AN2'])
-
-# 4. TrEMBL file
-dfTrEMBL = build_Metadata_DataFrame(file_pattern='TrEMBL',path=args.owlnets_dir,column_headers=['transcript_id','UNIPROTKB_TrEMBL_AN','UNIPROTKB_TrEMBL_AN2'])
-
-
-# Join Metadata files to Annotation file.
-ulog.print_and_logger_info('Merging annotation and metadata.')
-dfAnnotation = dfAnnotation.merge(dfEntrez,how='left',on='transcript_id')
-dfAnnotation = dfAnnotation.merge(dfReqSeq,how='left',on='transcript_id')
-dfAnnotation = dfAnnotation.merge(dfSwissProt,how='left',on='transcript_id')
-dfAnnotation = dfAnnotation.merge(dfTrEMBL,how='left',on='transcript_id')
-
-ulog.print_and_logger_info(f'Writing to {outfile_ann}')
-dfAnnotation.to_csv(outfile_ann,index=False)
+# Build the DataFrame that combines translated GTF annotation data with metadata.
+dfAnnotation = buildTranslatedAnnotationDataFrame(from_path=args.owl_dir,to_path=args.owlnets_dir)
 
 # Generate edge file.
 # Generate node file.
@@ -354,6 +352,5 @@ dfAnnotation.to_csv(outfile_ann,index=False)
 # Debug exception to stop build_csv.sh.
 raise Exception ("DEBUG")
 
-#---
 
 
