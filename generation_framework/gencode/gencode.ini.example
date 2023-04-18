@@ -1,0 +1,36 @@
+# GenCode configuration
+[DEFAULT]
+
+[Directories]
+# Paths to directories in the local repo
+# Path to which to download source files
+owl_dir: generation_framework/owl/GENCODE
+# Path to which to write files of data for use in ingestion
+owlnets_dir: generation_framework/owlnets_output/GENCODE
+
+[URL]
+# URLs for source files
+base_url: https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/
+release: 41
+# Files paths and filenames refer to the GenCode release.
+Annotation: %(base_url)/release_%(release)/gencode.v$(release).annotation.gtf.gz
+Entrez: %(base_url)/release_%(release)/gencode.v$(release).metadata.EntrezGene.gz
+RefSeq: %(base_url)/release_%(release)/gencode.v$(release).metadata.RefSeq.gz
+SwissProt: %(base_url)/release_%(release)/gencode.v$(release).metadata.SwissProt.gz
+TrEMBL: %(base_url)/release_%(release)/gencode.v$(release).metadata.TrEMBL.gz
+
+[Annotation_columns]
+# The annotation file does not include a header.
+# Column headers from the GenCode specification
+columns=gene_id,transcript_id,gene_type,gene_status,gene_name,transcript_type,transcript_status,transcript_name,exon_number,exon_id,level,tag,ccdsid,havana_gene,havana_transcript,protein_id,ont,transcript_support_level,remap_status,remap_original_id,remap_original_location,remap_num_mappings,remap_target_status,remap_substituted_missing_target,hgnc_id,mgi_id
+
+[Filters]
+# Lists of filters to reduce the size of translated annotation content.
+# 1. The annotation file, in general, contains data for annotations of type "gene", "transcript", "exon", etc.
+# 2. The translated annotation file contains a number of columns, many of which may not be of interest.
+# 'all' or '' is default; enter specific values to trigger filtering.
+annotation_types=all
+columns=all
+
+
+

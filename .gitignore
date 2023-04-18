@@ -25,6 +25,8 @@ generation_framework/venv
 generation_framework/.python-version
 generation_framework/robot
 
+generation_framework/gencode/*.ini
+
 # log files in any path
 **/*.log
 
@@ -32,3 +34,6 @@ api/*
 
 # Jupyter
 .ipynb_checkpoints
+
+
+

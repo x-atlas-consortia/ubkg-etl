@@ -17,8 +17,10 @@ The scripts in this folder generate files in UBKG edges/nodes format for ingesti
   - translates the annotation file by:
     - extracting and collecting values from the key-value column (9th column)
     - merging with the metadata files 
+  - filters annotation output based on indications in the configuration file.
   - _TO DO_ using the translated annotation data to build edges and nodes files.
-- **gencode_urls.txt**
+- **gencode.ini**: configuration (INI) file.
+- **gencode.ini.example**: annotated example of gencode.ini.
 
    Contains a list of URLs to download from the GenCode FTP site.
 
@@ -26,8 +28,4 @@ The scripts in this folder generate files in UBKG edges/nodes format for ingesti
 Files in the **ubkg_utilities** folder:
 - ubkg_extract.py
 - ubkg_logging.py
-
-# Arguments
-- **o**: path to the **owl** subdirectory used in the generation framework
-- **l**: path to the **owlnets_output** subdirectory used in the generation framework
-- **s**: flag to skip certain steps, such as downloading large files
+- ubkg_config.py

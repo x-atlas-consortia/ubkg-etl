@@ -6,6 +6,8 @@
 
 import os
 import sys
+
+
 import argparse
 from tqdm import tqdm
 import pandas as pd
@@ -21,33 +23,28 @@ sys.path.append(fpath)
 import ubkg_extract as uextract
 # Logging module
 import ubkg_logging as ulog
-
+import ubkg_config as uconfig
 #-----------------------------
 
-def download_source_files(owl_dir: str, owlnets_dir: str)-> list[str]:
+def download_source_files(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str) ->list[str]:
     # Obtains source files from GENCODE FTP site.
 
     # Returns a list of full paths to files extracted from downloaded files.
+    # Arguments:
+    # cfg - an instance of the ubkgConfigParser class, which works with the application configuration file.
+    # owl_dir - location of downloaded GenCode GZIP files
+    # owlnets_dir - location of extracted GenCode GTF files
 
     # Create output folders for source files. Use the existing OWL and OWLNETS folder structure.
     os.system(f'mkdir -p {owl_dir}')
     os.system(f'mkdir -p {owlnets_dir}')
 
     # Download files specified in a list of URLs.
-    fpath = os.path.join(os.getcwd(), 'gencode/gencode_urls.txt')
-    try:
-        with open(fpath, 'r') as fgencodeurl:
-            Lines = fgencodeurl
-            list_gtf = []
-            for line in Lines:
-                url = line.strip()
-                list_gtf.append(uextract.get_gzipped_file(url, owl_dir, owlnets_dir))
+    list_gtf = []
 
-    except FileNotFoundError as e:
-        raise(e)
-        ulog.print_and_logger_info('Missing file of URLs of files to download named \'gencode_urls.txt\'.')
-        exit(1)
-
+    for key in cfg.config['URL']:
+        url = cfg.get_value(section='URL',key=key)
+        list_gtf.append(uextract.get_gzipped_file(url, owl_dir, owlnets_dir))
 
     return list_gtf
 
@@ -155,11 +152,43 @@ def split_column9_level1(dfGTF: pd.DataFrame) ->pd.DataFrame:
         dfGTF[col] = dfSplit_level_1[col]
     return dfGTF
 
-def build_Annotation_DataFrame(path: str) -> pd.DataFrame:
+def filter_Annotations(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame)->pd.DataFrame:
+
+    # Filters the annotation DataFrame by the types of annotations indicated in the application configuration file.
+    # Arguments:
+    # cfg - an instance of the ubkgConfigParser class, which works with the application configuration file.
+    # df: a DataFrame of annotation information.
+
+    # Get desired feature types from the configuration file.
+    feature_types = cfg.get_value(section='Filters',key='feature_types').split(',')
+    if feature_types == ['all']:
+        return df
+    else:
+        # Filter rows.
+        return df[df['feature_type'].isin(feature_types)]
+
+def filter_columns(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame)->pd.DataFrame:
+
+    # Reduces the set of columns in the annotation DataFrame by values indicated in the application configuration file.
+    # Arguments:
+    # cfg - an instance of the ubkgConfigParser class, which works with the application configuration file.
+    # df: a DataFrame of annotation information.
+
+    cols = cfg.get_value(section='Filters',key='columns').split(',')
+    if cols == ['all']:
+        return df
+    else:
+        # Filter columns.
+        df = df[cols]
+        return df
+
+def build_Annotation_DataFrame(cfg: uconfig.ubkgConfigParser, path: str) -> pd.DataFrame:
 
     # Builds a DataFrame that translates the GenCode annotation GTF file.
     # The specification of GTF files is at https://www.gencodegenes.org/pages/data_format.html
 
+    # Arguments:
+    # cfg - an instance of the ubkgConfigParser class, which works with the application configuration file.
     # path: path to folder containing GTF files.
 
     # Load the "raw" version of the GTF file into a DataFrame.
@@ -167,44 +196,17 @@ def build_Annotation_DataFrame(path: str) -> pd.DataFrame:
     # search on a file pattern.
     # The first five rows of the annotation file are comments.
     print('**********DEBUG: reading < total rows from annotation file.**********')
-    dfGTF = load_GTF_into_DataFrame(file_pattern="annotation", path=args.owlnets_dir, skip_lines=5,rows_to_read=1000)
+    dfGTF = load_GTF_into_DataFrame(file_pattern="annotation", path=path, skip_lines=5,rows_to_read=1000)
 
     # The GTF file does not have column headers. Add these with values from the specification.
-    dfGTF.columns = ['chromosome_name', 'annotation_source', 'feature_type', 'genomic_start_location',
-                              'genomic_end_location', 'score', 'genomic_strand', 'genomic_phase', 'column_9']
+    dfGTF.columns = cfg.get_value(section='GTF_columns',key='columns').split(',')
+    # Filter annotation rows by types listed in configuration file.
+    # This will likely reduce the size of the resulting DataFrame considerably.
+    dfGTF = filter_Annotations(cfg=cfg, df=dfGTF)
 
     # Add columns corresponding to the key/value pairs in the 9th column.
     # GTF key names are from the specification.
-    list_keys = [
-        # required
-        'gene_id',
-        'transcript_id',
-        'gene_type',
-        'gene_status',
-        'gene_name',
-        'transcript_type',
-        'transcript_status',
-        'transcript_name',
-        'exon_number',
-        'exon_id',
-        'level',
-        # optional
-        'tag',
-        'ccdsid',
-        'havana_gene',
-        'havana_transcript',
-        'protein_id',
-        'ont',
-        'transcript_support_level',
-        'remap_status',
-        'remap_original_id',
-        'remap_original_location',
-        'remap_num_mappings',
-        'remap_target_status',
-        'remap_substituted_missing_target',
-        'hgnc_id',
-        'mgi_id'
-    ]
+    list_keys = cfg.get_value(section='GTF_column9_keys',key='keys').split(',')
 
     # --------------------------
     # The key-value column uses two levels of delimiting:
@@ -276,31 +278,35 @@ def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[
 
     return dfGTF
 
-def buildTranslatedAnnotationDataFrame(from_path: str, to_path: str)-> pd.DataFrame:
+def buildTranslatedAnnotationDataFrame(cfg: uconfig.ubkgConfigParser,path: str)-> pd.DataFrame:
 
     # Builds a DataFrame that:
     # 1. Translates the annotation GTF file.
     # 2. Combines translated GTF annotation data with metadata, joining by transcript_id.
 
+    # Arguments:
+    # cfg - an instance of the ubkgConfigParser class, which works with the application configuration file.
+    # path - full path to source GTF file.
+
     # Read GTF files into DataFrames.
 
     ulog.print_and_logger_info('** BUILDING TRANSLATED GTF ANNOTATION FILE **')
     # Load and translate annotation file.
-    dfAnnotation = build_Annotation_DataFrame(path=args.owlnets_dir)
+    dfAnnotation = build_Annotation_DataFrame(cfg=cfg, path=path)
 
     # Metadata
     # Entrez file
-    dfEntrez = build_Metadata_DataFrame(file_pattern='EntrezGene', path=args.owlnets_dir,
+    dfEntrez = build_Metadata_DataFrame(file_pattern='EntrezGene', path=path,
                                         column_headers=['transcript_id', 'Entrez_Gene_id'])
     # RefSeq file
-    dfReqSeq = build_Metadata_DataFrame(file_pattern='RefSeq', path=args.owlnets_dir,
+    dfReqSeq = build_Metadata_DataFrame(file_pattern='RefSeq', path=path,
                                         column_headers=['transcript_id', 'RefSeq_RNA_id', 'RefSeq_protein_id'])
     # SwissProt file
-    dfSwissProt = build_Metadata_DataFrame(file_pattern='SwissProt', path=args.owlnets_dir,
+    dfSwissProt = build_Metadata_DataFrame(file_pattern='SwissProt', path=path,
                                            column_headers=['transcript_id', 'UNIPROTKB_SwissProt_AN',
                                                            'UNIPROTKB_SwissProt_AN2'])
     # TrEMBL file
-    dfTrEMBL = build_Metadata_DataFrame(file_pattern='TrEMBL', path=args.owlnets_dir,
+    dfTrEMBL = build_Metadata_DataFrame(file_pattern='TrEMBL', path=path,
                                         column_headers=['transcript_id', 'UNIPROTKB_TrEMBL_AN', 'UNIPROTKB_TrEMBL_AN2'])
 
     # Join Metadata files to Annotation file.
@@ -310,11 +316,15 @@ def buildTranslatedAnnotationDataFrame(from_path: str, to_path: str)-> pd.DataFr
     dfAnnotation = dfAnnotation.merge(dfSwissProt, how='left', on='transcript_id')
     dfAnnotation = dfAnnotation.merge(dfTrEMBL, how='left', on='transcript_id')
 
+    # Filter output by columns as indicated in the configuration file.
+    dfAnnotation = filter_columns(cfg=cfg,df=dfAnnotation)
+
     # Write translated annotation file.
-    outfile_ann = os.path.join(to_path, 'TranslatedAnnotationGTF.csv')
+    outfile_ann = os.path.join(path, 'TranslatedAnnotationGTF.csv')
     ulog.print_and_logger_info(f'-- Writing to {outfile_ann}')
     uextract.to_csv_with_progress_bar(df=dfAnnotation, path=outfile_ann)
     return dfAnnotation
+
 
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
@@ -325,26 +335,25 @@ class RawTextArgumentDefaultsHelpFormatter(
 # ---------------------------------
 # START
 
-parser = argparse.ArgumentParser(
-    description='Build .csv files from GenCode data files',
-    formatter_class=RawTextArgumentDefaultsHelpFormatter)
-parser.add_argument("-o", "--owl_dir", type=str, default=os.path.join(os.path.dirname(os.getcwd()),'generation_framework/owl/GENCODE'),
-                    help='directory to which to download and extract source files')
-parser.add_argument("-l", "--owlnets_dir", type=str, default=os.path.join(os.path.dirname(os.getcwd()),'generation_framework/owlnets_output/GENCODE'),
-                    help='directory containing the GenCode in OWLNETS format')
-parser.add_argument("-s", "--skipExtract", action="store_true",
-                    help='skip the download of the FTPs')
-args = parser.parse_args()
+debug_skip = False
+
+# Read from config file
+cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/gencode/gencode.ini')
+gencode_config = uconfig.ubkgConfigParser(cfgfile)
+
+# Get OWL and OWLNETS directories.
+# The config file should contain absolute paths to the directories.
+owl_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owl_dir'))
+owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owlnets_dir'))
 
 # Download and decompress GZIP files of GENCODE content from FTP site.
-if args.skipExtract is True:
-    ulog.print_and_logger_info('Skipping download of source files from GenCode.')
-    list_gtf = os.listdir(args.owlnets_dir)
+if debug_skip is True:
+    print('Skipping download of source files from GenCode.')
 else:
-    list_gtf = download_source_files(args.owl_dir,args.owlnets_dir)
+    lst_gtf = download_source_files(cfg=gencode_config, owl_dir=owl_dir,owlnets_dir=owlnets_dir)
 
 # Build the DataFrame that combines translated GTF annotation data with metadata.
-dfAnnotation = buildTranslatedAnnotationDataFrame(from_path=args.owl_dir,to_path=args.owlnets_dir)
+dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir,cfg=gencode_config)
 
 # Generate edge file.
 # Generate node file.
