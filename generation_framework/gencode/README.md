@@ -19,13 +19,14 @@ The scripts in this folder generate files in UBKG edges/nodes format for ingesti
     - merging with the metadata files 
   - filters annotation output based on indications in the configuration file.
   - _TO DO_ using the translated annotation data to build edges and nodes files.
-- **gencode.ini**: configuration (INI) file.
-- **gencode.ini.example**: annotated example of gencode.ini.
-
-   Contains a list of URLs to download from the GenCode FTP site.
+- **gencode.ini.example**: annotated example of an application configuration file.
 
 # Dependencies
-Files in the **ubkg_utilities** folder:
-- ubkg_extract.py
-- ubkg_logging.py
-- ubkg_config.py
+1. Files in the **ubkg_utilities** folder:
+   - ubkg_extract.py
+   - ubkg_logging.py
+   - ubkg_config.py
+2. An application configuration file named **gencode.ini.**
+
+# To run
+Copy and modify **gencode.ini.example** to a file named **gencode.ini** in the gencode directory.
