@@ -7,7 +7,6 @@
 import os
 import sys
 
-
 import argparse
 from tqdm import tqdm
 import pandas as pd
@@ -356,10 +355,12 @@ else:
 dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir,cfg=gencode_config)
 
 # Generate edge file.
+print('TO DO: Generate edge file.')
 # Generate node file.
+print('TO DO: Generate node file.')
 
 # Debug exception to stop build_csv.sh.
-raise Exception ("DEBUG")
+raise Exception ("DEVELOPMENT: HALTING EXECUTION.")
 
 
 
