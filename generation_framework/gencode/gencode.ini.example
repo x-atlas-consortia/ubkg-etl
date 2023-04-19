@@ -1,0 +1,42 @@
+# GenCode configuration
+[Release]
+#GenCode release
+vnum=41
+# URLs for source files
+base_url=https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/
+
+[Directories]
+# Absolute Path in the local repo to which to download source GZip files
+owl_dir=generation_framework/owl/GENCODE
+# Absolute Path in the local repo to which to expand GZIPPed GTF files of data for use in ingestion
+owlnets_dir=generation_framework/owlnets_output/GENCODE
+
+[URL]
+# Files paths and filenames refer to the GenCode release.
+Annotation=${Release:base_url}/release_${Release:vnum}/gencode.v${Release:vnum}.annotation.gtf.gz
+Entrez=${Release:base_url}/release_${Release:vnum}/gencode.v${Release:vnum}.metadata.EntrezGene.gz
+RefSeq=${Release:base_url}/release_${Release:vnum}/gencode.v${Release:vnum}.metadata.RefSeq.gz
+SwissProt=${Release:base_url}/release_${Release:vnum}/gencode.v${Release:vnum}.metadata.SwissProt.gz
+TrEMBL=${Release:base_url}/release_${Release:vnum}/gencode.v${Release:vnum}.metadata.TrEMBL.gz
+
+[GTF_columns]
+# The annotation file does not include a header.
+# Column headers from the GenCode specification (https://www.gencodegenes.org/pages/data_format.html),
+# Section "A. Tab-separated standard GTF columns"
+columns=chromosome_name,annotation_source,feature_type,genomic_start_location,genomic_end_location,score,genomic_strand,genomic_phase,column_9
+
+[GTF_column9_keys]
+# Possible keys in the key-value column.
+# From the GenCode specification (https://www.gencodegenes.org/pages/data_format.html),
+# Section "B. Key-value pair in 9th column (format:key "value";)"
+# The list combines the keys from sections B.1 (Mandatory fields) and B.2. (Optional fields)
+keys=gene_id,transcript_id,gene_type,gene_status,gene_name,transcript_type,transcript_status,transcript_name,exon_number,exon_id,level,tag,ccdsid,havana_gene,havana_transcript,protein_id,ont,transcript_support_level,remap_status,remap_original_id,remap_original_location,remap_num_mappings,remap_target_status,remap_substituted_missing_target,hgnc_id,mgi_id
+
+[Filters]
+# Filters to reduce the size of translated annotation content.
+# 1. The annotation file, in general, contains data for "feature_type" of type "gene", "transcript", "exon", etc.
+# 2. The translated annotation file contains a number of columns, many of which may not be of interest.
+# 'all' is default; enter a list specific values (feature_type or column) to trigger filtering.
+feature_types=all
+columns=all
+

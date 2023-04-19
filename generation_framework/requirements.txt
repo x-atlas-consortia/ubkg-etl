@@ -25,7 +25,6 @@ tqdm==4.62.0
 # Downgrade NetworkX to a stable previous version.
 networkx==2.8
 
-
 # Dependencies without references in code. Kept for archival.
 # setuptools~=65.3.0
 # SQLAlchemy==1.4.44
