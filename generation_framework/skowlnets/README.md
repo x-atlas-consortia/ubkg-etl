@@ -1,28 +1,46 @@
 # SimpleKnowledge to OWLNETS converter
 
-Uses the input spreadsheet for the SimpleKnowledge Editor to generate a set of text files that comply with the OWLNETS format, as described in [https://github.com/callahantiff/PheKnowLator/blob/master/notebooks/OWLNETS_Example_Application.ipynb].
+Uses the input spreadsheet for the SimpleKnowledge Editor to generate a set of text files that comply with the OWLNETS format, as described [here](https://github.com/callahantiff/PheKnowLator/blob/master/notebooks/OWLNETS_Example_Application.ipynb).
 
-User guide to build the SimpleKnowledge Editor spreadsheet: [https://docs.google.com/document/d/1wjsOzJYRV2FRehX7NQI74ZKRXvH45l0QmClBBF_VypM/edit?usp=sharing]
+The user guide to build the SimpleKnowledge Editor spreadsheet can be found [here](https://docs.google.com/document/d/1wjsOzJYRV2FRehX7NQI74ZKRXvH45l0QmClBBF_VypM/edit?usp=sharing).
 
-## Arguments
-1. The name of the SimpleKnowledge input spreadsheet for the ontology (e.g., SimpleKnowledgeHuBMAP.xlsx)
-2. The name for the ontology.
+# Content
+- **skowlnets.py** - Does the following:
+   - Reads a configuration file.
+   - Downloads the SimpleKnowledge spreadsheet that corresponds to the SAB argument.
+   - Generates files in OWLNETS format based on the spreadsheet.
+- **skowlnets.ini.example** - Annotated example of an ini file.
 
-The script will look for a file in the application directory with a name that matches the first argument.
+# Arguments
+1. The SAB for the ontology--e.g., HUBMAP, SENNET, AZ
 
-## Format of SimpleKnowledge Editor spreadsheet
+# Dependencies
+1. Files in the **ubkg_utilities** folder:
+   - ubkg_extract.py
+   - ubkg_logging.py
+   - ubkg_config.py
+   - ubkg_parsetools.py
+2. An application configuration file named **gencode.ini.**
+3. A spreadsheet in SimpleKnowledge format stored as a Google Sheets document.
 
-- Column A: term
-- Column B: concept code in local ontology
-- Column C: definition for concept
-- Column D: pipe-delimited list of synonyms
-- Column E: pipe-delimited list of references to other ontologies. 
+# To run
+1. Copy and modify **skowlnets.ini.example** to a file named **skowlnets.ini** in the gencode directory.
+2. Configure the **ontologies.json** file at the generation_framework root to call skowlnets.py with the appropriate SAB.
 
-Column F corresponds to an *isa* relationship. 
-Columns after F describe custom relationships. 
+
+# Format of SimpleKnowledge Editor spreadsheet
+
+- **Column A**: term
+- **Column B**: concept code in local ontology
+- **Column C**: definition for concept
+- **Column D**: pipe-delimited list of synonyms
+- **Column E**: pipe-delimited list of references to other ontologies. 
+
+**Column F** corresponds to an *isa* relationship. 
+Columns after **Column F** describe custom relationships. 
 
 Each cell in a relationship column contains a comma-delimited list of object concepts that relate.
-Each of the object concepts should be defined in a row in the spreadsheet (in column A). 
+Each of the object concepts should be defined in a row in the spreadsheet (in **Column A**). 
 
 The SimpleKnowledge spreadsheet's input validation does not capture differences
 in case--e.g., if a relationship cell refers to "Abc", when the actual

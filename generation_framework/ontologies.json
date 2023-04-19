@@ -116,11 +116,11 @@
   },
   "HUBMAP": {
     "comment": "HubMAP application ontology, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py SimpleKnowledgeHuBMAP.xlsx HUBMAP"
+    "execute": "./skowlnets/skowlnets.py HUBMAP"
   },
   "SENNET": {
     "comment": "SenNet application ontology, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py SimpleKnowledgeSenNet.xlsx SENNET"
+    "execute": "./skowlnets/skowlnets.py SENNET"
   },
   "SWO": {
     "owl_url": "http://purl.obolibrary.org/obo/swo.owl",
@@ -197,7 +197,7 @@
   },
   "AZ": {
     "comment": "Azimuth annotations, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py SimpleKnowledgeAzimuth.xlsx AZ"
+    "execute": "./skowlnets/skowlnets.py AZ"
   },
   "GTEX_EXP": {
     "comment": "GTEX_EXP data in edges/nodes format",
