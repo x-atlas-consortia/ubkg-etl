@@ -26,6 +26,7 @@ generation_framework/.python-version
 generation_framework/robot
 
 generation_framework/gencode/*.ini
+generation_framework/skowlnets/*.ini
 
 # log files in any path
 **/*.log

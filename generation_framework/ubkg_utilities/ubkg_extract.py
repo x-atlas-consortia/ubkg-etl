@@ -10,11 +10,22 @@ import gzip
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+import gdown
+
 
 # UBKG logging utility
 import ubkg_logging as ulog
 
-def download_file(url: str, download_full_path: str, encoding: str,chunk_size=1024):
+def download_file_from_google_drive(share_url:str,download_full_path: str):
+
+    # Downloads a file from Google Drive.
+    # Arguments:
+    # share_url: the shared link obtained in Google Drive by copying the "Share" link.
+    ulog.print_and_logger_info(f'Downloading to {download_full_path}')
+    gdown.download(share_url,output=download_full_path,fuzzy=True)
+    return
+
+def download_file(url: str, download_full_path: str, encoding: str='UTF-8', contentType: str='',chunk_size: int=1024):
 
     # Downloads a file, displaying a TQDM progress bar.
 
@@ -28,9 +39,31 @@ def download_file(url: str, download_full_path: str, encoding: str,chunk_size=10
     #           2. no encoding
     # chunk_size: used to set the resolution of the progress update.
 
+    # This function has been tested only for the case of downloading Gzip archives. Adding the content-type
+    # header functionality may work.
+
     # Passing gzip encoding will trigger automatic gzip decompression.
+    headers ={}
     if encoding !='':
-        headers = {'Accept-encoding': encoding}
+        #headers = {'Accept-encoding': encoding}
+        headers['Accept-encoding']=encoding
+
+    """
+    if contentType == 'xlsx':
+        headers['content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    elif contentType== 'xls':
+        headers['content-type'] = 'application/vnd.ms-excel'
+    elif contentType == 'csv':
+        headers['content-type'] = 'text/csv'
+    elif contentType == 'docx':
+        headers['content-type'] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    elif contentType == 'doc':
+        headers['content-type'] = 'application/msword'
+    elif contentType == 'pdf':
+        headers['content-type'] = 'application/pdf'
+    else:
+        headers['content-type'] = contentType
+    """
 
     response = requests.get(url, stream=True,headers=headers)
 
