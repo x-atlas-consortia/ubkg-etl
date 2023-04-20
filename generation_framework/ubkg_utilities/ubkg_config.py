@@ -22,5 +22,5 @@ class ubkgConfigParser:
         try:
             return self.config[section][key]
         except KeyError as e:
-            print(f'Missing key [{key}] in section [{section}')
+            print(f'Missing key [{key}] in section [{section}]')
             exit(1)

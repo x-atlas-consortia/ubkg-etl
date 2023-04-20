@@ -29,8 +29,6 @@ import sys
 import pandas as pd
 import numpy as np
 import os
-import glob
-import logging.config
 
 # This script uses the codeReplacements function, which is currently in the module
 # generation_framework/ubkg_utilities/parsetools.py
