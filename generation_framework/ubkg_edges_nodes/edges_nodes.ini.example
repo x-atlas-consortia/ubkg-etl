@@ -1,0 +1,11 @@
+# Configuration for SKOWLNETS script
+
+[Directories]
+
+# Absolute Path in the local repo to which to copy ingestion files
+owlnets_dir=generation_framework/owlnets_output
+
+[Paths]
+# Local paths containing ingestion files
+
+SAB=local/path/to/ingestion/files/for/SAB

@@ -24,7 +24,7 @@ The user guide to build the SimpleKnowledge Editor spreadsheet can be found [her
 3. A spreadsheet in SimpleKnowledge format stored as a Google Sheets document.
 
 # To run
-1. Copy and modify **skowlnets.ini.example** to a file named **skowlnets.ini** in the gencode directory.
+1. Copy and modify **skowlnets.ini.example** to a file named **skowlnets.ini** in the current directory.
 2. Configure the **ontologies.json** file at the generation_framework root to call skowlnets.py with the appropriate SAB.
 
 
