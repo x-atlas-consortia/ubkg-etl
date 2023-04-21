@@ -85,7 +85,7 @@ def download_file(url: str, download_full_path: str, encoding: str='UTF-8', cont
 
     return
 
-def extract_from_gzip(zipfilename: str, outputpath: str) -> str:
+def extract_from_gzip(zipfilename: str, outputpath: str, outfilename: str) -> str:
 
     # Extracts a file from the GZIP archive with file name zipfilename to outputpath.
     # Returns the full path to the extracted file.
@@ -100,11 +100,14 @@ def extract_from_gzip(zipfilename: str, outputpath: str) -> str:
     with open(zipfilename,'rb') as fzip:
         file_content = gzip.decompress(fzip.read()).decode('utf-8')
 
-    # Write output to a file with the same name as the Zip, minus the GZ file extension, if applicable.
-    extract_filename = zipfilename[zipfilename.rfind('/') + 1:]
-    extract_extension = extract_filename[extract_filename.rfind('.'):len(extract_filename)]
-    if extract_extension.lower() == '.gz':
-        extract_filename = extract_filename[0:extract_filename.rfind(extract_extension)]
+    if outfilename == '':
+        # Write output to a file with the same name as the Zip, minus the GZ file extension, if applicable.
+        extract_filename = zipfilename[zipfilename.rfind('/') + 1:]
+        extract_extension = extract_filename[extract_filename.rfind('.'):len(extract_filename)]
+        if extract_extension.lower() == '.gz':
+            extract_filename = extract_filename[0:extract_filename.rfind(extract_extension)]
+    else:
+        extract_filename = outfilename
 
     extract_path = os.path.join(outputpath, extract_filename)
     ulog.print_and_logger_info(f'Writing to {extract_path}')
@@ -113,7 +116,7 @@ def extract_from_gzip(zipfilename: str, outputpath: str) -> str:
 
     return extract_path
 
-def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str) -> str:
+def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str, zipfilename:str='download.gz',outfilename:str='') -> str:
 
     # Downloads a GZIP archive to the specified folder and extracts the contents to the specified path.
     # Returns the full path to the extracted file.
@@ -121,21 +124,20 @@ def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str) -> str:
     # Arguments:
     # gzip_url - full URL to file
     # zip_path - path of directory to which to download the ZIP file
-    # extract_path - path of directory for file to be extracted from GZIP.
+    # extract_path - path of directory for file to be extracted from GZIP
+    # zip_filename - name of the downloaded file.
 
     # Assumptions:
     # 1. The GZIP contains one file.
     # 2. The file is UTF-8 encoded.
 
-    # The URL contains the filename.
-    zip_filename = gzip_url.split('/')[-1]
-    zip_full_path = os.path.join(zip_path, zip_filename)
+    zip_full_path = os.path.join(zip_path, zipfilename)
 
     # Download GZIP file.
     download_file(url=gzip_url,download_full_path=zip_full_path,encoding='gzip',chunk_size=1024)
 
     # Extract compressed content.
-    return extract_from_gzip(zipfilename=zip_full_path,outputpath=extract_path)
+    return extract_from_gzip(zipfilename=zip_full_path,outputpath=extract_path,outfilename=outfilename)
 
 def to_csv_with_progress_bar(df: pd.DataFrame, path:str):
 
