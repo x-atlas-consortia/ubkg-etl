@@ -107,7 +107,7 @@
   "UNIPROTKB": {
     "home_url": "https://www.uniprot.org/uniprot/?query=facets=reviewed%3Atrue&fil=organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22",
     "comment": "Data from UniProtKB exported to OWLNETS format. Supply -s argument to call to use existing UniProtKB data file.",
-    "execute": "./uniprotkb/uniprotkb_owlnets.py -s"
+    "execute": "./uniprotkb/uniprotkb_owlnets.py"
   },
   "VARIO": {
     "owl_url": "http://www.variationontology.org/vario_download/vario.owl",

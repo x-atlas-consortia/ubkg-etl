@@ -1,0 +1,37 @@
+# UniProtKB configuration
+
+[Directories]
+# Absolute Path in the local repo to which to download source GZip files
+owl_dir=generation_framework/owl/UNIPROTKB
+# Absolute Path in the local repo to which to expand GZIPPed TSV file of data for use in ingestion
+owlnets_dir=generation_framework/owlnets_output/UNIPROTKB
+
+[URL]
+# REST call to download the UniProtKB data.
+# The base URL is a REST call that downloads a subset of the available protein information as a TSV, compressed in
+# a GZIP file. The URL can be built from the download page using the download feature.
+# The REST call downloads the following minimal information:
+#   Entry
+#   Entry Name
+#   Protein Names
+#   Gene Names
+#   Reviewed (distinguishes between manually-curated Swiss proteins and automatically-annotated TREMBL proteins)
+BaseQuery= https://rest.uniprot.org/uniprotkb/stream?compressed=true&fields=accession%2Creviewed%2Cid%2Cprotein_name%2Cgene_names%2Corganism_name%2Clength&format=tsv&query=%28%2A%29%20AND%20%28model_organism%
+
+[Organisms]
+# The values are codes from UNIPROTKB that identify organisms.
+# The script will loop through the list and concatenate to the base query to compile results for all uncommented values.
+Human=3A9606%29
+#Mouse=3A10090%29
+#Rat=3A10116%29
+#A.thaliana=3A3702%29
+#S.cerevisiae=3A559292%29
+
+[Filters]
+# Specify whether to include only reviewed or manually curated from SwissProt (True) or both SwissProt and
+# automatically curated from TrEMBL (False). The script will filter results accordingly.
+reviewed=True
+
+[HGNC]
+# URL to download HGNC identifiers from genenames.org
+URL= http://genenames.org/cgi-bin/download/custom?col=gd_hgnc_id&col=gd_app_sym&status=Approved&hgnc_dbtag=on&order_by=gd_app_sym_sort&format=text&submit=submit

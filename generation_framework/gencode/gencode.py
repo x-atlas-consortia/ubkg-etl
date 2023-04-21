@@ -43,7 +43,9 @@ def download_source_files(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_d
 
     for key in cfg.config['URL']:
         url = cfg.get_value(section='URL',key=key)
-        list_gtf.append(uextract.get_gzipped_file(url, owl_dir, owlnets_dir))
+        # The URL contains the filename.
+        zipfilename = url.split('/')[-1]
+        list_gtf.append(uextract.get_gzipped_file(gzip_url=url, zip_path=owl_dir, extract_path=owlnets_dir,zipfilename=zipfilename))
 
     return list_gtf
 

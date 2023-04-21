@@ -29,6 +29,7 @@ generation_framework/robot
 generation_framework/gencode/*.ini
 generation_framework/skowlnets/*.ini
 generation_framework/ubkg_edges_nodes/*.ini
+generation_framework/uniprotkb/*.ini
 
 # log files in any path
 **/*.log
