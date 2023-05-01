@@ -189,7 +189,8 @@
   "NPO": {
     "owl_url": "https://data.bioontology.org/ontologies/NPOKB/submissions/8/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/NPOKB?p=summary",
-    "comment": "NPO in Turtle"
+    "comment": "NPO in Turtle",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py NPO"
   },
   "LINCS": {
     "comment": "LINCS data in edges/nodes format",

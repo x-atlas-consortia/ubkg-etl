@@ -4,8 +4,6 @@ from typing import Any
 import argparse
 import os
 import shutil
-import glob
-import logging.config
 import time
 import re
 import subprocess
@@ -13,14 +11,16 @@ from datetime import timedelta
 import json
 from typing import List
 import sys
-import shlex
 
-
-log_dir, log, log_config = 'builds/logs', 'pkt_build_log.log', glob.glob('**/logging.ini', recursive=True)
-logger = logging.getLogger(__name__)
-# TODO: log_config == [] at this point?!
-# logging.config.fileConfig(log_config[0], disable_existing_loggers=False, defaults={'log_file': log_dir + '/' + log})
-
+# The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
+# Find the absolute path.
+fpath = os.path.dirname(os.getcwd())
+fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
+sys.path.append(fpath)
+# Logging module
+import ubkg_logging as ulog
+# Subprocess handling
+import ubkg_subprocess as usub
 
 # TODO: make these optional parameters and print them out when --verbose
 OWLNETS_SCRIPT: str = './owlnets_script/__main__.py'
@@ -119,11 +119,11 @@ parser.add_argument("-v", "--verbose", action="store_true",
 
 args = parser.parse_args()
 
-
+"""
 def print_and_logger_info(message: str) -> None:
     print(message)
     logger.info(message)
-
+"""
 
 def make_new_save_dir(path: str, save_dir: str) -> str:
     max_version: int = 0
@@ -139,13 +139,13 @@ def make_new_save_dir(path: str, save_dir: str) -> str:
 
 def copy_csv_files_to_save_dir(path: str, save_dir: str) -> str:
     save_path: str = make_new_save_dir(path, save_dir)
-    print_and_logger_info(f"Saving .csv files to directory: {save_path}")
+    ulog.print_and_logger_info(f"Saving .csv files to directory: {save_path}")
     for filename in os.listdir(path):
         if re.match(f'^.*\.csv$', filename):
             fp_src: str = os.path.join(path, filename)
             fp_dst: str = os.path.join(save_path, filename)
             shutil.copyfile(fp_src, fp_dst)
-    print_and_logger_info(f"Copied {len(os.listdir(save_path))} files from {path} to {save_path}")
+    ulog.print_and_logger_info(f"Copied {len(os.listdir(save_path))} files from {path} to {save_path}")
     return save_path
 
 
@@ -160,7 +160,7 @@ def lines_in_csv_files(path: str, save_path: str) -> None:
             lines_fp: int = lines_in_file(fp)
             fp_save: str = os.path.join(save_path, filename)
             lines_fp_save: int = lines_in_file(fp_save)
-            print_and_logger_info(f"Lines in files: {fp} {lines_fp}; {fp_save} {lines_fp_save}; difference: {lines_fp-lines_fp_save}")
+            ulog.print_and_logger_info(f"Lines in files: {fp} {lines_fp}; {fp_save} {lines_fp_save}; difference: {lines_fp-lines_fp_save}")
 
 
 def verify_ontologies_json_file(ontologies: dict, ontologies_filename: str) -> None:
@@ -168,11 +168,11 @@ def verify_ontologies_json_file(ontologies: dict, ontologies_filename: str) -> N
         ['owl_url', 'home_url', 'comment', 'sab', 'download_owl_url_to_file_name', 'execute']
     for key, value in ontologies.items():
         if not key.isupper():
-            print_and_logger_info(f"For the Ontologies file {ontologies_filename}: the ontology key {key} must be upper case.")
+            ulog.print_and_logger_info(f"For the Ontologies file {ontologies_filename}: the ontology key {key} must be upper case.")
             exit(1)
         for key_o in value:
             if key_o not in valid_ontology_keys:
-                print_and_logger_info(f"For the Ontologies file {ontologies_filename} with ontology key {key}: {key_o} must be one of: {', '.join(valid_ontology_keys)}")
+                ulog.print_and_logger_info(f"For the Ontologies file {ontologies_filename} with ontology key {key}: {key_o} must be one of: {', '.join(valid_ontology_keys)}")
                 exit(1)
 
 
@@ -182,15 +182,16 @@ def fix_owlnets_metadata_file(working_owlnets_dir: str) -> None:
     owlnets_metadata_orig_file: str = os.path.join(working_owlnets_dir, 'OWLNETS_node_metadata_orig.txt')
     # JAS 4 APR 2023 - Replaced os.system call with subprocess and error handling.
     #os.system(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
-    call_subprocess(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
+    usub.call_subprocess(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
 
     fix_owlnets_tsv_script: str = f"{FIX_OWLNETS_TSV_SCRIPT} --fix {owlnets_metadata_file} {owlnets_metadata_orig_file}"
-    print_and_logger_info(f"Running: {fix_owlnets_tsv_script}")
+    ulog.print_and_logger_info(f"Running: {fix_owlnets_tsv_script}")
     #os.system(fix_owlnets_tsv_script)
-    call_subprocess(fix_owlnets_tsv_script)
+    usub.call_subprocess(fix_owlnets_tsv_script)
 
 # JAS APR 2023
 # subprocess handling to replace calls to sys.os
+""""
 def call_subprocess(command_line_str: str) -> None:
 
     # Format arguments list.
@@ -204,6 +205,7 @@ def call_subprocess(command_line_str: str) -> None:
         # Because capture_output was False, the exception from the subprocess will be displayed. Simply exit.
         sys.exit()
     return
+"""
 
 # ----------------------------
 # Start of main script
@@ -249,21 +251,21 @@ if len(ontology_names) > 0 or args.oneOwl is not None:
         ontology_names = [args.oneOwl]
     for ontology_name in ontology_names:
         if ontology_name not in ontologies:
-            print_and_logger_info(f"ERROR... Ontology name ''{ontology_name}'' not found in ontologies.json")
+            ulog.print_and_logger_info(f"ERROR... Ontology name ''{ontology_name}'' not found in ontologies.json")
             missing_ontology = True
 else:
-    print_and_logger_info("ERROR: No ''ontologies'' specified on the command line? Use -h for help.")
+    ulog.print_and_logger_info("ERROR: No ''ontologies'' specified on the command line? Use -h for help.")
     exit(1)
 if missing_ontology is True:
-    print_and_logger_info(f"Exiting since some ontologies specified were not found in the ontology.json file.")
+    ulog.print_and_logger_info(f"Exiting since some ontologies specified were not found in the ontology.json file.")
     exit(1)
 
 start_time = time.time()
 
-print_and_logger_info(f"Processing Ontologies: {', '.join(ontology_names)}")
+ulog.print_and_logger_info(f"Processing Ontologies: {', '.join(ontology_names)}")
 
 for ontology_name in ontology_names:
-    print_and_logger_info(f"Ontology: {ontology_name}")
+    ulog.print_and_logger_info(f"Ontology: {ontology_name}")
     ontology_record = ontologies[ontology_name]
 
     owl_sab: str = ontology_name.upper()
@@ -273,7 +275,7 @@ for ontology_name in ontology_names:
 
     if 'execute' not in ontology_record and args.skipPheKnowLator is not True:
         owl_url = ontology_record['owl_url']
-        print_and_logger_info(f"Processing OWL file: {owl_url}")
+        ulog.print_and_logger_info(f"Processing OWL file: {owl_url}")
         clean = ''
         if args.clean is True:
             clean = '--clean'
@@ -284,24 +286,24 @@ for ontology_name in ontology_names:
         if args.with_imports is True:
             with_imports = '--with_imports'
         owlnets_script: str = f"{OWLNETS_SCRIPT} --ignore_owl_md5 {clean} {force_owl_download} {with_imports} -l {args.owlnets_dir} -t {args.owltools_dir} -o {args.owl_dir} {owl_url} {owl_sab}"
-        print_and_logger_info(f"Running: {owlnets_script}")
+        ulog.print_and_logger_info(f"Running: {owlnets_script}")
         # JAS APR 2023 replaced call to os.system
         # os.system(owlnets_script)
-        call_subprocess(owlnets_script)
+        usub.call_subprocess(owlnets_script)
 
         fix_owlnets_metadata_file(working_owlnets_dir)
     elif 'execute' in ontology_record:
         script: str = ontology_record['execute']
-        print_and_logger_info(f"Running: {script}")
+        ulog.print_and_logger_info(f"Running: {script}")
         # JAS 4 APR 2023 replaced call to os.system
         # os.system(script)
-        call_subprocess(script)
+        usub.call_subprocess(script)
     # JAS 13 OCT 2022 - allows skipping of PheKnowLator processing
     else:
-        print_and_logger_info(f"Skipping PheKnowLator processing for Ontology: {ontology_name}.")
-        print_and_logger_info("Assuming that current OWLNETS files are available for PheKnowLator.")
+        ulog.print_and_logger_info(f"Skipping PheKnowLator processing for Ontology: {ontology_name}.")
+        ulog.print_and_logger_info("Assuming that current OWLNETS files are available for PheKnowLator.")
     # else:
-        # print_and_logger_info(f"ERROR: There is no processing available for Ontology: {ontology_name}?!")
+        # ulog.print_and_logger_info(f"ERROR: There is no processing available for Ontology: {ontology_name}?!")
 
     # if args.skipValidation is not True:
     #     validation_script: str = f"{VALIDATION_SCRIPT} -o {args.umls_csvs_dir} -l {bargs.owlnets_dir}"
@@ -312,14 +314,14 @@ for ontology_name in ontology_names:
     # JAS 15 nov 2022 - removed organism argument
     # JAS 19 OCT 2022 added organism argument
     umls_graph_script: str = f"{UMLS_GRAPH_SCRIPT} {working_owlnets_dir} {args.umls_csvs_dir} {owl_sab}"
-    print_and_logger_info(f"Running: {umls_graph_script}")
+    ulog.print_and_logger_info(f"Running: {umls_graph_script}")
 
     # JAS 4 APR 2023 - Replaced os.system call with subprocess and error handling.
     # os.system(umls_graph_script)
-    call_subprocess(umls_graph_script)
+    usub.call_subprocess(umls_graph_script)
 
     lines_in_csv_files(args.umls_csvs_dir, save_csv_dir)
 
 # Add log entry for how long it took to do the processing...
 elapsed_time = time.time() - start_time
-print_and_logger_info(f'Done! Total Elapsed time {"{:0>8}".format(str(timedelta(seconds=elapsed_time)))}')
+ulog.print_and_logger_info(f'Done! Total Elapsed time {"{:0>8}".format(str(timedelta(seconds=elapsed_time)))}')
