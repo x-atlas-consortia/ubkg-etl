@@ -95,11 +95,16 @@ def print_and_logger_error(message: str) -> None:
 
 
 def file_from_uri(uri_str: str) -> str:
-    if uri_str.find('/'):
+    # JAS May 2023 updated to account for case of path_str being a simple file name with no '/' characters.
+    # This handles the case in which the OWL file is not downloaded from a remote site,
+    # but made available locally.
+    if uri_str.find('/')!=-1:
         return uri_str.rsplit('/', 1)[1]
-
+    else:
+        return uri_str
 
 def file_from_path(path_str: str) -> str:
+
     i = path_str.rfind(os.sep)
     if i > 0 & i < len(path_str)-1:
         return path_str[i+1:]
