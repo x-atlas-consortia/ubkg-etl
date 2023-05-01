@@ -4,8 +4,6 @@ from typing import Any
 import argparse
 import os
 import shutil
-#import glob
-#import logging.config
 import time
 import re
 import subprocess
@@ -22,14 +20,8 @@ fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
 # Logging module
 import ubkg_logging as ulog
+# Subprocess handling
 import ubkg_subprocess as usub
-
-"""
-log_dir, log, log_config = 'builds/logs', 'pkt_build_log.log', glob.glob('**/logging.ini', recursive=True)
-logger = logging.getLogger(__name__)
-# TODO: log_config == [] at this point?!
-# logging.config.fileConfig(log_config[0], disable_existing_loggers=False, defaults={'log_file': log_dir + '/' + log})
-"""
 
 # TODO: make these optional parameters and print them out when --verbose
 OWLNETS_SCRIPT: str = './owlnets_script/__main__.py'
