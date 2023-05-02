@@ -2,12 +2,16 @@
 
 # ubkg_edges_nodes script
 
-The scripts in this folder allow the UBKG generation framework to handle a set of ingest files in UBKG edges/node format.
+The scripts in this folder allow the UBKG generation framework to work with locally stored files in one of two formats:
+1. a set of ingest files in UBKG edges/node format
+2. a file serialized in one of the OWL formats
 
 # Content
 - **edges_nodes.py** - Does the following:
    - Reads a configuration file.
-   - Copies ingest files from a local file path to the appropriate path in the local repo.
+   - Examines the files in the local file path associated with an SAB.
+   - If the files in the local path are in edges/nodes format, copies them to the appropriate path in the local repo.
+   - If the files are not in edges/nodes format, assumes that the folder contains one OWL file. The script then processes the file with the PheKnowLator script.
   
 - **edges_node.ini.example** - Annotated example of an ini file.
 
@@ -16,6 +20,7 @@ The scripts in this folder allow the UBKG generation framework to handle a set o
    - ubkg_config.py
    - ubkg_logging.py
 2. An application configuration file named **edges_nodes.ini.**
+3. The directory specified in the ini file should contain either a set of files in edges/node format or a single OWL file.
 
 # To run
 1. Copy and modify **edges_nodes.ini.example** to a file named **edges_nodes.ini** in the current directory.
