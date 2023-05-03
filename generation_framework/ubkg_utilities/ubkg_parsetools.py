@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 import numpy as np
+import pandas as pd
 
 
 # UBKG utilities for parsing
@@ -9,7 +10,7 @@ import numpy as np
 # OWLNETS-UMLS-GRAPH
 # skowlnets
 
-def codeReplacements(x, ingestSAB: str):
+def codeReplacements(x:pd.Series, ingestSAB: str):
     # JAS 15 Nov 2022 - Refactor
 
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
