@@ -372,7 +372,8 @@ except:
     # modify this logic further to account for the other formats.
 
     print_and_logger_info(f'Error parsing {owl_file}. The file may not be in RDF/XML format. Assuming Turtle format. Attempting to convert...')
-    graph = Graph().parse(owl_file, format='n3')
+    #graph = Graph().parse(owl_file, format='n3')
+    graph = Graph().parse(owl_file,format='ttl')
     convertedpath = os.path.join(owl_dir,'converted.owl')
     print_and_logger_info(f'Serializing {owl_file} to RDF/XML format in file {convertedpath}')
     v = graph.serialize(format='xml', destination=convertedpath)
