@@ -66,7 +66,7 @@ def getUNIPROTKB(cfg:uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str)->
 
         # Load the extracted TSV file into a DataFrame.
         tsvpath = os.path.join(owlnets_dir, tsvfilename)
-        list_org.append(uextract.read_csv_with_progress_bar(path=tsvpath, sep='\t'))
+        list_org.append(uextract.read_csv_with_progress_bar(path=tsvpath, sep='\t',on_bad_lines='skip'))
 
         # Select only manually curated (SwissProt) proteins.
         #df = df[df['Reviewed'] == 'reviewed'].dropna(subset=['Gene Names']).reset_index(drop=True)
@@ -115,7 +115,7 @@ def getHGNCID(HGNCacronym: str):
                 hgnc = docs[0].get('hgnc_id')
     return hgnc
 
-def write_edges_file(dfUNIPROT:pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, predicate: str, ):
+def write_edges_file(dfUNIPROT:pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, predicate: str ):
 
     # Writes an edges file in OWLNETS format.
     # Arguments:
@@ -236,3 +236,4 @@ predicate = 'http://purl.obolibrary.org/obo/RO_0002204'  # gene product of
 write_edges_file(dfUNIPROT=dfUNIPROT,dfHGNC=dfHGNC,owlnets_dir=owlnets_dir,predicate=predicate)
 write_nodes_file(df=dfUNIPROT,owlnets_dir=owlnets_dir)
 write_relations_file(df=dfUNIPROT,owlnets_dir=owlnets_dir,predicate=predicate)
+exit(1)

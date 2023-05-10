@@ -3,7 +3,6 @@
 import numpy as np
 import pandas as pd
 
-
 # UBKG utilities for parsing
 
 # codeReplacements - shared by at least the following scripts:
@@ -11,6 +10,7 @@ import pandas as pd
 # skowlnets
 
 def codeReplacements(x:pd.Series, ingestSAB: str):
+
     # JAS 15 Nov 2022 - Refactor
 
     # This function converts strings that correspond to either codes or CUIs for concepts to a format

@@ -155,15 +155,16 @@ def to_csv_with_progress_bar(df: pd.DataFrame, path:str):
 
     return
 
-def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str='',sep: str=',') ->pd.DataFrame:
+def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,sep: str=',',on_bad_lines='skip',encoding='utf-8') ->pd.DataFrame:
 
     # Wraps the pandas read_csv with a tqdm progress bar.
 
     # Arguments:
     #   path: full path to CSV file.
     #   nrows: number of rows to read. The default value of 0 results in a read of all rows
-    #   comment: comment character
+    #   comment: comment character, with default of None
     #   sep: separator, with default of a comma
+    #   on_bad_lines, encoding: same as for read_csv
 
     # Returns: DataFrame
 
@@ -180,7 +181,7 @@ def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str='',sep
     # Read file in chunks, updating progress bar after each chunk.
     listdf = []
     with tqdm(total=lines, desc='Reading') as bar:
-        for chunk in pd.read_csv(path, chunksize=1000, comment='#', sep=sep, nrows=nrows):
+        for chunk in pd.read_csv(path, skip_blank_lines=True,chunksize=1000, comment=comment, sep=sep, nrows=nrows,on_bad_lines=on_bad_lines,encoding=encoding):
             listdf.append(chunk)
             bar.update(chunk.shape[0])
 
