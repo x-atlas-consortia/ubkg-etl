@@ -9,7 +9,8 @@ import pandas as pd
 # OWLNETS-UMLS-GRAPH
 # skowlnets
 
-def codeReplacements(x: pd.Series, ingestSAB: str):
+def codeReplacements(x:pd.Series, ingestSAB: str):
+
     # JAS 15 Nov 2022 - Refactor
 
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
