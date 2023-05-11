@@ -51,7 +51,6 @@ The HubMAP/SenNet knowledge graph should also include assertions from:
 Instances of the Data Distillery knowledge graph may not necessarily include ontologies specific to HubMAP/SenNET.
 A Data Distillery KG **will** include assertions from:
 
-
 ### Glygen ontologies
 - FALDO
 - UNIPROT (_not to be confused with UNIPROTKB_)
@@ -59,7 +58,13 @@ A Data Distillery KG **will** include assertions from:
 - GLYCOCOO
 
 ### SPARC
-- NPO
+- NPO (NPOKB)
+- NPOSKCAN
+
+### GTEX
+- GTEX_COEXP
+- GTEX_EQTL
+- GTEX_EXP
 
 ### Others
 - LINCS
