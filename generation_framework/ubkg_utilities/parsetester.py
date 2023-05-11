@@ -24,7 +24,7 @@ if sys.argv[2].upper=='N':
     col = 'node_id'
 else:
     file = 'OWLNETS_edgelist.txt'
-    col = 'object'
+    col = 'subject'
 fpath = os.path.join(os.path.dirname(os.getcwd()),'owlnets_output',sab,file)
 print(os.path.dirname(os.getcwd()))
 dtest = pd.read_csv(fpath,sep='\t')

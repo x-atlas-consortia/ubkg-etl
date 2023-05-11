@@ -13,11 +13,22 @@ import os
 def getPrefixes()->pd.DataFrame:
     # Reads a resource file of SAB/prefixes.
 
-    prefixfile = 'prefixes.csv'
+    # Find absolute path to file.
+    file = 'prefixes.csv'
+    fpath = os.path.dirname(os.getcwd())
+    fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities',file)
     df = pd.DataFrame()
 
-    if os.path.exists(prefixfile):
-        df= pd.read_csv(prefixfile)
+    if os.path.exists(fpath):
+        # This is being called by build_csv.py.
+        df= pd.read_csv(fpath)
+    elif os.path.exists(file):
+        # This is being called by the local parsetester.py script.
+        df = pd.read_csv(file)
+    else:
+        # Using print here instead of logging to allow functioning with parsetester.py.
+        print('ubkg_parsetools: missing prefixes.csv file in the ubkg_utilities directory.')
+
     return df
 
 def codeReplacements(x:pd.Series, ingestSAB: str):
@@ -122,7 +133,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # Convert for each of the prefixes.
     for index, row in dfPrefix.iterrows():
         if ingestSAB in ['GLYCOCOO','GLYCORDF']:
-            #GlyCoCOO (a Turtle) and GlyCoRDF use IRIs that delimit with has and use underlines.
+            #GlyCoCOO (a Turtle) and GlyCoRDF use IRIs that delimit with hash and use underlines.
             #"http://purl.glycoinfo.org/ontology/codao#Compound_disease_association
             ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
                            x.str.replace(' ', '_').str.replace('/', '_').str.split('#').str[-1],
@@ -131,15 +142,14 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
             # Other SABs format IRIs with a terminal backslash and the code string.
             # A notable exception is the PantherDB format (in NPOSKCAN), for which the IRI is an API call
             # (e.g., http://www.pantherdb.org/panther/family.do?clsAccession=PTHR10558).
-            ret = np.where(x.str.contains(row['prefix']),row['SAB']+' '+x.str.replace(' ', '_').str.replace('/','_').str.replace('=','_').str.split('_').str[-1], ret)
+            ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
+                           x.str.replace(' ', '_').str.replace('/','_').str.replace('=','_').str.split('_').str[-1],
+                           ret)
 
     # UNIPROT (not to be confused with UNIPROTKB).
     # UNIPROT IRIs are formatted differently than those in Glygen, but are in the Glygen OWL files, so they need
     # to be translated separately from GlyGen nodes.
     ret = np.where(x.str.contains('uniprot.org'), 'UNIPROT ' + x.str.split('/').str[-1], ret)
-
-    # HRAVS
-    #ret = np.where(x.str.contains('http://purl.humanatlas.io/valueset/'), 'HRAVS ' + x.str.split('/').str[-1], ret)
 
     # ---------------
     # FINAL PROCESSING
@@ -148,10 +158,12 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # <other string> can also have spaces.
     # After the preceding conversions, ret has changed from a Pandas Series to a numpy array.
     # Split each element; convert the SAB portion to uppercase; and rejoin.
+
     for idx, x in np.ndenumerate(ret):
         x2 = x.split(sep=' ', maxsplit=1)
         x2[0] = x2[0].upper()
         ret[idx] = ' '.join(x2)
+
     return ret
 
     # -------------
