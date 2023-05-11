@@ -33,6 +33,8 @@ def getPrefixes()->pd.DataFrame:
 
 def codeReplacements(x:pd.Series, ingestSAB: str):
 
+    # JAS 15 Nov 2022 - Refactor
+
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
     # recognized by the knowledge graph.
 
