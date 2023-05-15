@@ -9,24 +9,27 @@
 # path, even though it is not an OWL file. 2. The OWLNETS output will be stored in the OWLNETS folder path.
 
 import sys
-import gzip
 import pandas as pd
+import numpy as np
 import os
 import requests
+import argparse
+from tqdm import tqdm
 
 # Import UBKG utilities which is in a directory that is at the same level as the script directory.
 # Go "up and over" for an absolute path.
 fpath = os.path.dirname(os.getcwd())
-fpath = os.path.join(fpath,'generation_framework/ubkg_utilities')
+fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
 # Extraction module
 import ubkg_extract as uextract
 # Logging module
 import ubkg_logging as ulog
 import ubkg_config as uconfig
-#-----------------------------
+# -----------------------------
 
-def getUNIPROTKB(cfg:uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str)-> pd.DataFrame:
+
+def getUNIPROTKB(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str) -> pd.DataFrame:
 
     # Executes queries in the UNIPROTKB API that downloads GZip files of UNIPROTKB data.
     # Extracts the contents of the GZips--which should be TSVs.
@@ -38,11 +41,16 @@ def getUNIPROTKB(cfg:uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str)->
     # owl_dir: directory to which to download the GZIP file.
     # owlnets_dir: directory to which to extract the contents of the GZIP--a TSV file.
 
+    # Results:
+    # 1. A file named UNIPROTKB_x.tsv for every organism x identified in the configuration file.
+    # 2. A file named UNIPROTKB_ALL.tsv that consolidates all organism data. This file will be created even if there
+    #    is only one organism specified in the configuration file.
+
     # Query URL
     base_url = cfg.get_value(section='URL', key='BaseQuery')
 
     # Determine whether to filter to only reviewed (SwissProt).
-    reviewed  = cfg.get_value(section='Filters', key='reviewed')
+    reviewed = cfg.get_value(section='Filters', key='reviewed')
     rev = ''
     msgreviewed = ' - both manually curated (SwissProt) and automatically curated (TrEMBL)'
     if reviewed == 'True':
@@ -61,27 +69,27 @@ def getUNIPROTKB(cfg:uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str)->
         tsvfilename = f'UNIPROTKB_{org}.tsv'
 
         url = base_url+organism+rev
-        uextract.get_gzipped_file(gzip_url=url, zip_path=owl_dir, extract_path=owlnets_dir,zipfilename=zipfilename,
+        uextract.get_gzipped_file(gzip_url=url, zip_path=owl_dir, extract_path=owlnets_dir, zipfilename=zipfilename,
                                   outfilename=tsvfilename)
 
         # Load the extracted TSV file into a DataFrame.
         tsvpath = os.path.join(owlnets_dir, tsvfilename)
-        list_org.append(uextract.read_csv_with_progress_bar(path=tsvpath, sep='\t',on_bad_lines='skip'))
+        list_org.append(uextract.read_csv_with_progress_bar(path=tsvpath, sep='\t', on_bad_lines='skip'))
 
         # Select only manually curated (SwissProt) proteins.
-        #df = df[df['Reviewed'] == 'reviewed'].dropna(subset=['Gene Names']).reset_index(drop=True)
+        # df = df[df['Reviewed'] == 'reviewed'].dropna(subset=['Gene Names']).reset_index(drop=True)
 
     # Concatenate DataFrames for all organisms.
     df = pd.concat(list_org, axis=0, ignore_index=True)
     df = df.fillna('')
 
-    if len(list_org)>1:
-        ulog.print_and_logger_info('Writing consolidated TSV UNIPROTKB_all.csv')
-        path_consolidated = os.path.join(owlnets_dir,'UNIPROTKB_all.tsv')
-        uextract.to_csv_with_progress_bar(df=df,path=path_consolidated)
+    ulog.print_and_logger_info('Writing consolidated TSV UNIPROTKB_all.tsv')
+    path_consolidated = os.path.join(owlnets_dir, 'UNIPROTKB_all.tsv')
+    uextract.to_csv_with_progress_bar(df=df, path=path_consolidated, sep='\t')
     return df
 
-def getAllHGNCID(cfg:uconfig.ubkgConfigParser, owl_dir: str) -> pd.DataFrame:
+
+def getAllHGNCID(cfg: uconfig.ubkgConfigParser, owl_dir: str) -> pd.DataFrame:
     # Downloads all HGNC IDs from genenames.org.
 
     # Returns a DataFrame of the HGNC information.
@@ -99,6 +107,7 @@ def getAllHGNCID(cfg:uconfig.ubkgConfigParser, owl_dir: str) -> pd.DataFrame:
 
     return uextract.read_csv_with_progress_bar(path=hgnc_path, sep='\t')
 
+
 def getHGNCID(HGNCacronym: str):
     # Queries the HGNC REST API to obtain the HGNC ID, given an acronym.
     # This is slow: the getAllHGNCID function is the preferred method.
@@ -115,7 +124,8 @@ def getHGNCID(HGNCacronym: str):
                 hgnc = docs[0].get('hgnc_id')
     return hgnc
 
-def write_edges_file(dfUNIPROT:pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, predicate: str ):
+
+def write_edges_file(df: pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, predicate: str):
 
     # Writes an edges file in OWLNETS format.
     # Arguments:
@@ -142,7 +152,8 @@ def write_edges_file(dfUNIPROT:pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: 
 
     with open(edgelist_path, 'w') as out:
         out.write('subject' + '\t' + 'predicate' + '\t' + 'object' + '\n')
-        for index, row in dfUNIPROT.iterrows():
+        # Show TQDM progress bar.
+        for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             subject = 'UNIPROTKB_' + row['Entry']
             # Obtain the latest HGNC ID, using the gene name.
             # Ignore synonyms or obsolete gene names.
@@ -155,7 +166,8 @@ def write_edges_file(dfUNIPROT:pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: 
 
     return
 
-def write_nodes_file(df:pd.DataFrame, owlnets_dir: str):
+
+def write_nodes_file(df: pd.DataFrame,  owlnets_dir: str):
 
     # Writes a nodes file in OWLNETS format.
     # Arguments:
@@ -171,11 +183,11 @@ def write_nodes_file(df:pd.DataFrame, owlnets_dir: str):
     node_metadata_path: str = os.path.join(owlnets_dir, 'OWLNETS_node_metadata.txt')
     ulog.print_and_logger_info('Building: ' + os.path.abspath(node_metadata_path))
 
-    i = 1
     with open(node_metadata_path, 'w') as out:
         out.write(
             'node_id' + '\t' + 'node_namespace' + '\t' + 'node_label' + '\t' + 'node_definition' + '\t' + 'node_synonyms' + '\t' + 'node_dbxrefs' + '\n')
-        for index, row in dfUNIPROT.iterrows():
+        # Show TQDM progress bar.
+        for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             node_id = 'UNIPROTKB_' + row['Entry']
             node_namespace = 'UNIPROTKB'
             node_label = row['Entry Name']
@@ -187,7 +199,8 @@ def write_nodes_file(df:pd.DataFrame, owlnets_dir: str):
 
     return
 
-def write_relations_file(df:pd.DataFrame, owlnets_dir: str, predicate:str):
+
+def write_relations_file(owlnets_dir: str, predicate:str):
 
     # Writes a relations file in OWLNETS format.
     # Arguments:
@@ -208,9 +221,26 @@ def write_relations_file(df:pd.DataFrame, owlnets_dir: str, predicate:str):
         out.write(predicate + '\t' + 'UNIPROTKB' + '\t' + predicate + '\t' + '' + '\n')
     return
 
+class RawTextArgumentDefaultsHelpFormatter(
+    argparse.ArgumentDefaultsHelpFormatter,
+    argparse.RawTextHelpFormatter
+):
+    pass
+
+def getargs()->argparse.Namespace:
+    # Parse command line arguments.
+    parser = argparse.ArgumentParser(
+        description='Builds OWLNETS files from UNIPROTKB source',
+        formatter_class=RawTextArgumentDefaultsHelpFormatter)
+    parser.add_argument("-s", "--skipbuild", action="store_true", help="skip build of OWLNETS files")
+
+    return parser.parse_args()
+
 
 # -----------------------------------------------------
 # START
+
+args = getargs()
 
 # Read from config file
 cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/uniprotkb/uniprotkb.ini')
@@ -218,14 +248,25 @@ config = uconfig.ubkgConfigParser(cfgfile)
 
 # Get OWL and OWLNETS directories.
 # The config file should contain absolute paths to the directories.
-owl_dir = os.path.join(os.path.dirname(os.getcwd()),config.get_value(section='Directories',key='owl_dir'))
-owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),config.get_value(section='Directories',key='owlnets_dir'))
+owl_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owl_dir'))
+owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owlnets_dir'))
 
-# Download file from UNIPROTKB.
-dfUNIPROT = getUNIPROTKB(cfg=config,owl_dir=owl_dir, owlnets_dir=owlnets_dir)
+# Get UNIPROTKB and HGNC source files.
+if args.skipbuild:
+    # Read previously downloaded file.
+    filepath = os.path.join(os.path.join(owlnets_dir, 'UNIPROTKB_all.tsv'))
+    dfUNIPROT = uextract.read_csv_with_progress_bar(filepath, sep='\t')
+    dfUNIPROT = dfUNIPROT.replace(np.nan, '', regex=True)
 
-# Get latest list of HGNC IDs from genenames.org
-dfHGNC = getAllHGNCID(cfg=config,owl_dir=owl_dir)
+    # Read previously downloaded HGNC information.
+    hgncpath = os.path.join(owl_dir, 'HGNC.TSV')
+    dfHGNC = uextract.read_csv_with_progress_bar(hgncpath, sep='\t')
+    dfHGNC = dfHGNC.replace(np.nan, '', regex=True)
+else:
+    # Download file from UNIPROTKB.
+    dfUNIPROT = getUNIPROTKB(cfg=config, owl_dir=owl_dir, owlnets_dir=owlnets_dir)
+    # Get latest list of HGNC IDs from genenames.org
+    dfHGNC = getAllHGNCID(cfg=config, owl_dir=owl_dir)
 
 # Build OWLNETS text files.
 # Generate the OWLNETS files.
@@ -233,7 +274,6 @@ dfHGNC = getAllHGNCID(cfg=config,owl_dir=owl_dir)
 # The OWLNETS-UMLS-GRAPH script will find the inverse.
 predicate = 'http://purl.obolibrary.org/obo/RO_0002204'  # gene product of
 
-write_edges_file(dfUNIPROT=dfUNIPROT,dfHGNC=dfHGNC,owlnets_dir=owlnets_dir,predicate=predicate)
-write_nodes_file(df=dfUNIPROT,owlnets_dir=owlnets_dir)
-write_relations_file(df=dfUNIPROT,owlnets_dir=owlnets_dir,predicate=predicate)
-exit(1)
+write_edges_file(df=dfUNIPROT, dfHGNC=dfHGNC, owlnets_dir=owlnets_dir, predicate=predicate)
+write_nodes_file(df=dfUNIPROT, owlnets_dir=owlnets_dir)
+write_relations_file(owlnets_dir=owlnets_dir, predicate=predicate)

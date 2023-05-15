@@ -227,15 +227,20 @@ class RawTextArgumentDefaultsHelpFormatter(
 ):
     pass
 
+def getargs()->argparse.Namespace:
+    # Parse command line arguments.
+    parser = argparse.ArgumentParser(description='Builds ontology files in OWLNETS format from a spreadsheet in SimpleKnowledge format.',
+    formatter_class=RawTextArgumentDefaultsHelpFormatter)
+    parser.add_argument("sab", help="Name of SimpleKnowledge ontology")
+    parser.add_argument("-s", "--skipbuild", action="store_true", help="skip build of OWLNETS files")
+    args = parser.parse_args()
+
+    return args
+
 # -----------------------------------------
 # START
 
-parser = argparse.ArgumentParser(
-    description='Builds ontology files in OWLNETS format from a spreadsheet in SimpleKnowledge format.',
-    formatter_class=RawTextArgumentDefaultsHelpFormatter)
-parser.add_argument("sab", help="Name of SimpleKnowledge ontology")
-args = parser.parse_args()
-
+args = getargs()
 
 # Read from config file.
 cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/skowlnets/skowlnets.ini')
@@ -247,8 +252,11 @@ skowlnets_config = uconfig.ubkgConfigParser(cfgfile)
 owl_dir = os.path.join(os.path.dirname(os.getcwd()),skowlnets_config.get_value(section='Directories',key='owl_dir'),args.sab)
 owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),skowlnets_config.get_value(section='Directories',key='owlnets_dir'),args.sab)
 
-# Download the SimpleKnowledge spreadsheet.
-sk_file=download_source_file(cfg=skowlnets_config,sab=args.sab,owl_dir=owl_dir,owlnets_dir=owlnets_dir)
+if args.skipbuild:
+    sk_file = os.path.join(owl_dir,'SimpleKnowledge.xlsx')
+else:
+    # Download the SimpleKnowledge spreadsheet.
+    sk_file=download_source_file(cfg=skowlnets_config,sab=args.sab,owl_dir=owl_dir,owlnets_dir=owlnets_dir)
 
 # Load SimpleKnowledge spreadsheet into a DataFrame.
 df_sk = pd.read_excel(sk_file)

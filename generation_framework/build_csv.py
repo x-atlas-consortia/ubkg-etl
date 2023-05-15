@@ -320,6 +320,9 @@ for ontology_name in ontology_names:
     else:
         ulog.print_and_logger_info(f"Skipping build processing for Ontology: {ontology_name}.")
         ulog.print_and_logger_info("Assuming that current OWLNETS files are available.")
+        script: str = ontology_record['execute'] + ' -s'
+        ulog.print_and_logger_info(f"Running: {script}")
+        usub.call_subprocess(script)
     # else:
         # ulog.print_and_logger_info(f"ERROR: There is no processing available for Ontology: {ontology_name}?!")
 

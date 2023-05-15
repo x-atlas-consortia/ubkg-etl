@@ -333,10 +333,23 @@ class RawTextArgumentDefaultsHelpFormatter(
 ):
     pass
 
+def getargs()->argparse.Namespace:
+
+    # Parse arguments.
+    parser = argparse.ArgumentParser(
+    description='Convert the GZipped CSV file of the ontology to OWLNETs.\n'
+                'In general you should not have the change any of the optional arguments.',
+    formatter_class=RawTextArgumentDefaultsHelpFormatter)
+    # positional arguments
+    parser.add_argument("-s", "--skipbuild", action="store_true", help="skip build of OWLNETS files")
+    args = parser.parse_args()
+
+    return args
+
 # ---------------------------------
 # START
 
-debug_skip = False
+args = getargs()
 
 # Read from config file
 cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/gencode/gencode.ini')
@@ -347,14 +360,12 @@ gencode_config = uconfig.ubkgConfigParser(cfgfile)
 owl_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owl_dir'))
 owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owlnets_dir'))
 
-# Download and decompress GZIP files of GENCODE content from FTP site.
-if debug_skip is True:
-    print('Skipping download of source files from GenCode.')
-else:
+if not args.skipbuild:
+    # Download and decompress GZIP files of GENCODE content from FTP site.
     lst_gtf = download_source_files(cfg=gencode_config, owl_dir=owl_dir,owlnets_dir=owlnets_dir)
 
-# Build the DataFrame that combines translated GTF annotation data with metadata.
-dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir,cfg=gencode_config)
+    # Build the DataFrame that combines translated GTF annotation data with metadata.
+    dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir,cfg=gencode_config)
 
 # Generate edge file.
 print('TO DO: Generate edge file.')
