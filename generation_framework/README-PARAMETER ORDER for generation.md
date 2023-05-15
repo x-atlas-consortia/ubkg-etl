@@ -9,13 +9,23 @@ Because some ontologies are based on classes that are
 defined in other ontologies, the order in which parameters are 
 listed can be important.
 
-The content of a particular knowledge base corresponds to the
-set of "sets of assertions" used to generate it.
+The **UBKG context** of a particular UBKG instance corresponds to the
+ordered set of "sets of assertions" used to generate it.
 
-The **-s** command argument directs the script to generate based on previously generated OWLNETS files.
-See the uppermost README.md for details.
+# contexts.ini
+UBKG contexts can be specified with an optional file named **contexts.ini**. 
+The contexts.ini file should contain sections for:
 
-## Base set of ontologies
+- a [Base Context] section, with a context name of base
+- a [Contexts] section, for which each value is the name of a context and a set of additional SABs
+
+Each value in the INI file should be a space-separated list of SABs--e.g., 
+```
+[Contexts]
+hmsn=OBIB XCO HRAVS HUBMAP SENNET
+```
+
+## Base context
 All UBKG instances should contain assertions from
 the following ontologies:
 - UBERON 
@@ -37,7 +47,7 @@ the following ontologies:
 - EFO
 - AZ (Azimuth)
 
-## HubMAP/SenNet ontologies
+## HubMAP/SenNet context
 The HubMAP/SenNet knowledge graph should also include assertions from:
 
 - OBIB 
@@ -46,7 +56,7 @@ The HubMAP/SenNet knowledge graph should also include assertions from:
 - HUBMAP
 - SENNET
 
-## Data Distillery
+## Data Distillery context
 
 Instances of the Data Distillery knowledge graph may not necessarily include ontologies specific to HubMAP/SenNET.
 A Data Distillery KG **will** include assertions from:

@@ -21,6 +21,9 @@ sys.path.append(fpath)
 import ubkg_logging as ulog
 # Subprocess handling
 import ubkg_subprocess as usub
+# config file
+import ubkg_config as uconfig
+
 
 # TODO: make these optional parameters and print them out when --verbose
 OWLNETS_SCRIPT: str = './owlnets_script/__main__.py'
@@ -106,8 +109,12 @@ parser.add_argument("-d", "--force_owl_download", action="store_true",
                     help='force downloading of the .owl file before processing')
 parser.add_argument("-w", "--with_imports", action="store_true",
                     help='process OWL file even if imports are found, otherwise give up with an error')
-parser.add_argument("-s", "--skipPheKnowLator", action="store_true",
-                    help='assume that the PheKnowLator has been run and skip the run of it')
+
+# JAS MAY 2023 - Generalized the -s switch
+#parser.add_argument("-s", "--skipPheKnowLator", action="store_true",
+                    #help='assume that the PheKnowLator has been run and skip the run of it')
+parser.add_argument("-s", "--skipBuild", action="store_true",
+                    help='skip the building of source files such as OWLNETS and use the existing OWLNETS content')
 parser.add_argument("-S", "--skipValidation", action="store_true",
                     help='skip all validation')
 parser.add_argument("-v", "--verbose", action="store_true",
@@ -119,11 +126,6 @@ parser.add_argument("-v", "--verbose", action="store_true",
 
 args = parser.parse_args()
 
-"""
-def print_and_logger_info(message: str) -> None:
-    print(message)
-    logger.info(message)
-"""
 
 def make_new_save_dir(path: str, save_dir: str) -> str:
     max_version: int = 0
@@ -189,28 +191,41 @@ def fix_owlnets_metadata_file(working_owlnets_dir: str) -> None:
     #os.system(fix_owlnets_tsv_script)
     usub.call_subprocess(fix_owlnets_tsv_script)
 
-# JAS APR 2023
-# subprocess handling to replace calls to sys.os
-""""
-def call_subprocess(command_line_str: str) -> None:
+def get_UBKG_context(sablist: List[str])->List[str]:
+    # JAS MAY 2023
+    # A UBKG context corresponds to a set of SABs that are ingested in a particular order.
+    # UBKG contexts can be defined in an optional configuration file.
 
-    # Format arguments list.
-    # The assumption is that the argument was originally built for a call to sys.os.
+    # Returns a list of SABs in a particular context.
+    # sablist - list of SABs passed to the script.
 
-    runargs = shlex.split(command_line_str)
+    context = ''
 
-    try:
-        subprocess.run(runargs, check=True)
-    except subprocess.CalledProcessError as e:
-        # Because capture_output was False, the exception from the subprocess will be displayed. Simply exit.
-        sys.exit()
-    return
-"""
+    # Read from config file, if one exists.
+    cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/contexts.ini')
+    if os.path.isfile(cfgfile):
+        cfg = uconfig.ubkgConfigParser(cfgfile)
+        contextkey = sablist[0]
+        base = cfg.get_value(section='Base Context', key='base')
+        if contextkey == 'base':
+            context = base
+        if contextkey in cfg.config['Contexts']:
+            context = base + ' ' + cfg.get_value(section='Contexts', key=contextkey)
+
+    return context.upper().split(' ')
 
 # ----------------------------
 # Start of main script
 
-ontology_names = [s.upper() for s in args.ontologies]
+#ontology_names = [s.upper() for s in args.ontologies]
+# JAS MAY 2023 - UBKG contexts
+# Check whether the argument corresponds to one of the UBKG contexts--e.g., base, hmsn, dd
+ubkg_context = get_UBKG_context(args.ontologies)
+if ubkg_context[0]=='':
+    # The argument list is a collection of SABs, not necessarily equivalent to the set in a UBKG context.
+    ontology_names = [s.upper() for s in args.ontologies]
+else:
+    ontology_names = ubkg_context
 
 if args.verbose is True:
     print('Parameters:')
@@ -231,8 +246,10 @@ if args.verbose is True:
         print(f" * PheKnowLator will force .owl file downloads")
     if args.with_imports is True:
         print(f" * PheKnowLator will run even if imports are found in .owl file")
-    if args.skipPheKnowLator is True:
-         print(f" * Skip PheKnowLator run")
+    if args.skipBuild is True:
+        print(f" * Skip the build of content in OWLNETS path")
+    #if args.skipPheKnowLator is True:
+         #print(f" * Skip PheKnowLator run")
     if args.oneOwl is not None:
         print(f" * Process only one OWL file: {args.oneOwl}")
     if args.skipValidation is True:
@@ -273,7 +290,7 @@ for ontology_name in ontology_names:
         owl_sab: str = ontology_record['sab'].upper()
     working_owlnets_dir: str = os.path.join(args.owlnets_dir, owl_sab)
 
-    if 'execute' not in ontology_record and args.skipPheKnowLator is not True:
+    if 'execute' not in ontology_record and args.skipBuild is not True:
         owl_url = ontology_record['owl_url']
         ulog.print_and_logger_info(f"Processing OWL file: {owl_url}")
         clean = ''
@@ -292,7 +309,8 @@ for ontology_name in ontology_names:
         usub.call_subprocess(owlnets_script)
 
         fix_owlnets_metadata_file(working_owlnets_dir)
-    elif 'execute' in ontology_record:
+    # JAS MAY 2023 Generalized skip of build to include paths other than PheKnowLator
+    elif 'execute' in ontology_record and args.skipBuild is not True:
         script: str = ontology_record['execute']
         ulog.print_and_logger_info(f"Running: {script}")
         # JAS 4 APR 2023 replaced call to os.system
@@ -300,8 +318,8 @@ for ontology_name in ontology_names:
         usub.call_subprocess(script)
     # JAS 13 OCT 2022 - allows skipping of PheKnowLator processing
     else:
-        ulog.print_and_logger_info(f"Skipping PheKnowLator processing for Ontology: {ontology_name}.")
-        ulog.print_and_logger_info("Assuming that current OWLNETS files are available for PheKnowLator.")
+        ulog.print_and_logger_info(f"Skipping build processing for Ontology: {ontology_name}.")
+        ulog.print_and_logger_info("Assuming that current OWLNETS files are available.")
     # else:
         # ulog.print_and_logger_info(f"ERROR: There is no processing available for Ontology: {ontology_name}?!")
 
