@@ -139,7 +139,7 @@ def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str, zipfilenam
     # Extract compressed content.
     return extract_from_gzip(zipfilename=zip_full_path,outputpath=extract_path,outfilename=outfilename)
 
-def to_csv_with_progress_bar(df: pd.DataFrame, path:str):
+def to_csv_with_progress_bar(df: pd.DataFrame, path:str,sep: str=','):
 
     # Wraps the pandas to_csv with a tqdm progress bar.
 
@@ -149,13 +149,13 @@ def to_csv_with_progress_bar(df: pd.DataFrame, path:str):
     chunks = np.array_split(df.index, 100)  # split into 100 chunks
     for chunk, subset in enumerate(tqdm(chunks,desc='Writing')):
         if chunk == 0:  # first row
-            df.loc[subset].to_csv(path, mode='w', index=True)
+            df.loc[subset].to_csv(path, mode='w', index=True,sep=sep)
         else:
-            df.loc[subset].to_csv(path, header=None, mode='a', index=True)
+            df.loc[subset].to_csv(path, header=None, mode='a', index=True,sep=sep)
 
     return
 
-def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,sep: str=',',on_bad_lines='skip',encoding='utf-8') ->pd.DataFrame:
+def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,sep: str=',',on_bad_lines='skip',encoding='utf-8',index_col=None) ->pd.DataFrame:
 
     # Wraps the pandas read_csv with a tqdm progress bar.
 
@@ -181,7 +181,7 @@ def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,s
     # Read file in chunks, updating progress bar after each chunk.
     listdf = []
     with tqdm(total=lines, desc='Reading') as bar:
-        for chunk in pd.read_csv(path, skip_blank_lines=True,chunksize=1000, comment=comment, sep=sep, nrows=nrows,on_bad_lines=on_bad_lines,encoding=encoding):
+        for chunk in pd.read_csv(path, skip_blank_lines=True,chunksize=1000, comment=comment, sep=sep, nrows=nrows,on_bad_lines=on_bad_lines,encoding=encoding,index_col=index_col):
             listdf.append(chunk)
             bar.update(chunk.shape[0])
 

@@ -122,7 +122,7 @@ class RawTextArgumentDefaultsHelpFormatter(
 
 def getargs()->argparse.Namespace:
 
-    # Parse arguments.
+    # Parse command line arguments.
     parser = argparse.ArgumentParser(
     description='Convert the CSV file of the ontology (of which the URL is the required parameter) ontology to OWLNETs .\n'
                 'In general you should not have the change any of the optional arguments.',
@@ -139,6 +139,7 @@ def getargs()->argparse.Namespace:
                     help='directory used for the owl input files')
     parser.add_argument("-v", "--verbose", action="store_true",
                     help='increase output verbosity')
+    parser.add_argument("-s", "--skipbuild", action="store_true", help="skip build of OWLNETS files")
     args = parser.parse_args()
 
     if args.verbose is True:
@@ -320,6 +321,7 @@ def getdfCSV(owl_dir: str, csv_file: str) -> pd.DataFrame:
 
 # Parse arguments.
 args = getargs()
+print(args.owl_sab)
 
 # Set file paths.
 owl_dir = os.path.join(args.owl_dir, args.owl_sab)
@@ -330,7 +332,8 @@ zip_filename = args.owl_sab + '.GZ'
 csv_filename = args.owl_sab + '.CSV'
 
 # Download GZipped file and extract the CSV.
-uextract.get_gzipped_file(gzip_url=args.owl_url, zip_path=owl_dir, extract_path=owl_dir, zipfilename=zip_filename,outfilename=csv_filename)
+if not args.skipbuild:
+    uextract.get_gzipped_file(gzip_url=args.owl_url, zip_path=owl_dir, extract_path=owl_dir, zipfilename=zip_filename,outfilename=csv_filename)
 
 # Load the CSV file.
 dfontology = getdfCSV(owl_dir=owl_dir,csv_file=csv_filename)

@@ -4,6 +4,8 @@
 # Copies a set of UBKG ingestion files in UBKG edges/nodes format from a specified local directory to the appropriate
 # directory in the local repo.
 
+# Note: the -s argument (to skip the build of OWLNETS files) does not apply in this workflow.
+
 import argparse
 import sys
 import os
@@ -52,16 +54,22 @@ def getOWLfilename(path: str)->str:
         if os.path.isfile(fpath):
             return f
 
+def getargs()->argparse.Namespace:
+    # Parse command line arguments.
+    parser = argparse.ArgumentParser(
+        description='Copies ingest files in UBKG edges/nodes format from a local directory.',
+        formatter_class=RawTextArgumentDefaultsHelpFormatter)
+    parser.add_argument('sab', help='SAB for ingest files')
+    args = parser.parse_args()
+
+    return args
+
 # -----------------------------------------
 # START
 
-OWLNETS_SCRIPT = os.path.join(os.path.dirname(os.getcwd()),'generation_framework/owlnets_script/__main__.py')
+args = getargs()
 
-parser = argparse.ArgumentParser(
-    description='Copies ingest files in UBKG edges/nodes format from a local directory.',
-    formatter_class=RawTextArgumentDefaultsHelpFormatter)
-parser.add_argument('sab', help='SAB for ingest files')
-args = parser.parse_args()
+OWLNETS_SCRIPT = os.path.join(os.path.dirname(os.getcwd()),'generation_framework/owlnets_script/__main__.py')
 
 # Read from config file.
 cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/ubkg_edges_nodes/edges_nodes.ini')
