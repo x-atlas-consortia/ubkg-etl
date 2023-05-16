@@ -18,7 +18,7 @@ The scripts in this folder generate files in UBKG edges/nodes format for ingesti
     - extracting and collecting values from the key-value column (9th column)
     - merging with the metadata files 
   - filters annotation output based on indications in the configuration file.
-  - _TO DO_ using the translated annotation data to build edges and nodes files.
+  - uses the translated annotation data to build edges and nodes files.
 - **gencode.ini.example**: annotated example of an application configuration file.
 
 ### Dependencies
