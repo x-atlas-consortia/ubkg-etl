@@ -196,8 +196,8 @@ def build_Annotation_DataFrame(cfg: uconfig.ubkgConfigParser, path: str) -> pd.D
     # Because the GenCode version is part of the file name (e.g., gencode.v41.annotation.gtf),
     # search on a file pattern.
     # The first five rows of the annotation file are comments.
-    print('**********DEBUG: reading < total rows from annotation file.**********')
-    dfGTF = load_GTF_into_DataFrame(file_pattern="annotation", path=path, skip_lines=5,rows_to_read=1000)
+
+    dfGTF = load_GTF_into_DataFrame(file_pattern="annotation", path=path, skip_lines=5)
 
     # The GTF file does not have column headers. Add these with values from the specification.
     dfGTF.columns = cfg.get_value(section='GTF_columns',key='columns').split(',')
@@ -279,7 +279,7 @@ def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[
 
     return dfGTF
 
-def buildTranslatedAnnotationDataFrame(cfg: uconfig.ubkgConfigParser,path: str)-> pd.DataFrame:
+def buildTranslatedAnnotationDataFrame(cfg: uconfig.ubkgConfigParser, path: str, outfile: str)-> pd.DataFrame:
 
     # Builds a DataFrame that:
     # 1. Translates the annotation GTF file.
@@ -321,7 +321,7 @@ def buildTranslatedAnnotationDataFrame(cfg: uconfig.ubkgConfigParser,path: str)-
     dfAnnotation = filter_columns(cfg=cfg,df=dfAnnotation)
 
     # Write translated annotation file.
-    outfile_ann = os.path.join(path, 'TranslatedAnnotationGTF.csv')
+    outfile_ann = os.path.join(path, outfile)
     ulog.print_and_logger_info(f'-- Writing to {outfile_ann}')
     uextract.to_csv_with_progress_bar(df=dfAnnotation, path=outfile_ann)
     return dfAnnotation
@@ -346,6 +346,187 @@ def getargs()->argparse.Namespace:
 
     return args
 
+def write_edges_file(df: pd.DataFrame, path: str):
+
+    # Translates the content of a GTF annotation file to OWLNETS format.
+    # df - DataFrame of annotated GTF information.
+    # path - export path of OWLNETS files
+
+    # The possible assertions in the Annotation file are those that involve transcriptions, including:
+    # - transcribed from genes
+    # - has proteins as gene products
+
+    edgelist_path: str = os.path.join(path, 'OWLNETS_edgelist.txt')
+
+    ulog.print_and_logger_info('Building: ' + os.path.abspath(edgelist_path))
+
+    # ASSERTION: transcribed_from
+    with open(edgelist_path, 'w') as out:
+        # header
+        out.write('subject' + '\t' + 'predicate' + '\t' + 'object' + '\n')
+
+        # Identify unique transcript IDs.
+        dftranscript = df[df['feature_type']=='transcript']
+        dftranscript = dftranscript.drop_duplicates(subset=['transcript_id']).reset_index(drop=True)
+        dftranscript = dftranscript.replace(np.nan,'')
+        # Show TQDM progress bar.
+        for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
+            subject = 'ENSEMBL:' + row['transcript_id']
+            object = 'ENSEMBL:' + row['gene_id']
+            # ASSERTION: transcribed_from
+            predicate = 'http://purl.obolibrary.org/obo/RO_0002510' # transcribed from
+            out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+            # ASSERTION: has_gene_product
+            # The assumption is that grouping by transcript ID will result in a unique association with one of the
+            # UniprotKB IDs. The preference is for SwissProt IDs.
+            predicate = 'http://purl.obolibrary.org/obo/RO_0002205' # has_gene_product
+            if row['UNIPROTKB_SwissProt_AN'] != '':
+                object = 'UNINPROTKB:'+ row['UNIPROTKB_SwissProt_AN']
+            elif row['UNIPROTKB_TrEMBL_AN'] != '':
+                object = 'UNIPROTKB:'+ row['UNIPROTKB_TrEMBL_AN']
+            else:
+                object = ''
+
+            if object != '':
+                out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+    return
+
+def write_nodes_file(df: pd.DataFrame, path: str):
+
+    # Writes a nodes file in OWLNETS format.
+    # Arguments:
+    # df - DataFrame of source information
+    # path: output directory
+
+    # The primary annotation nodes information is the set of cross-references, including:
+    # - HGNC and Entrez IDs for Ensembl gene IDs
+    # - RefSeq RNA IDs for transcripts
+
+    # The Entrez IDs for genes are associated with the gene's transcripts. The Entrez ID is the same for all
+    # of a gene's transcripts.
+
+    node_metadata_path: str = os.path.join(owlnets_dir, 'OWLNETS_node_metadata.txt')
+    ulog.print_and_logger_info('Building: ' + os.path.abspath(node_metadata_path))
+
+    # Get subsets of annotations by feature type.
+    # gene
+    dfgene = df[df['feature_type'] == 'gene']
+    dfgene = dfgene.drop_duplicates(subset=['gene_id']).reset_index(drop=True)
+    dfgene = dfgene.replace(np.nan, '')
+    # transcript
+    dftranscript = df[df['feature_type'] == 'transcript']
+    dftranscript = dftranscript.drop_duplicates(subset=['transcript_id']).reset_index(drop=True)
+    dftranscript = dftranscript.replace(np.nan, '')
+
+    with open(node_metadata_path, 'w') as out:
+        out.write(
+            'node_id' + '\t' + 'node_namespace' + '\t' + 'node_label' + '\t' + 'node_definition' + '\t' +
+            'node_synonyms' + '\t' + 'node_dbxrefs' + '\t' + 'value' + '\t' + 'lowerbound' + '\t' +
+            'upperbound' + '\t' + 'unit' + '\n')
+
+        # GENE NODES
+        ulog.print_and_logger_info('Writing gene nodes')
+        # Find unique gene nodes.
+
+        # Show TQDM progress bar.
+        for index, row in tqdm(dfgene.iterrows(), total=dfgene.shape[0]):
+            node_id = 'ENSEMBL:' + row['gene_id']
+            node_namespace = 'GENCODE'
+            node_label = row['gene_name'].strip()
+
+            node_definition = ''
+            node_synonyms = ''
+
+            dbxreflist = []
+            if row['hgnc_id'] != '':
+                dbxreflist.append('HGNC ' + row['hgnc_id'])
+            if row['mgi_id'] != '':
+                dbxreflist.append('MGI:' + row['mgi_id'])
+
+
+            node_dbxrefs = ''
+            if len(dbxreflist) > 0:
+                node_dbxrefs = '|'.join(dbxreflist)
+
+            value = ''
+            lowerbound = str(int(row['genomic_start_location']))
+            upperbound = str(int(row['genomic_end_location']))
+            unit = ''
+
+            out.write(
+                node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
+                + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
+
+        # TRANSCRIPT NODES
+        # Group by transcript_id and RefSeq_RNA_id.
+        ulog.print_and_logger_info('Writing transcript nodes')
+
+        for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
+            node_id = 'ENSEMBL:' + row['transcript_id']
+            node_namespace = 'GENCODE'
+            node_label = row['transcript_name']
+            node_definition = ''
+            node_synonyms = ''
+            value = ''
+            lowerbound = str(int(row['genomic_start_location']))
+            upperbound = str(int(row['genomic_end_location']))
+            unit = ''
+            node_dbxrefs = ''
+            if row['RefSeq_RNA_id'] != '':
+                node_dbxrefs = 'REFSEQ:' + row['RefSeq_RNA_id']
+
+            out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
+                      + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
+
+        # ENTREZ GENE NODES
+        # These are available in the annotation file, but are not involved in edges.
+        # Map them to HGNC IDs.
+        ulog.print_and_logger_info('Writing Entrez nodes')
+
+        dfEntrez = dftranscript[dftranscript['Entrez_Gene_id']!='']
+        dfEntrez = dfEntrez.drop_duplicates(subset=['Entrez_Gene_id']).reset_index(drop=True)
+        for index, row in tqdm(dfEntrez.iterrows(), total=dfEntrez.shape[0]):
+            node_id = 'ENTREZ:' + str(int(row['Entrez_Gene_id']))
+            node_namespace = 'GENCODE'
+            node_label = row['gene_name']
+            node_definition = ''
+            node_synonyms = ''
+            value = ''
+            lowerbound = str(int(row['genomic_start_location']))
+            upperbound = str(int(row['genomic_end_location']))
+            unit = ''
+            node_dbxrefs = 'HGNC ' + row['hgnc_id']
+            out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
+                      + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
+
+    return
+
+def write_relations_file(path: str):
+
+    # Writes a relations file in OWLNETS format.
+    # Arguments:
+    # df - DataFrame of source information
+    # owlnets_dir: output directory
+
+    # RELATION METADATA
+    # Create a row for each type of relationship.
+
+    relation_path: str = os.path.join(path, 'OWLNETS_relations.txt')
+    ulog.print_and_logger_info('Building: ' + os.path.abspath(relation_path))
+
+    with open(relation_path, 'w') as out:
+        # header
+        out.write(
+            'relation_id' + '\t' + 'relation_namespace' + '\t' + 'relation_label' + '\t' + 'relation_definition' + '\n')
+        relation1_id = 'http://purl.obolibrary.org/obo/RO_0002510' # transcribed from
+        relation2_id = 'http://purl.obolibrary.org/obo/RO_0002205' # has_gene_product
+        out.write(relation1_id + '\t' + 'GENCODE' + '\t' + relation1_id + '\t' + '' + '\n')
+        out.write(relation2_id + '\t' + 'GENCODE' + '\t' + relation2_id + '\t' + '' + '\n')
+    return
+
+
 # ---------------------------------
 # START
 
@@ -360,20 +541,20 @@ gencode_config = uconfig.ubkgConfigParser(cfgfile)
 owl_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owl_dir'))
 owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owlnets_dir'))
 
-if not args.skipbuild:
+ann_file = gencode_config.get_value(section='AnnotationFile',key='filename')
+
+if args.skipbuild:
+    # Read previously generated annotation CSV.
+    path = os.path.join(owlnets_dir,ann_file)
+    dfAnnotation = uextract.read_csv_with_progress_bar(path=path)
+else:
     # Download and decompress GZIP files of GENCODE content from FTP site.
-    lst_gtf = download_source_files(cfg=gencode_config, owl_dir=owl_dir,owlnets_dir=owlnets_dir)
-
+    lst_gtf = download_source_files(cfg=gencode_config, owl_dir=owl_dir, owlnets_dir=owlnets_dir)
     # Build the DataFrame that combines translated GTF annotation data with metadata.
-    dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir,cfg=gencode_config)
+    dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir, cfg=gencode_config, outfile=ann_file)
 
-# Generate edge file.
-print('TO DO: Generate edge file.')
-# Generate node file.
-print('TO DO: Generate node file.')
-
-# Debug exception to stop build_csv.sh.
-raise Exception ("DEVELOPMENT: HALTING EXECUTION.")
-
+write_edges_file(df=dfAnnotation, path=owlnets_dir)
+write_nodes_file(df=dfAnnotation, path=owlnets_dir)
+write_relations_file(path=owlnets_dir)
 
 
