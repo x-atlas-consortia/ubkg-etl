@@ -87,6 +87,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = ret.str.replace('HGNC ', 'HGNC HGNC:', regex=False)
     ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
 
+
     # -------------
     # SPECIAL CASES - Non-UMLS sets of assertions
 
@@ -152,6 +153,9 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # UNIPROT IRIs are formatted differently than those in Glygen, but are in the Glygen OWL files, so they need
     # to be translated separately from GlyGen nodes.
     ret = np.where(x.str.contains('uniprot.org'), 'UNIPROT ' + x.str.split('/').str[-1], ret)
+
+    #JAS MAY 2023 - For case of HGNC codes added as dbxrefs.
+    ret = np.where(x.str.contains('HGNC HGNC '), x.str.replace('HGNC HGNC ','HGNC HGNC:'), ret)
 
     # ---------------
     # FINAL PROCESSING

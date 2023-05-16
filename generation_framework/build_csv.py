@@ -317,7 +317,7 @@ for ontology_name in ontology_names:
         # os.system(script)
         usub.call_subprocess(script)
     # JAS 13 OCT 2022 - allows skipping of PheKnowLator processing
-    else:
+    elif 'execute' in ontology_record:
         ulog.print_and_logger_info(f"Skipping build processing for Ontology: {ontology_name}.")
         ulog.print_and_logger_info("Assuming that current OWLNETS files are available.")
         script: str = ontology_record['execute'] + ' -s'
