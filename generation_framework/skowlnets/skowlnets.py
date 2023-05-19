@@ -163,7 +163,7 @@ def write_nodes_file(df: pd.DataFrame, owlnets_dir: str):
         for index, row in df_sk.iterrows():
             if index >= 0:  # non-header
                 node_id = str(row['code'])
-                node_namespace = 'HUBMAP'
+                node_namespace = ''
                 node_label = str(row['term'])
                 node_definition = str(row['definition'])
 
@@ -200,7 +200,7 @@ def write_relations_file(df: pd.DataFrame, owlnets_dir: str):
             'relation_id' + '\t' + 'relation_namespace' + '\t' + 'relation_label' + '\t' + 'relation_definition' + '\n')
 
         # The first relationship is a subClassOf, which the OWLNETS-UMLS-GRAPH script will convert to an isa.
-        out.write('subClassOf' + '\t' + 'HUBMAP' + '\t' + 'subClassOf' + '\t' + '' + '\n')
+        out.write('subClassOf' + '\t' + '' + '\t' + 'subClassOf' + '\t' + '' + '\n')
 
         # The values from the dbxref column correspond to a pipe-delimited, colon-delimited set
         # of concepts in other vocabularies in the onotology. These will be expanded to a set of

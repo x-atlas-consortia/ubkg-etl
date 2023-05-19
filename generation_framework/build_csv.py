@@ -302,7 +302,9 @@ for ontology_name in ontology_names:
         with_imports = ''
         if args.with_imports is True:
             with_imports = '--with_imports'
-        owlnets_script: str = f"{OWLNETS_SCRIPT} --ignore_owl_md5 {clean} {force_owl_download} {with_imports} -l {args.owlnets_dir} -t {args.owltools_dir} -o {args.owl_dir} {owl_url} {owl_sab}"
+        if args.verbose is True:
+            verbose = '--verbose'
+        owlnets_script: str = f"{OWLNETS_SCRIPT} --ignore_owl_md5 {clean} {verbose} {force_owl_download} {with_imports} -l {args.owlnets_dir} -t {args.owltools_dir} -o {args.owl_dir} {owl_url} {owl_sab}"
         ulog.print_and_logger_info(f"Running: {owlnets_script}")
         # JAS APR 2023 replaced call to os.system
         # os.system(owlnets_script)
