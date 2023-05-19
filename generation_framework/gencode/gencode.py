@@ -645,9 +645,31 @@ def write_relations_file(path: str):
         out.write(
             'relation_id' + '\t' + 'relation_namespace' + '\t' + 'relation_label' + '\t' + 'relation_definition' + '\n')
         relation1_id = 'http://purl.obolibrary.org/obo/RO_0002510' # transcribed from
+        relation1_label = 'transcribed from'
         relation2_id = 'http://purl.obolibrary.org/obo/RO_0002205' # has_gene_product
-        out.write(relation1_id + '\t' + 'GENCODE' + '\t' + relation1_id + '\t' + '' + '\n')
-        out.write(relation2_id + '\t' + 'GENCODE' + '\t' + relation2_id + '\t' + '' + '\n')
+        relation2_label='has gene product'
+        relation3_id = 'http://purl.obolibrary.org/obo/RO_0001025'  # located in
+        relation3_label = 'located in'
+        relation4_id = 'is gene biotype'
+        relation4_label ='is gene biotype'
+        relation5_id = 'is transcript biotype'
+        relation5_label = 'is transcript biotype'
+        relation6_id = 'http://purl.obolibrary.org/obo/RO_0004048' # has directional form of
+        relation6_label = 'has directional form of'
+        relation7_id = 'subclassOf'
+        relation7_label = 'subClassOf'
+        relation8_id = 'has refSeq ID'
+        relation8_label = 'has refSeq ID'
+
+        out.write(relation1_id + '\t' + 'GENCODE' + '\t' + relation1_label + '\t' + '' + '\n')
+        out.write(relation2_id + '\t' + 'GENCODE' + '\t' + relation2_label + '\t' + '' + '\n')
+        out.write(relation3_id + '\t' + 'GENCODE' + '\t' + relation3_label + '\t' + '' + '\n')
+        out.write(relation4_id + '\t' + 'GENCODE' + '\t' + relation4_label + '\t' + '' + '\n')
+        out.write(relation5_id + '\t' + 'GENCODE' + '\t' + relation5_label + '\t' + '' + '\n')
+        out.write(relation6_id + '\t' + 'GENCODE' + '\t' + relation6_label + '\t' + '' + '\n')
+        out.write(relation7_id + '\t' + 'GENCODE' + '\t' + relation7_label + '\t' + '' + '\n')
+        out.write(relation8_id + '\t' + 'GENCODE' + '\t' + relation8_label + '\t' + '' + '\n')
+
     return
 
 
