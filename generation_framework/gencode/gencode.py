@@ -67,6 +67,7 @@ def load_GTF_into_DataFrame(file_pattern: str, path: str, skip_lines: int=0, row
             ulog.print_and_logger_info(f'Reading {gtffile}')
             return uextract.read_csv_with_progress_bar(path=gtffile, rows_to_read=rows_to_read, comment='#',sep='\t')
 
+    # ERROR condition
     ulog.print_and_logger_info(f'Error: missing file with name that includes \'{file_pattern}\'.')
     exit(1)
 
@@ -472,6 +473,7 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
                 direction = 'positive'
             if row['genomic_strand'] == '-':
                 direction = 'negative'
+
             if direction != '':
                 if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].shape[0] > 0:
                     object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].iat[0])
@@ -481,23 +483,22 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             object = ''
             # Assertion: isa (type of Pseudogene)
             # Assume that the ont field can be a list of PGO IDs.
+            # Assume that PGO nodes were ingested prior to the GENCODE ingestion.
             predicate = 'subClassOf'
             if row['ont'] != '':
                 listPGO = row['ont'].split(',')
                 for pgo in listPGO:
-                    if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == pgo, 'node_id'].shape[0] > 0:
-                        object = dfGenCode_ont.loc[dfGenCode_ont['node_label'] == pgo, 'node_id'].iat[0]
-                    if object !='':
-                        out.write(subject + '\t' + predicate + '\t' + pgo + '\n')
+                    # Replace colon with space for codeReplacements function.
+                    object = 'PGO_' + pgo.split(':')[-1]
+                    out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
             object = ''
             # Assertion: has refSeq ID
+            # The RefSeq nodes will be created as part of the GENCODE ingestion.
             predicate = 'has_refSeq_ID'
             if row['RefSeq_RNA_id'] != '':
-                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['RefSeq_RNA_id'], 'node_id'].shape[0] > 0:
-                    object = 'REFSEQ:' + dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['RefSeq_RNA_id'], 'node_id'].iat[0]
-                if object != '':
-                    out.write(subject + '\t' + predicate + '\t' + pgo + '\n')
+                object = 'REFSEQ  ' + row['RefSeq_RNA_id']
+                out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
     return
 
@@ -613,7 +614,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         dfRefSeq = df[df['RefSeq_RNA_id'] != '']
         dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_RNA_id']).reset_index(drop=True)
         for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
-            node_id = 'REFSEQ:' + (row['RefSeq_RNA_id'])
+            node_id = 'REFSEQ ' + (row['RefSeq_RNA_id'])
             node_namespace = 'GENCODE'
             node_label = row['RefSeq_RNA_id']
             node_definition = ''
@@ -716,7 +717,7 @@ ann_file = gencode_config.get_value(section='AnnotationFile',key='filename')
 if args.skipbuild:
     # Read previously generated annotation CSV.
     path = os.path.join(owlnets_dir, ann_file)
-    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=10000)
+    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=1000)
     dfAnnotation = dfAnnotation.replace(np.nan, '')
 else:
     # Download and decompress GZIP files of GENCODE content from FTP site.
@@ -727,4 +728,5 @@ else:
 write_edges_file(df=dfAnnotation, path=owlnets_dir, ont_path=ont_dir)
 write_nodes_file(df=dfAnnotation, path=owlnets_dir)
 write_relations_file(path=owlnets_dir)
+
 

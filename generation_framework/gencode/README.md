@@ -33,6 +33,8 @@ Some GenCode assertions employ nodes from other sets of assertions, including:
 1. GENCODE_ONT: custom nodes, in a source file built with the SimpleKnowledge framework
 2. PGO: Pseudogene Ontology
 
+Note: In the UBKG, codeIDs for PGO nodes are in the format **PGO PGO:(code)**, similar to the formats for GO, HPO, and HGNC.
+
 GENCODE_ONT is a special case. The GENCODE annotated file refers to nodes in GENCODE_ONT by term instead of code,
 so it is necessary to map from term to code in GENCODE_ONT. The script assumes that GENCODE_ONT has been ingested so 
 that the file **OWLNETS_node_metadata.txt** is available.
@@ -93,6 +95,12 @@ Node_ids for object nodes are from:
 ![img_5.png](img_5.png)
 ### has_directional_form
 ![img_6.png](img_6.png)
+### subClassOf (PGO)
+![img_7.png](img_7.png)
+### has_RefSeq_ID
+![img_8.png](img_8.png)
+
+
 ## Node information
 
 ### Annotation nodes
@@ -104,10 +112,14 @@ Each annotation node has the following characteristics:
 | genomic_end_location      | **upperbound** property                     |
 | HGNC ID                   | dbxref to HGNC node                         |
 
+![img_10.png](img_10.png)
+
 
 ### Entrez nodes
 A node will be created for each value in the _Entrez_Gene_id_ field of the annotation file.
 These nodes have dbxrefs to HGNC nodes.
+
+![img_11.png](img_11.png)
 
 ### RefSeq nodes
 A node will be created for each value in the _RefSeq_RNA_id_ field of the annotation file. 
