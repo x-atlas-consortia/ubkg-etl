@@ -125,7 +125,17 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # 2. MONDO uses both OBO-3 compliant IRIs (e.g., "http://purl.obolibrary.org/obo/MONDO_0019052") and
     #    non-compliant ones (e.g., "http://purl.obolibrary.org/obo/mondo#ordo_clinical_subtype")
     ret = np.where(x.str.contains('http://purl.obolibrary.org/obo/mondo#'),
-                   'MONDO' + x.str.split('#').str[-1], ret)
+                   'MONDO ' + x.str.split('#').str[-1], ret)
+
+    # MAY 2023
+    # PGO
+    # Restore changes made related to GO
+    ret = np.where(x.str.contains('PGO'),
+                   'PGO ' + x.str.split('/').str[-1], ret)
+
+    # REFSEQ - keep underscores
+    ret = np.where(x.str.contains('REFSEQ:'),
+                   'REFSEQ ' + x.str.split(':').str[-1], ret)
 
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are

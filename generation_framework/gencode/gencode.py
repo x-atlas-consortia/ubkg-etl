@@ -437,7 +437,7 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             object = ''
             # Assertion: (feature) has feature type (feature type)
             # There is currently no appropriate relation property in RO.
-            predicate = 'is feature type'
+            predicate = 'is_feature_type'
             # Obtain from GENCODE_ONT the node_id for the feature type
             if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['feature_type'], 'node_id'].shape[0] > 0:
                 object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['feature_type'], 'node_id'].iat[0])
@@ -447,7 +447,7 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             object = ''
             # Assertion: (feature) is gene biotype
             # There is currently no appropriate relation property in RO.
-            predicate = 'is gene biotype'
+            predicate = 'is_gene_biotype'
             if row['gene_type'] != '':
                 if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].shape[0] >0:
                     object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].iat[0])
@@ -457,7 +457,7 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             object = ''
             # Assertion: (feature) is transcript biotype
             # There is currently no appropriate relation property in RO.
-            predicate = 'is transcript biotype'
+            predicate = 'is_transcript_biotype'
             if row['transcript_type'] != '':
                 if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['transcript_type'], 'node_id'].shape[0] > 0:
                     object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['transcript_type'], 'node_id'].iat[0])
@@ -466,6 +466,7 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
             object = ''
             # Assertion: (feature) has directional form of (strand)
+            direction = ''
             predicate ='http://purl.obolibrary.org/obo/RO_0004048' # has directional form of
             if row['genomic_strand'] == '+':
                 direction = 'positive'
@@ -491,7 +492,7 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
             object = ''
             # Assertion: has refSeq ID
-            predicate = 'has refSeq ID'
+            predicate = 'has_refSeq_ID'
             if row['RefSeq_RNA_id'] != '':
                 if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['RefSeq_RNA_id'], 'node_id'].shape[0] > 0:
                     object = 'REFSEQ:' + dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['RefSeq_RNA_id'], 'node_id'].iat[0]
@@ -549,8 +550,8 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             dbxreflist = []
             if row['hgnc_id'] != '':
                 dbxreflist.append('HGNC ' + row['hgnc_id'])
-            if row['mgi_id'] != '':
-                dbxreflist.append('MGI:' + row['mgi_id'])
+            #if row['mgi_id'] != '':
+                #dbxreflist.append('MGI:' + row['mgi_id'])
 
 
             node_dbxrefs = ''
@@ -650,16 +651,18 @@ def write_relations_file(path: str):
         relation2_label='has gene product'
         relation3_id = 'http://purl.obolibrary.org/obo/RO_0001025'  # located in
         relation3_label = 'located in'
-        relation4_id = 'is gene biotype'
-        relation4_label ='is gene biotype'
-        relation5_id = 'is transcript biotype'
-        relation5_label = 'is transcript biotype'
-        relation6_id = 'http://purl.obolibrary.org/obo/RO_0004048' # has directional form of
-        relation6_label = 'has directional form of'
-        relation7_id = 'subclassOf'
-        relation7_label = 'subClassOf'
-        relation8_id = 'has refSeq ID'
-        relation8_label = 'has refSeq ID'
+        relation4_id='is_feature_type'
+        relation4_label='is_feature_type'
+        relation5_id = 'is_gene_biotype'
+        relation5_label ='is_gene_biotype'
+        relation6_id = 'is_transcript_biotype'
+        relation6_label = 'is_transcript_biotype'
+        relation7_id = 'http://purl.obolibrary.org/obo/RO_0004048' # has directional form of
+        relation7_label = 'has_directional_form_of'
+        relation8_id = 'subclassOf'
+        relation8_label = 'subClassOf'
+        relation9_id = 'has_refSeq_ID'
+        relation9_label = 'has_refSeq_ID'
 
         out.write(relation1_id + '\t' + 'GENCODE' + '\t' + relation1_label + '\t' + '' + '\n')
         out.write(relation2_id + '\t' + 'GENCODE' + '\t' + relation2_label + '\t' + '' + '\n')
@@ -669,7 +672,7 @@ def write_relations_file(path: str):
         out.write(relation6_id + '\t' + 'GENCODE' + '\t' + relation6_label + '\t' + '' + '\n')
         out.write(relation7_id + '\t' + 'GENCODE' + '\t' + relation7_label + '\t' + '' + '\n')
         out.write(relation8_id + '\t' + 'GENCODE' + '\t' + relation8_label + '\t' + '' + '\n')
-
+        out.write(relation9_id + '\t' + 'GENCODE' + '\t' + relation9_label + '\t' + '' + '\n')
     return
 
 
@@ -713,7 +716,7 @@ ann_file = gencode_config.get_value(section='AnnotationFile',key='filename')
 if args.skipbuild:
     # Read previously generated annotation CSV.
     path = os.path.join(owlnets_dir, ann_file)
-    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=1000)
+    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=10000)
     dfAnnotation = dfAnnotation.replace(np.nan, '')
 else:
     # Download and decompress GZIP files of GENCODE content from FTP site.

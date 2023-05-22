@@ -60,6 +60,7 @@ def getargs()->argparse.Namespace:
         description='Copies ingest files in UBKG edges/nodes format from a local directory.',
         formatter_class=RawTextArgumentDefaultsHelpFormatter)
     parser.add_argument('sab', help='SAB for ingest files')
+    parser.add_argument("-s", "--skipbuild", action="store_true", help="skip build of OWLNETS files")
     args = parser.parse_args()
 
     return args
