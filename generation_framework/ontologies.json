@@ -215,5 +215,14 @@
     "owl_url": "https://github.com/SciCrunch/NIF-Ontology/releases/download/sckan-2023-04-29/npo-simple-sckan-merged.ttl",
     "home_url": "https://github.com/SciCrunch/NIF-Ontology",
     "comment": "NPO-SKCAN in Turtle"
+  },
+  "PGO": {
+    "home_url": "https://bioportal.bioontology.org/ontologies/pseudo/?p=summary",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py PGO",
+    "comment": "Pseudogene"
+  },
+  "GENCODE_ONT": {
+    "comment": "GenCode application ontology, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py GENCODE_ONT"
   }
 }

@@ -16,16 +16,17 @@ import numpy as np
 # Import UBKG utilities which is in a directory that is at the same level as the script directory.
 # Go "up and over" for an absolute path.
 fpath = os.path.dirname(os.getcwd())
-fpath = os.path.join(fpath,'generation_framework/ubkg_utilities')
+fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
 # Extraction module
 import ubkg_extract as uextract
 # Logging module
 import ubkg_logging as ulog
 import ubkg_config as uconfig
-#-----------------------------
+# -----------------------------
 
-def download_source_files(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str) ->list[str]:
+
+def download_source_files(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str) -> list[str]:
     # Obtains source files from GENCODE FTP site.
 
     # Returns a list of full paths to files extracted from downloaded files.
@@ -42,14 +43,15 @@ def download_source_files(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_d
     list_gtf = []
 
     for key in cfg.config['URL']:
-        url = cfg.get_value(section='URL',key=key)
+        url = cfg.get_value(section='URL', key=key)
         # The URL contains the filename.
         zipfilename = url.split('/')[-1]
-        list_gtf.append(uextract.get_gzipped_file(gzip_url=url, zip_path=owl_dir, extract_path=owlnets_dir,zipfilename=zipfilename))
+        list_gtf.append(uextract.get_gzipped_file(gzip_url=url, zip_path=owl_dir, extract_path=owlnets_dir, zipfilename=zipfilename))
 
     return list_gtf
 
-def load_GTF_into_DataFrame(file_pattern:str, path: str, skip_lines: int=0, rows_to_read: int=0) -> pd.DataFrame:
+
+def load_GTF_into_DataFrame(file_pattern: str, path: str, skip_lines: int=0, rows_to_read: int=0) -> pd.DataFrame:
 
     # Loads a GTF file into a Pandas DataFrame, showing a progress bar.
     # file_pattern: portion of a name of a GTF file--e.g., "annotation"
@@ -63,10 +65,12 @@ def load_GTF_into_DataFrame(file_pattern:str, path: str, skip_lines: int=0, rows
         if file_pattern in filename:
             gtffile = os.path.join(path,filename)
             ulog.print_and_logger_info(f'Reading {gtffile}')
-            return uextract.read_csv_with_progress_bar(path=gtffile,rows_to_read=rows_to_read,comment='#',sep='\t')
+            return uextract.read_csv_with_progress_bar(path=gtffile, rows_to_read=rows_to_read, comment='#',sep='\t')
 
+    # ERROR condition
     ulog.print_and_logger_info(f'Error: missing file with name that includes \'{file_pattern}\'.')
     exit(1)
+
 
 def build_key_value_column(dfGTFl1: pd.DataFrame, search_key: str):
 
@@ -127,7 +131,8 @@ def build_key_value_column(dfGTFl1: pd.DataFrame, search_key: str):
 
     return
 
-def split_column9_level1(dfGTF: pd.DataFrame) ->pd.DataFrame:
+
+def split_column9_level1(dfGTF: pd.DataFrame) -> pd.DataFrame:
 
     # Perform the first-level split of the key-value column (9th) of a GTF file, adding
     # separated key-value pairs as columns.
@@ -153,7 +158,8 @@ def split_column9_level1(dfGTF: pd.DataFrame) ->pd.DataFrame:
         dfGTF[col] = dfSplit_level_1[col]
     return dfGTF
 
-def filter_Annotations(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame)->pd.DataFrame:
+
+def filter_Annotations(cfg: uconfig.ubkgConfigParser, df: pd.DataFrame) -> pd.DataFrame:
 
     # Filters the annotation DataFrame by the types of annotations indicated in the application configuration file.
     # Arguments:
@@ -161,27 +167,29 @@ def filter_Annotations(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame)->pd.DataF
     # df: a DataFrame of annotation information.
 
     # Get desired feature types from the configuration file.
-    feature_types = cfg.get_value(section='Filters',key='feature_types').split(',')
+    feature_types = cfg.get_value(section='Filters', key='feature_types').split(',')
     if feature_types == ['all']:
         return df
     else:
         # Filter rows.
         return df[df['feature_type'].isin(feature_types)]
 
-def filter_columns(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame)->pd.DataFrame:
+
+def filter_columns(cfg: uconfig.ubkgConfigParser, df: pd.DataFrame) -> pd.DataFrame:
 
     # Reduces the set of columns in the annotation DataFrame by values indicated in the application configuration file.
     # Arguments:
     # cfg - an instance of the ubkgConfigParser class, which works with the application configuration file.
     # df: a DataFrame of annotation information.
 
-    cols = cfg.get_value(section='Filters',key='columns').split(',')
+    cols = cfg.get_value(section='Filters', key='columns').split(',')
     if cols == ['all']:
         return df
     else:
         # Filter columns.
         df = df[cols]
         return df
+
 
 def build_Annotation_DataFrame(cfg: uconfig.ubkgConfigParser, path: str) -> pd.DataFrame:
 
@@ -200,14 +208,14 @@ def build_Annotation_DataFrame(cfg: uconfig.ubkgConfigParser, path: str) -> pd.D
     dfGTF = load_GTF_into_DataFrame(file_pattern="annotation", path=path, skip_lines=5)
 
     # The GTF file does not have column headers. Add these with values from the specification.
-    dfGTF.columns = cfg.get_value(section='GTF_columns',key='columns').split(',')
+    dfGTF.columns = cfg.get_value(section='GTF_columns', key='columns').split(',')
     # Filter annotation rows by types listed in configuration file.
     # This will likely reduce the size of the resulting DataFrame considerably.
     dfGTF = filter_Annotations(cfg=cfg, df=dfGTF)
 
     # Add columns corresponding to the key/value pairs in the 9th column.
     # GTF key names are from the specification.
-    list_keys = cfg.get_value(section='GTF_column9_keys',key='keys').split(',')
+    list_keys = cfg.get_value(section='GTF_column9_keys', key='keys').split(',')
 
     # --------------------------
     # The key-value column uses two levels of delimiting:
@@ -250,18 +258,18 @@ def build_Annotation_DataFrame(cfg: uconfig.ubkgConfigParser, path: str) -> pd.D
 
     # Level 2 split and collect
     ulog.print_and_logger_info('-- Collecting values from key-value columns...')
-    for k in tqdm(list_keys,desc='Collecting'):
-        build_key_value_column(dfGTF,k)
+    for k in tqdm(list_keys, desc='Collecting'):
+        build_key_value_column(dfGTF, k)
 
     # Remove intermediate Level 1 columns.
     droplabels = []
     for col in dfGTF:
         if isinstance(col, int):
             droplabels.append(col)
-    dfGTF=dfGTF.drop(columns=droplabels)
+    dfGTF = dfGTF.drop(columns=droplabels)
     return dfGTF
 
-def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[str]) ->pd.DataFrame:
+def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[str]) -> pd.DataFrame:
 
     # Builds a DataFrame that translates one of the GenCode metadata files.
     # The specification of metadata files is at https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/_README.TXT
@@ -274,12 +282,13 @@ def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[
 
     # search on a file pattern.
     dfGTF = load_GTF_into_DataFrame(file_pattern=file_pattern, path=path)
-   # The GTF file does not have column headers. Add these with values from the specification.
+    # The GTF file does not have column headers. Add these with values from the specification.
     dfGTF.columns = column_headers
 
     return dfGTF
 
-def buildTranslatedAnnotationDataFrame(cfg: uconfig.ubkgConfigParser, path: str, outfile: str)-> pd.DataFrame:
+
+def buildTranslatedAnnotationDataFrame(cfg: uconfig.ubkgConfigParser, path: str, outfile: str) -> pd.DataFrame:
 
     # Builds a DataFrame that:
     # 1. Translates the annotation GTF file.
@@ -318,7 +327,7 @@ def buildTranslatedAnnotationDataFrame(cfg: uconfig.ubkgConfigParser, path: str,
     dfAnnotation = dfAnnotation.merge(dfTrEMBL, how='left', on='transcript_id')
 
     # Filter output by columns as indicated in the configuration file.
-    dfAnnotation = filter_columns(cfg=cfg,df=dfAnnotation)
+    dfAnnotation = filter_columns(cfg=cfg, df=dfAnnotation)
 
     # Write translated annotation file.
     outfile_ann = os.path.join(path, outfile)
@@ -333,7 +342,8 @@ class RawTextArgumentDefaultsHelpFormatter(
 ):
     pass
 
-def getargs()->argparse.Namespace:
+
+def getargs() -> argparse.Namespace:
 
     # Parse arguments.
     parser = argparse.ArgumentParser(
@@ -346,49 +356,148 @@ def getargs()->argparse.Namespace:
 
     return args
 
-def write_edges_file(df: pd.DataFrame, path: str):
+
+def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
     # Translates the content of a GTF annotation file to OWLNETS format.
     # df - DataFrame of annotated GTF information.
     # path - export path of OWLNETS files
+    # ont_path - path to the directory containing OWLNETS files related to the ingestion of the GENCODE_ONT ontology
 
-    # The possible assertions in the Annotation file are those that involve transcriptions, including:
-    # - transcribed from genes
-    # - has proteins as gene products
+    # Assertions on transcripts:
+    # - transcribed from genes, using Ensembl IDs for genes
+    # - has proteins as gene products, using the UNIPROTKB IDs
+
+    # The object node IDs for assertions for which subjects are features are obtained from the
+    # OWLNETS_node_metadata file for the GENCODE_ONT set of assertions.
+    # Feature assertions:
+    # 1. Feature is located in a chromosome
+    # 2. Feature has feature type
+    # 3. Feature has biotype, based on whether the feature is a gene (gene_type) or not (transcript_type)
+    # 4. Feature has directional form (strand direction)
+    # 5. Feature isa for all PGO codes in the ont field
+
+    # Read the node information from GENCODE_ONT.
+    dfGenCode_ont = getGenCodeOnt(path=ont_path)
 
     edgelist_path: str = os.path.join(path, 'OWLNETS_edgelist.txt')
-
     ulog.print_and_logger_info('Building: ' + os.path.abspath(edgelist_path))
 
-    # ASSERTION: transcribed_from
     with open(edgelist_path, 'w') as out:
         # header
         out.write('subject' + '\t' + 'predicate' + '\t' + 'object' + '\n')
 
+        # ASSERTIONS FOR TRANSCRIPTS
+        ulog.print_and_logger_info('Writing \'transcribed from\' and \'has gene product\' edges for transcripts')
         # Identify unique transcript IDs.
-        dftranscript = df[df['feature_type']=='transcript']
+        dftranscript = df[df['feature_type'] == 'transcript']
         dftranscript = dftranscript.drop_duplicates(subset=['transcript_id']).reset_index(drop=True)
-        dftranscript = dftranscript.replace(np.nan,'')
+
         # Show TQDM progress bar.
         for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
             subject = 'ENSEMBL:' + row['transcript_id']
             object = 'ENSEMBL:' + row['gene_id']
+
+
             # ASSERTION: transcribed_from
             predicate = 'http://purl.obolibrary.org/obo/RO_0002510' # transcribed from
             out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
-            # ASSERTION: has_gene_product
-            # The assumption is that grouping by transcript ID will result in a unique association with one of the
-            # UniprotKB IDs. The preference is for SwissProt IDs.
+            # ASSERTIONs: has_gene_product
+            # Look for proteins in both SwissProt and Trembl annotations of UniProtKB
             predicate = 'http://purl.obolibrary.org/obo/RO_0002205' # has_gene_product
             if row['UNIPROTKB_SwissProt_AN'] != '':
                 object = 'UNINPROTKB:'+ row['UNIPROTKB_SwissProt_AN']
-            elif row['UNIPROTKB_TrEMBL_AN'] != '':
-                object = 'UNIPROTKB:'+ row['UNIPROTKB_TrEMBL_AN']
-            else:
-                object = ''
+                out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
-            if object != '':
+            if row['UNIPROTKB_TrEMBL_AN'] != '':
+                object = 'UNIPROTKB:' + row['UNIPROTKB_TrEMBL_AN']
+                out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+        # ASSERTIONS for features (genes, transcripts, etc.)
+        ulog.print_and_logger_info('Writing edges for all features (gene, transcript, etc.)--chromosome, biotype, direction, pseudogene, RefSeq')
+        for index, row in tqdm(df.iterrows(), total=df.shape[0]):
+
+            # feature ID
+            if row['transcript_id'] != '':
+                subject = 'ENSEMBL:' + row['transcript_id']
+            else:
+                subject = 'ENSEMBL:' + row['gene_id']
+
+            object = ''
+
+            # Assertion: (feature) located in (chromosome)
+            predicate = 'http://purl.obolibrary.org/obo/RO_0001025' # located in
+            # Obtain from GENCODE_ONT the node_id for the node that corresponds
+            # to the value from the chromosome_name column.
+            if dfGenCode_ont.loc[dfGenCode_ont['node_label']==row['chromosome_name'],'node_id'].shape[0] > 0:
+                object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label']==row['chromosome_name'],'node_id'].iat[0])
+                if object !='':
+                    out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+            object = ''
+            # Assertion: (feature) has feature type (feature type)
+            # There is currently no appropriate relation property in RO.
+            predicate = 'is_feature_type'
+            # Obtain from GENCODE_ONT the node_id for the feature type
+            if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['feature_type'], 'node_id'].shape[0] > 0:
+                object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['feature_type'], 'node_id'].iat[0])
+                if object !='':
+                    out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+            object = ''
+            # Assertion: (feature) is gene biotype
+            # There is currently no appropriate relation property in RO.
+            predicate = 'is_gene_biotype'
+            if row['gene_type'] != '':
+                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].shape[0] >0:
+                    object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].iat[0])
+                    if object !='':
+                        out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+            object = ''
+            # Assertion: (feature) is transcript biotype
+            # There is currently no appropriate relation property in RO.
+            predicate = 'is_transcript_biotype'
+            if row['transcript_type'] != '':
+                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['transcript_type'], 'node_id'].shape[0] > 0:
+                    object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['transcript_type'], 'node_id'].iat[0])
+                if object != '':
+                    out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+            object = ''
+            # Assertion: (feature) has directional form of (strand)
+            direction = ''
+            predicate ='http://purl.obolibrary.org/obo/RO_0004048' # has directional form of
+            if row['genomic_strand'] == '+':
+                direction = 'positive'
+            if row['genomic_strand'] == '-':
+                direction = 'negative'
+
+            if direction != '':
+                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].shape[0] > 0:
+                    object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].iat[0])
+            if object !='':
+                out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+            object = ''
+            # Assertion: isa (type of Pseudogene)
+            # Assume that the ont field can be a list of PGO IDs.
+            # Assume that PGO nodes were ingested prior to the GENCODE ingestion.
+            predicate = 'subClassOf'
+            if row['ont'] != '':
+                listPGO = row['ont'].split(',')
+                for pgo in listPGO:
+                    # Replace colon with space for codeReplacements function.
+                    object = 'PGO_' + pgo.split(':')[-1]
+                    out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
+            object = ''
+            # Assertion: has refSeq ID
+            # The RefSeq nodes will be created as part of the GENCODE ingestion.
+            predicate = 'has_refSeq_ID'
+            if row['RefSeq_RNA_id'] != '':
+                object = 'REFSEQ  ' + row['RefSeq_RNA_id']
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
     return
@@ -442,8 +551,8 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             dbxreflist = []
             if row['hgnc_id'] != '':
                 dbxreflist.append('HGNC ' + row['hgnc_id'])
-            if row['mgi_id'] != '':
-                dbxreflist.append('MGI:' + row['mgi_id'])
+            #if row['mgi_id'] != '':
+                #dbxreflist.append('MGI:' + row['mgi_id'])
 
 
             node_dbxrefs = ''
@@ -474,8 +583,6 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             upperbound = str(int(row['genomic_end_location']))
             unit = ''
             node_dbxrefs = ''
-            if row['RefSeq_RNA_id'] != '':
-                node_dbxrefs = 'REFSEQ:' + row['RefSeq_RNA_id']
 
             out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
                       + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
@@ -501,6 +608,25 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
                       + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
 
+        # REFSEQ NODES
+        # These are available in the annotation file.
+        ulog.print_and_logger_info('Writing RefSeq nodes')
+        dfRefSeq = df[df['RefSeq_RNA_id'] != '']
+        dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_RNA_id']).reset_index(drop=True)
+        for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
+            node_id = 'REFSEQ ' + (row['RefSeq_RNA_id'])
+            node_namespace = 'GENCODE'
+            node_label = row['RefSeq_RNA_id']
+            node_definition = ''
+            node_synonyms = ''
+            value = ''
+            lowerbound = ''
+            upperbound = ''
+            unit = ''
+            node_dbxrefs = ''
+            out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
+                      + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
+
     return
 
 def write_relations_file(path: str):
@@ -521,14 +647,55 @@ def write_relations_file(path: str):
         out.write(
             'relation_id' + '\t' + 'relation_namespace' + '\t' + 'relation_label' + '\t' + 'relation_definition' + '\n')
         relation1_id = 'http://purl.obolibrary.org/obo/RO_0002510' # transcribed from
+        relation1_label = 'transcribed from'
         relation2_id = 'http://purl.obolibrary.org/obo/RO_0002205' # has_gene_product
-        out.write(relation1_id + '\t' + 'GENCODE' + '\t' + relation1_id + '\t' + '' + '\n')
-        out.write(relation2_id + '\t' + 'GENCODE' + '\t' + relation2_id + '\t' + '' + '\n')
+        relation2_label='has gene product'
+        relation3_id = 'http://purl.obolibrary.org/obo/RO_0001025'  # located in
+        relation3_label = 'located in'
+        relation4_id='is_feature_type'
+        relation4_label='is_feature_type'
+        relation5_id = 'is_gene_biotype'
+        relation5_label ='is_gene_biotype'
+        relation6_id = 'is_transcript_biotype'
+        relation6_label = 'is_transcript_biotype'
+        relation7_id = 'http://purl.obolibrary.org/obo/RO_0004048' # has directional form of
+        relation7_label = 'has_directional_form_of'
+        relation8_id = 'subclassOf'
+        relation8_label = 'subClassOf'
+        relation9_id = 'has_refSeq_ID'
+        relation9_label = 'has_refSeq_ID'
+
+        out.write(relation1_id + '\t' + 'GENCODE' + '\t' + relation1_label + '\t' + '' + '\n')
+        out.write(relation2_id + '\t' + 'GENCODE' + '\t' + relation2_label + '\t' + '' + '\n')
+        out.write(relation3_id + '\t' + 'GENCODE' + '\t' + relation3_label + '\t' + '' + '\n')
+        out.write(relation4_id + '\t' + 'GENCODE' + '\t' + relation4_label + '\t' + '' + '\n')
+        out.write(relation5_id + '\t' + 'GENCODE' + '\t' + relation5_label + '\t' + '' + '\n')
+        out.write(relation6_id + '\t' + 'GENCODE' + '\t' + relation6_label + '\t' + '' + '\n')
+        out.write(relation7_id + '\t' + 'GENCODE' + '\t' + relation7_label + '\t' + '' + '\n')
+        out.write(relation8_id + '\t' + 'GENCODE' + '\t' + relation8_label + '\t' + '' + '\n')
+        out.write(relation9_id + '\t' + 'GENCODE' + '\t' + relation9_label + '\t' + '' + '\n')
     return
 
 
+def getGenCodeOnt(path: str) -> pd.DataFrame:
+
+    # The GENCODE annotation file has columns with values that have been encoded as nodes in the GENCODE_ONT
+    # set of assertions.
+    # Load the nodes file related to the prior ingestion.
+
+    nodefile = os.path.join(path, 'OWLNETS_node_metadata.txt')
+
+    try:
+        return uextract.read_csv_with_progress_bar(nodefile, sep='\t')
+    except FileNotFoundError:
+        ulog.print_and_logger_info('GENCODE depends on the prior ingestion of information '
+                                   'from the GENCODE_ONT SAB. Run .build_csv.sh for GENCODE_ONT prior '
+                                   'to running it for GENCODE.')
+        exit(1)
+
 # ---------------------------------
 # START
+
 
 args = getargs()
 
@@ -538,22 +705,27 @@ gencode_config = uconfig.ubkgConfigParser(cfgfile)
 
 # Get OWL and OWLNETS directories.
 # The config file should contain absolute paths to the directories.
-owl_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owl_dir'))
-owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='owlnets_dir'))
+owl_dir = os.path.join(os.path.dirname(os.getcwd()), gencode_config.get_value(section='Directories', key='owl_dir'))
+owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), gencode_config.get_value(section='Directories', key='owlnets_dir'))
 
+# Obtain the path to the OWLNETS files that correspond to the application ontology information for GenCode.
+ont_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='lookup_dir'))
+
+# Obtain output name for the translated annotation file.
 ann_file = gencode_config.get_value(section='AnnotationFile',key='filename')
 
 if args.skipbuild:
     # Read previously generated annotation CSV.
-    path = os.path.join(owlnets_dir,ann_file)
-    dfAnnotation = uextract.read_csv_with_progress_bar(path=path)
+    path = os.path.join(owlnets_dir, ann_file)
+    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=1000)
+    dfAnnotation = dfAnnotation.replace(np.nan, '')
 else:
     # Download and decompress GZIP files of GENCODE content from FTP site.
     lst_gtf = download_source_files(cfg=gencode_config, owl_dir=owl_dir, owlnets_dir=owlnets_dir)
     # Build the DataFrame that combines translated GTF annotation data with metadata.
     dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir, cfg=gencode_config, outfile=ann_file)
 
-write_edges_file(df=dfAnnotation, path=owlnets_dir)
+write_edges_file(df=dfAnnotation, path=owlnets_dir, ont_path=ont_dir)
 write_nodes_file(df=dfAnnotation, path=owlnets_dir)
 write_relations_file(path=owlnets_dir)
 
