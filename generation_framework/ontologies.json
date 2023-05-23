@@ -229,5 +229,10 @@
     "home_url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/README.txt",
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CLINVAR",
     "comment": "CLINVAR"
+  },
+  "CMAP": {
+    "home_url": "https://www.broadinstitute.org/connectivity-map-cmap",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CMAP",
+    "comment": "CMAP"
   }
 }
