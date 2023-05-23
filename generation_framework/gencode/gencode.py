@@ -282,6 +282,7 @@ def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[
 
     # search on a file pattern.
     dfGTF = load_GTF_into_DataFrame(file_pattern=file_pattern, path=path)
+
     # The GTF file does not have column headers. Add these with values from the specification.
     dfGTF.columns = column_headers
 
@@ -499,6 +500,10 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             if row['RefSeq_RNA_id'] != '':
                 object = 'REFSEQ  ' + row['RefSeq_RNA_id']
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
+            if row['RefSeq_protein_id'] != '':
+                object = 'REFSEQ  ' + row['RefSeq_protein_id']
+                out.write(subject + '\t' + predicate + '\t' + object + '\n')
+
 
     return
 
@@ -608,9 +613,9 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
                       + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
 
-        # REFSEQ NODES
+        # REFSEQ RNA NODES
         # These are available in the annotation file.
-        ulog.print_and_logger_info('Writing RefSeq nodes')
+        ulog.print_and_logger_info('Writing RefSeq RNA nodes')
         dfRefSeq = df[df['RefSeq_RNA_id'] != '']
         dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_RNA_id']).reset_index(drop=True)
         for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
@@ -626,6 +631,25 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             node_dbxrefs = ''
             out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
                       + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
+
+        # REFSEQ RNA NODES
+        # These are available in the annotation file.
+        ulog.print_and_logger_info('Writing RefSeq protein nodes')
+        dfRefSeq = df[df['RefSeq_RNA_id'] != '']
+        dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_protein_id']).reset_index(drop=True)
+        for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
+            node_id = 'REFSEQ ' + (row['RefSeq_protein_id'])
+            node_namespace = 'GENCODE'
+            node_label = row['RefSeq_protein_id']
+            node_definition = ''
+            node_synonyms = ''
+            value = ''
+            lowerbound = ''
+            upperbound = ''
+            unit = ''
+            node_dbxrefs = ''
+            out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
+                          + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
 
     return
 
@@ -717,7 +741,8 @@ ann_file = gencode_config.get_value(section='AnnotationFile',key='filename')
 if args.skipbuild:
     # Read previously generated annotation CSV.
     path = os.path.join(owlnets_dir, ann_file)
-    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=1000)
+    ann_rows=0
+    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=ann_rows)
     dfAnnotation = dfAnnotation.replace(np.nan, '')
 else:
     # Download and decompress GZIP files of GENCODE content from FTP site.

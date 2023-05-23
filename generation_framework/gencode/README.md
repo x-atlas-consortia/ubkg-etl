@@ -97,9 +97,10 @@ Node_ids for object nodes are from:
 ![img_6.png](img_6.png)
 ### subClassOf (PGO)
 ![img_7.png](img_7.png)
-### has_RefSeq_ID
+### has_RefSeq_ID (RNA)
 ![img_8.png](img_8.png)
-
+### has_RefSeq_ID (protein)
+![img_12.png](img_12.png)
 
 ## Node information
 
@@ -122,6 +123,6 @@ These nodes have dbxrefs to HGNC nodes.
 ![img_11.png](img_11.png)
 
 ### RefSeq nodes
-A node will be created for each value in the _RefSeq_RNA_id_ field of the annotation file. 
+A node will be created for each value in the _RefSeq_RNA_id_ or _RefSeq_protein_id_ field of the annotation file. 
 RefSeq nodes will be in **has RefSeq** assertions.
 
