@@ -138,6 +138,11 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = np.where(x.str.contains('REFSEQ'),
                    'REFSEQ ' + x.str.split(' ').str[-1], ret)
 
+    # MAY 2023
+    # HPO
+    # If expected format (HPO HP:code) was used, revert to avoid duplication.
+    ret = np.where(x.str.contains('HPO HP:'),
+                   'HPO HP:' + x.str.split(':').str[-1], ret)
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
     # translated to IRIs that are not formatted as expected. Obtain the original namespace prefixes for

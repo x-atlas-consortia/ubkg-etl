@@ -224,5 +224,10 @@
   "GENCODE_ONT": {
     "comment": "GenCode application ontology, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py GENCODE_ONT"
+  },
+  "CLINVAR": {
+    "home_url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/README.txt",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CLINVAR",
+    "comment": "CLINVAR"
   }
 }
