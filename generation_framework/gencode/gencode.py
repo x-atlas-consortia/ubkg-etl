@@ -741,8 +741,8 @@ ann_file = gencode_config.get_value(section='AnnotationFile',key='filename')
 if args.skipbuild:
     # Read previously generated annotation CSV.
     path = os.path.join(owlnets_dir, ann_file)
-    annrows=0
-    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=annrows)
+    ann_rows=0
+    dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=ann_rows)
     dfAnnotation = dfAnnotation.replace(np.nan, '')
 else:
     # Download and decompress GZIP files of GENCODE content from FTP site.

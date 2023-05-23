@@ -97,9 +97,10 @@ Node_ids for object nodes are from:
 ![img_6.png](img_6.png)
 ### subClassOf (PGO)
 ![img_7.png](img_7.png)
-### has_RefSeq_ID
+### has_RefSeq_ID (RNA)
 ![img_8.png](img_8.png)
-
+### has_RefSeq_ID (protein)
+![img_12.png](img_12.png)
 
 ## Node information
 
