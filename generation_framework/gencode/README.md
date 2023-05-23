@@ -122,6 +122,6 @@ These nodes have dbxrefs to HGNC nodes.
 ![img_11.png](img_11.png)
 
 ### RefSeq nodes
-A node will be created for each value in the _RefSeq_RNA_id_ field of the annotation file. 
+A node will be created for each value in the _RefSeq_RNA_id_ or _RefSeq_protein_id_ field of the annotation file. 
 RefSeq nodes will be in **has RefSeq** assertions.
 
