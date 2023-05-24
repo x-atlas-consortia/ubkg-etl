@@ -184,6 +184,9 @@ if relations_file_exists:
     # handle relations with no label by inserting part after # - may warrant more robust solution or a hard stop
     relations.loc[relations['relation_label'].isnull(), 'relation_label'] = relations['relation_id'].str.split('#').str[
         -1]
+    # Format edges.
+    relations['relation_id'] = uparse.relationReplacements(relations['relation_id'])
+    relations['relation_label'] = uparse.relationReplacements(relations['relation_label'])
 else:
     print('---- No relations metadata found; obtaining relations data from edgelist file.')
 
@@ -308,6 +311,11 @@ edgelist['subject'] = uparse.codeReplacements(edgelist['subject'],OWL_SAB)
 # improved codeReplacements function.
 edgelist['object'] = uparse.codeReplacements(edgelist['object'],OWL_SAB)
 
+# MAY 2023
+# Format edges.
+edgelist['predicate'] = uparse.relationReplacements(edgelist['predicate'])
+
+
 # ------------- DEPRECATED
 # JAS 13 OCT 2022
 # Format object node information.
@@ -394,15 +402,16 @@ dfedges = pd.DataFrame(dfro.graphs[0]['edges'])
 # Obtain triple information for relationship properties--i.e.,
 # 1. IRIs for "subject" nodes and "object" nodes (relationship properties)
 # 2. relationship predicates (relationships between relationship properties)
-# The assumption is that each relationship property node has at least one edge (predicate).
-
-# (Possible enhancement: find relationship properties in RO that do not have an edge. This really
-# would be shaking the RO tree pretty hard, though.)
 
 # Get subject node, edge
-dfrelationtriples = dfnodes.merge(dfedges, how='inner', left_on='id', right_on='sub')
+# MAY 2023 replace inner join with left
+dfrelationtriples = dfnodes.merge(dfedges, how='left', left_on='id', right_on='sub')
 # Get object node
-dfrelationtriples = dfrelationtriples.merge(dfnodes, how='inner', left_on='obj', right_on='id')
+dfrelationtriples = dfrelationtriples.merge(dfnodes, how='left', left_on='obj', right_on='id')
+
+# May 2023
+# Set a default predicate to capture nodes without predicates.
+dfrelationtriples = dfrelationtriples.fillna(value={'pred':'no predicate'})
 
 # ---------------------------------
 # Identify relationship properties that do not have inverses.
@@ -416,6 +425,7 @@ listnoinv = dfpred[~dfpred['id_x'].isin(listinv)]['id_x'].to_list()
 dfnoinv = dfrelationtriples.copy()
 dfnoinv = dfnoinv[dfnoinv['id_x'].isin(listnoinv)]
 
+
 # 3. Rename column names to match the relationtriples frame. (Column names are described
 #    farther down.)
 dfnoinv = dfnoinv[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
@@ -423,6 +433,7 @@ dfnoinv = dfnoinv[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
 # The inverses are undefined.
 dfnoinv['inverse_IRI'] = np.nan
 dfnoinv['inverse_RO'] = np.nan
+
 
 # ---------------------------------
 # Look for members of incomplete inverse pairs--i.e., relationship properties that are
@@ -464,6 +475,7 @@ dfrelationtriples['inverse_RO'] = dfrelationtriples['inverse_RO'].str.replace(' 
 
 dfrelationtriples = dfrelationtriples.drop(columns='inverse_IRI')
 
+
 # ---------------------------------------------------------
 # JAS 8 NOV 2022
 # JOIN RELATIONS WITH EDGES
@@ -479,6 +491,7 @@ print('-- Translating predicates in edges file to relationships from Relations O
 # Check for relationships in RO, considering the edgelist predicate as a *full IRI*.
 edgelist = edgelist.merge(dfrelationtriples, how='left', left_on='predicate',
                           right_on='IRI').drop_duplicates().reset_index(drop=True)
+
 # JAS 6 JAN 2023 add optional evidence_class
 edgelist = edgelist[
     ['subject', 'predicate', 'object', 'evidence_class', 'relation_label_from_file', 'relation_label_RO',
@@ -582,9 +595,9 @@ edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http:/
                                       edgelist['relation_label'])
 # The algorithm for inverses is simpler: if one was derived from RO, use it; else leave empty, and
 # the script will create a pseudo-inverse.
+
 edgelist['inverse'] = edgelist['inverse_RO_fromIRIjoin']
 
-# JAS APR 2023
 edgelist['inverse'] = np.where(edgelist['inverse'].isnull(), edgelist['inverse_RO_fromexpandedpredicate'],
                                edgelist['inverse'])
 
@@ -980,6 +993,7 @@ edgelist['SAB'] = OWL_SAB
 
 print('-- Removing self-reference edges introduced from CUI assignment...')
 edgelist = edgelist[edgelist['CUI1']!=edgelist['CUI2']]
+
 
 
 # --------------------------------------------------

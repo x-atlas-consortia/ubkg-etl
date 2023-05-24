@@ -201,3 +201,22 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # .str.replace('Hugo.owl HGNC ', 'HGNC ', regex=False) \
     # .str.replace('HGNC ', 'HGNC HGNC:', regex=False) \
     # .str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
+
+def relationReplacements(x:pd.Series) :
+
+    # This function converts strings that correspond to a predicate string to a format recognized by the generation
+    # framework
+
+    # Arguments:
+    #  x - Pandas Series object containing predicates (edges)
+
+    # For the majority of edges, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML serialization,
+    # the format of an edge is one of the following:
+    # 1. A IRI in the form http://purl.obolibrary.org/obo/RO_code
+    # 2. RO_code
+    # 3. RO:code
+    # 4. a string
+
+    ret = np.where(x.str.contains('RO:'),'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1],x)
+
+    return ret

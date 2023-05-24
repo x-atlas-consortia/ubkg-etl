@@ -234,5 +234,9 @@
     "home_url": "https://www.broadinstitute.org/connectivity-map-cmap",
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CMAP",
     "comment": "CMAP"
+  },
+  "HPOMP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HPOMP",
+    "comment": "HPOMP"
   }
 }
