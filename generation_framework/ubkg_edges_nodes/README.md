@@ -44,7 +44,7 @@ Globus offers extensive [documentation](https://docs.globus.org/faq/globus-conne
 The basic process is:
 1. Install Globus Connect Personal.
 2. Create a folder on the local machine.
-3. In Globus Connect Personal, set up the local folder as an accessible directory. The following screen capture shows an example configuration on a Mac OSX machine; Globus Help has instuctions for other operating systems.
+3. In Globus Connect Personal, set up the local folder as an accessible directory. The following screen capture shows an example configuration on a Mac OSX machine; Globus Help has instructions for other operating systems.
 
 ![img.png](img.png)
 
