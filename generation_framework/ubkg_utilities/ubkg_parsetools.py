@@ -143,6 +143,10 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # If expected format (HPO HP:code) was used, revert to avoid duplication.
     ret = np.where(x.str.contains('HPO HP:'),
                    'HPO HP:' + x.str.split(':').str[-1], ret)
+    # HCOP
+    # The HCOP node_ids are formatted to resemble HGNC node_ids.
+    ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
+
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
     # translated to IRIs that are not formatted as expected. Obtain the original namespace prefixes for
