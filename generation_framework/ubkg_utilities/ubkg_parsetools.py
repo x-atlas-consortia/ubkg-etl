@@ -138,6 +138,15 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = np.where(x.str.contains('REFSEQ'),
                    'REFSEQ ' + x.str.split(' ').str[-1], ret)
 
+    # MAY 2023
+    # HPO
+    # If expected format (HPO HP:code) was used, revert to avoid duplication.
+    ret = np.where(x.str.contains('HPO HP:'),
+                   'HPO HP:' + x.str.split(':').str[-1], ret)
+    # HCOP
+    # The HCOP node_ids are formatted to resemble HGNC node_ids.
+    ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
+
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
     # translated to IRIs that are not formatted as expected. Obtain the original namespace prefixes for
@@ -196,3 +205,22 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # .str.replace('Hugo.owl HGNC ', 'HGNC ', regex=False) \
     # .str.replace('HGNC ', 'HGNC HGNC:', regex=False) \
     # .str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
+
+def relationReplacements(x:pd.Series) :
+
+    # This function converts strings that correspond to a predicate string to a format recognized by the generation
+    # framework
+
+    # Arguments:
+    #  x - Pandas Series object containing predicates (edges)
+
+    # For the majority of edges, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML serialization,
+    # the format of an edge is one of the following:
+    # 1. A IRI in the form http://purl.obolibrary.org/obo/RO_code
+    # 2. RO_code
+    # 3. RO:code
+    # 4. a string
+
+    ret = np.where(x.str.contains('RO:'),'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1],x)
+
+    return ret

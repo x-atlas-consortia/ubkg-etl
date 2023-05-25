@@ -199,13 +199,17 @@
     "comment": "Azimuth annotations, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py AZ"
   },
-  "GTEX_EXP": {
-    "comment": "GTEX_EXP data in edges/nodes format",
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEX_EXP"
+  "GTEXEXP": {
+    "comment": "GTEXEXP data in edges/nodes format",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEXEXP"
   },
-  "GTEX_COEXP": {
-    "comment": "GTEX_COEXP data in edges/nodes format",
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEX_COEXP"
+  "GTEXCOEXP": {
+    "comment": "GTEXCOEXP data in edges/nodes format",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEXCOEXP"
+  },
+  "GTEXEQTL": {
+    "comment": "GTEXEQTL data in edges/nodes format",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEXEQTL"
   },
   "GENCODE": {
     "comment": "Data from GenCode",
@@ -224,5 +228,59 @@
   "GENCODE_ONT": {
     "comment": "GenCode application ontology, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py GENCODE_ONT"
+  },
+  "CLINVAR": {
+    "home_url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/README.txt",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CLINVAR",
+    "comment": "CLINVAR"
+  },
+  "CMAP": {
+    "home_url": "https://www.broadinstitute.org/connectivity-map-cmap",
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CMAP",
+    "comment": "CMAP"
+  },
+  "HPOMP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HPOMP",
+    "comment": "HPOMP"
+  },
+  "HGNCHPO": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HGNCHPO",
+    "comment": "HGNCHPO - human genotype - phenotype mapping "
+  },
+  "HCOPHGNC": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HCOPHGNC",
+    "comment": "HCOPHGNC - human-mouse orthologs"
+  },
+  "HCOPMP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HCOPMP",
+    "comment": "HCOPMP - mouse_genotype_phenotype"
+  },
+  "MSIGDB": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MSIGDB",
+    "comment": "MSIGDB"
+  },
+  "GLYCANS": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GLYCANS",
+    "comment": "GLYCANS"
+  },
+  "IDGP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py IDGP",
+    "comment": "IDG - compound-protein interactions"
+  },
+  "IDGD": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py IDGD",
+    "comment": "IDG - compound-disease interactions"
+  },
+  "MWCM": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MWCM",
+    "comment": "Metabolic Workbench - cell-metabolite"
+  },
+  "MWGM": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MWGM",
+    "comment": "Metabolic Workbench - gene-metabolite"
+  },
+  "MWDM": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MWDM",
+    "comment": "Metabolic Workbench - disease-metabolite"
   }
 }
