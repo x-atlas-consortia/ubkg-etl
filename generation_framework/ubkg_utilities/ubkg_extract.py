@@ -139,7 +139,7 @@ def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str, zipfilenam
     # Extract compressed content.
     return extract_from_gzip(zipfilename=zip_full_path,outputpath=extract_path,outfilename=outfilename)
 
-def to_csv_with_progress_bar(df: pd.DataFrame, path:str,sep: str=','):
+def to_csv_with_progress_bar(df: pd.DataFrame, path:str, sep: str=',', header: bool=True, index: bool=True, mode: str='w'):
 
     # Wraps the pandas to_csv with a tqdm progress bar.
 
@@ -155,7 +155,7 @@ def to_csv_with_progress_bar(df: pd.DataFrame, path:str,sep: str=','):
 
     return
 
-def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,sep: str=',',on_bad_lines='skip',encoding='utf-8',index_col=None) ->pd.DataFrame:
+def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,sep: str=',',on_bad_lines: str='skip',encoding: str='utf-8', index_col: int=None) ->pd.DataFrame:
 
     # Wraps the pandas read_csv with a tqdm progress bar.
 
