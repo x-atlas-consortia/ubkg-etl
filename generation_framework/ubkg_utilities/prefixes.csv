@@ -8,7 +8,7 @@ http://uri.interlex.org/tgbugs/uris/readable/atlas/,ATOM
 http://purl.org/dc/elements/1.1/,DC
 http://purl.org/dc/terms/,DC.TERMS
 http://xmlns.com/foaf/0.1/,FOAF
-http://www.ncbi.nlm.nih.gov/gene,NCBI_GENE
+http://www.ncbi.nlm.nih.gov/gene,ENTREZ
 http://purl.jp/bio/12/glyco/conjugate#,GCO
 http://purl.jp/bio/12/glyco/glycan#,GLYCAN
 http://purl.jp/bio/12/glyco/glycoconjugate#,GLYCOCONJUGATE

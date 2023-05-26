@@ -282,5 +282,9 @@
   "MWDM": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MWDM",
     "comment": "Metabolic Workbench - disease-metabolite"
+  },
+  "ERCCRBS": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py ERCCRBS",
+    "comment": "ERCC - Remote Binding Site"
   }
 }
