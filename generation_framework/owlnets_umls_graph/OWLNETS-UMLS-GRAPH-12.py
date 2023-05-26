@@ -32,10 +32,6 @@
 
 # In[1]:
 
-# JAS 6 JANUARY 2023
-# Changes to accommodate files provided in UBKG edges/nodes format. The format includes optional
-# columns in the edges and nodes files.
-
 import sys
 import pandas as pd
 import numpy as np
@@ -43,7 +39,12 @@ import base64
 import json
 import os
 import fileinput
+from tqdm import tqdm
+# from tqdm.auto import tqdm # for notebooks
 
+# Create new `pandas` methods which use `tqdm` progress
+# (can use tqdm_gui, optional kwargs, etc.)
+tqdm.pandas()
 
 # JAS FEB 2023
 # The codeReplacements function was originally part of this script. Because the function is now
@@ -56,6 +57,7 @@ fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
 import ubkg_parsetools as uparse
 import ubkg_extract as uextract
+import ubkg_logging as ulog
 
 
 def owlnets_path(file: str) -> str:
@@ -88,6 +90,10 @@ def update_columns_to_csv_header(file: str, new_columns: list):
     # Updates the header of an ontology CSV file, adding new column names from the list argument.
     # This allows the addition of columns for custom properties or relationships.
 
+    # Set up tqdm progress bar.
+    file_size = os.path.getsize(file)
+    pbar = tqdm(total=file_size,unit='MB')
+
     for line in fileinput.input(file, inplace=True):
         if fileinput.isfirstline():
             # Replace the header with the columns from the argument list.
@@ -96,6 +102,12 @@ def update_columns_to_csv_header(file: str, new_columns: list):
             # Strip the newline from the end of the current row and then reprint it.
             newline = line.rstrip('\n')
         print(newline)
+
+        # Update progress bar.
+        pbar.update(sys.getsizeof(line)-sys.getsizeof('\n'))
+
+    pbar.close()
+
     return
 
 def getROrelationshiptriples() -> pd.DataFrame:
@@ -113,7 +125,7 @@ def getROrelationshiptriples() -> pd.DataFrame:
     # or
     # "expresses" inverseOf "expressed in"
 
-    print('-- Obtaining relationship reference information from Relations Ontology...')
+    ulog.print_and_logger_info('-- Obtaining relationship reference information from Relations Ontology...')
     # Fetch the RO JSON.
     dfro = pd.read_json("https://raw.githubusercontent.com/oborel/obo-relations/master/ro.json")
 
@@ -225,17 +237,13 @@ def getROrelationshiptriples() -> pd.DataFrame:
     return dfrelationtriples
 
 
-
-
 # -----------------------------------------------------
 # START OF SCRIPT
 # Assignment of SAB for CUI-CUI relationships (edgelist) - typically use file name before .owl in CAPS
 OWL_SAB = sys.argv[3].upper()
 
-# JAS 15 NOV 2022 - removed organism argument, because we are not ingesting PR.
-# JAS 19 OCT 2022
-# Organism argument, which factors for ingestion of the PR ontology.
-# ORGANISM = sys.argv[4].lower()
+TQDM_THRESHOLD=10000
+
 
 pd.set_option('display.max_colwidth', None)
 
@@ -244,21 +252,22 @@ pd.set_option('display.max_colwidth', None)
 
 # In[2]:
 
-print('READING DATA FILES (edges, nodes, relations)...')
+ulog.print_and_logger_info('READING DATA FILES (edges, nodes, relations)...')
 
 # JAS 6 JAN 2023
 # The node file will be in one of two formats:
 # 1. OWLNETS
 # 2. UBKG edge/nodes
 
-
 nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv']
 nodepath = identify_source_file(nodefilelist)
 
 # JAS 6 JAN 2023 add optional columns (value, lowerbound, upperbound, unit) for UBKG edges/nodes files.
 # JAS 6 JAN 2023 skip bad rows. (There is at least one in line 6814 of the node_metadata file generated from EFO.)
-print('-- Reading nodes file...')
-node_metadata = pd.read_csv(owlnets_path(nodepath), sep='\t', on_bad_lines='skip')
+ulog.print_and_logger_info('-- Reading nodes file...')
+#node_metadata = pd.read_csv(owlnets_path(nodepath), sep='\t', on_bad_lines='skip')
+node_metadata= uextract.read_csv_with_progress_bar(path=owlnets_path(nodepath), on_bad_lines='skip',sep='\t')
+
 if 'value' not in node_metadata.columns:
     # This set of assertions does not have optional property/relationship columns.
     node_metadata['value'] = np.nan
@@ -272,7 +281,7 @@ if 'value' not in node_metadata.columns:
 
 node_metadata = node_metadata[['node_id', 'node_label', 'node_definition', 'node_synonyms',
                                'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
-print('---- Dropping duplicate nodes...')
+ulog.print_and_logger_info('---- Dropping duplicate nodes...')
 # Replace 'None' with nan
 node_metadata = node_metadata.replace({'None': np.nan})
 # Drop nodes for which node_id is nan.
@@ -304,11 +313,11 @@ node_metadata = node_metadata.dropna(subset=['node_id']).drop_duplicates(subset=
 #    custom string.
 # Possible enhancement: identify relationship properties outside of RO. This would entail finding
 # equivalents of ro.json, or perhaps some form of API call.
-print('-- Reading optional relations file...')
+ulog.print_and_logger_info('-- Reading optional relations file...')
 relations_file_exists = os.path.exists(owlnets_path('OWLNETS_relations.txt'))
 
 if relations_file_exists:
-    print('---- Relations metadata found; obtaining relations data from relations metadata file.')
+    ulog.print_and_logger_info('---- Relations metadata found; obtaining relations data from relations metadata file.')
     relations = pd.read_csv(owlnets_path("OWLNETS_relations.txt"), sep='\t')
     relations = relations.replace({'None': np.nan})
     relations = relations.dropna(subset=['relation_id']).drop_duplicates(subset='relation_id').reset_index(drop=True)
@@ -319,7 +328,7 @@ if relations_file_exists:
     relations['relation_id'] = uparse.relationReplacements(relations['relation_id'])
     relations['relation_label'] = uparse.relationReplacements(relations['relation_label'])
 else:
-    print('---- No relations metadata found; obtaining relations data from edgelist file.')
+    ulog.print_and_logger_info('---- No relations metadata found; obtaining relations data from edgelist file.')
 
 # -------------------------------------------------------
 # EDGE LIST INFORMATION
@@ -331,13 +340,14 @@ else:
 # 1. OWLNETS
 # 2. UBKG edge/nodes
 
-print('-- Reading edge file...')
+ulog.print_and_logger_info('-- Reading edge file...')
 edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv']
 edgepath = identify_source_file(edgefilelist)
 
-print('---- Dropping duplicates, empty rows, and self-referential edges...')
+ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-referential edges...')
 # JAS 6 JAN 2023 - add evidence_class; limit columns.
-edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
+edgelist=uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip',sep='\t')
+#edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
     edgelist['evidence_class'] = np.nan
 edgelist = edgelist[['subject', 'predicate', 'object', 'evidence_class']]
@@ -366,38 +376,13 @@ edgelist = edgelist[edgelist['subject'] != edgelist['object']].reset_index(drop=
 
 edgecount = len(edgelist.index)
 nodecount = len(node_metadata.index)
-print('-- Checking file statistics...')
-print('---- Number of edges in edgelist.txt:', edgecount)
-print('---- Number of nodes in node_metadata.txt', nodecount)
-
+ulog.print_and_logger_info('-- Checking file statistics...')
+ulog.print_and_logger_info(f'---- Number of edges in edgelist.txt: {edgecount}')
+ulog.print_and_logger_info(f'---- Number of nodes in node_metadata.txt: {nodecount}')
 
 if edgecount > 500000 or nodecount > 500000:
-    print('***** WARNING: Large data files may cause the script to terminate from memory issues.')
+    ulog.print_and_logger_info('***** WARNING: Large data files may cause the script to terminate from memory issues.')
 
-
-# JAS 15 NOV 2022
-# Deprecating checks related to PR.
-# --------
-# if OWL_SAB == 'PR':
-# if ORGANISM == '':
-# The script will fail. Exit gracefully.
-# raise SystemExit('Because of the size of the PR ontology, it is necessary to specify a species. Use the '
-# '-p parameter in the call to the generation script.')
-# print(
-# f'For the PR ontology, this script will select a subset of nodes that correspond to proteins that are '
-# f'unambiguously for the organism: {ORGANISM}.')
-
-# Case-insensitive search of the node definition, ignoring null values.
-# node_metadata = node_metadata[
-# node_metadata['node_definition'].fillna(value='').str.lower().str.contains(ORGANISM.lower())]
-# nodecount = len(node_metadata.index)
-# print(f'Node count for {ORGANISM}:{nodecount}')
-# ---------
-
-# ---------------------------------------------
-# JAS FEBRUARY 2023
-# Move the codeReplacements function to the ubkg_utilities/parsetools.py module.
-# (Original code removed.)
 
 # ---------------------------------------------
 # ESTABLISH EDGES AND INVERSE EDGES.
@@ -405,7 +390,7 @@ if edgecount > 500000 or nodecount > 500000:
 # ### Join relation_label in edgelist, convert subClassOf to isa and space to _, CodeID formatting
 
 # In[7]:
-print('IDENTIFYING EDGES AND INVERSE EDGES...')
+ulog.print_and_logger_info('IDENTIFYING EDGES AND INVERSE EDGES...')
 
 # JAS 8 Nov 2022
 # The OWLNETS_relations.txt file is no longer required; however, if it is available, it will contain information for
@@ -434,7 +419,7 @@ else:
 # JAS string replacements moved to codeReplacements function.
 # edgelist['subject'] = \
 # edgelist['subject'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
-print('-- Formatting node IDs...')
+ulog.print_and_logger_info('-- Formatting node IDs...')
 edgelist['subject'] = uparse.codeReplacements(edgelist['subject'], OWL_SAB)
 
 # JAS 15 NOV 2022
@@ -459,7 +444,7 @@ dfrelationtriples = getROrelationshiptriples()
 # Perform a series of joins and rename resulting columns to keep track of the source of
 # relationship labels and inverse relationship labels.
 
-print('-- Translating predicates in edges file to relationships from Relations Ontology...')
+ulog.print_and_logger_info('-- Translating predicates in edges file to relationships from Relations Ontology...')
 
 # Check for relationships in RO, considering the edgelist predicate as a *full IRI*.
 edgelist = edgelist.merge(dfrelationtriples, how='left', left_on='predicate',
@@ -612,14 +597,14 @@ edgelist.loc[edgelist['inverse'].isnull(), 'inverse'] = 'inverse_' + edgelist['r
 
 # In[11]:
 
-print('Translating node metadata...')
+ulog.print_and_logger_info('Translating node metadata...')
 
 # JAS 15 November string replacements moved to codeReplacements function.
 # node_metadata['node_id'] = \
 # node_metadata['node_id'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
 
 # Standardize format for node codes.
-print('-- Formatting node ids...')
+ulog.print_and_logger_info('-- Formatting node ids...')
 node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'], OWL_SAB)
 
 # NODE SYNONYMS
@@ -628,11 +613,11 @@ node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'], OWL
 # Synonyms for a node are in the node_synonyms column as a pipe-delimited string--e.g., "synonym 1|synonym 2".
 # Split the delimited string into a list. Each list element will become a separate Term node with a relationship
 # type SY with the node code.
-print('-- Preparing synonyms...')
+ulog.print_and_logger_info('-- Preparing synonyms...')
 node_metadata.loc[node_metadata['node_synonyms'].notna(), 'node_synonyms'] = \
     node_metadata[node_metadata['node_synonyms'].notna()]['node_synonyms'].astype('str').str.split('|')
 
-print('-- Preparing cross-references: splitting and formatting...')
+ulog.print_and_logger_info('-- Preparing cross-references: splitting and formatting...')
 # CROSS-REFERENCES
 # The dbxrefs column is, in general, a string in format
 # SAB<SAB-CODE delimiter>CODE<CODE-CODE delimiter>...
@@ -688,16 +673,19 @@ node_metadata['CODE'] = node_metadata['node_id'].str.split(' ').str[-1]
 
 # In[12]:
 
-print('-- Identifying cross-references that are UMLS CUIs...')
+ulog.print_and_logger_info('-- Identifying cross-references that are UMLS CUIs...')
 
 # Separate code/CUI from SAB for each cross-reference.
 explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(' ').str[-1]
 
 # JAS JAN 2023 - added group_keys=False to silence the FutureWarning from Pandas.
 # Identify cross-references that are UMLS CUIs.
+#explode_dbxrefs_UMLS = \
+    #explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS C') == True].groupby('node_id', sort=False, group_keys=False)[
+        #'nodeXrefCodes'].apply(list).reset_index(name='nodeCUIs')
 explode_dbxrefs_UMLS = \
     explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS C') == True].groupby('node_id', sort=False, group_keys=False)[
-        'nodeXrefCodes'].apply(list).reset_index(name='nodeCUIs')
+        'nodeXrefCodes'].progress_apply(list).reset_index(name='nodeCUIs')
 # Associate nodes with cross-references that have UMLS CUIs.
 # In general, this could result in a node having more than one row, if the node was associated with more than one
 # UMLS CUI.
@@ -714,8 +702,9 @@ del explode_dbxrefs['nodeXrefCodes']
 # In[13]:
 
 # Read the large CUI-CODES.csv reference.
-print('-- Reading existing CUIs from CUI-CODES.csv...')
-CUI_CODEs = pd.read_csv(csv_path("CUI-CODEs.csv"))
+ulog.print_and_logger_info('-- Reading existing CUIs from CUI-CODES.csv...')
+#CUI_CODEs = pd.read_csv(csv_path("CUI-CODEs.csv"))
+CUI_CODEs = uextract.read_csv_with_progress_bar(path=csv_path("CUI-CODEs.csv"))
 CUI_CODEs = CUI_CODEs.dropna().drop_duplicates().reset_index(drop=True)
 
 # #### A big groupby - ran a couple of minutes - changed groupby to not sort the keys to speed it up
@@ -733,10 +722,12 @@ CUI_CODEs = CUI_CODEs.dropna().drop_duplicates().reset_index(drop=True)
 
 # In[14]:
 
-print('-- Flattening data from CUI_CODEs...')
-CODE_CUIs = CUI_CODEs.groupby(':END_ID', sort=False)[':START_ID'].apply(list).reset_index(name='CUI_CODEs')
+ulog.print_and_logger_info('-- Flattening data from CUI_CODEs...')
+#CODE_CUIs = CUI_CODEs.groupby(':END_ID', sort=False)[':START_ID'].apply(list).reset_index(name='CUI_CODEs')
+CODE_CUIs = CUI_CODEs.groupby(':END_ID', sort=False)[':START_ID'].progress_apply(list).reset_index(name='CUI_CODEs')
+
 # JAS the call to upper is new.
-print('-- Merging data from CUI_CODEs with node metadata...')
+ulog.print_and_logger_info('-- Merging data from CUI_CODEs with node metadata...')
 node_metadata = node_metadata.merge(CODE_CUIs, how='left', left_on='node_id', right_on=CODE_CUIs[':END_ID'].str.upper())
 del CODE_CUIs
 del node_metadata[':END_ID']
@@ -758,12 +749,13 @@ del node_metadata[':END_ID']
 # node_xref_cui = explode_dbxrefs.merge(CUI_CODEs, how='inner', left_on='node_dbxrefs', right_on=':END_ID')
 # New code uses upper.
 
-print('-- Identifying non-UMLS cross-references from CUI-CODEs.csv...')
+ulog.print_and_logger_info('-- Identifying non-UMLS cross-references from CUI-CODEs.csv...')
 
 node_xref_cui = explode_dbxrefs.merge(CUI_CODEs, how='inner', left_on='node_dbxrefs',
                                       right_on=CUI_CODEs[':END_ID'].str.upper())
 # JAS FEB 2023 Adding group_keys=False to silence the FutureWarning.
-node_xref_cui = node_xref_cui.groupby('node_id', sort=False, group_keys=False)[':START_ID'].apply(list).reset_index(name='XrefCUIs')
+#node_xref_cui = node_xref_cui.groupby('node_id', sort=False, group_keys=False)[':START_ID'].apply(list).reset_index(name='XrefCUIs')
+node_xref_cui = node_xref_cui.groupby('node_id', sort=False, group_keys=False)[':START_ID'].progress_apply(list).reset_index(name='XrefCUIs')
 node_xref_cui['XrefCUIs'] = node_xref_cui['XrefCUIs'].apply(lambda x: pd.unique(x)).apply(list)
 node_metadata = node_metadata.merge(node_xref_cui, how='left', on='node_id')
 del node_xref_cui
@@ -783,14 +775,14 @@ def base64it(x):
 # EXPLANATION: the base64-encoded CUI will be assigned to a node if the node is brand new to the
 # knowledge graph--i.e., if it cannot be associated by either direct reference or cross-reference to another
 # CUI that already exists in the knowledge graph at the time of ingestion.
-print('-- Defining base64 CUIs for nodes...')
+ulog.print_and_logger_info('-- Defining base64 CUIs for nodes...')
 node_metadata['base64cui'] = node_metadata['node_id'].apply(base64it)
 
 # ### Add cuis list and preferred cui to complete the node "atoms" (code, label, syns, xrefs, cuis, CUI)
 
 # In[17]:
 
-print('-- Assigning CUIs to nodes in order of preference (UMLS cross-reference CUI > UMLS direct reference CUI > non-UMLS cross-reference CUI > base64 CUI) ...')
+ulog.print_and_logger_info('-- Assigning CUIs to nodes in order of preference (UMLS cross-reference CUI > UMLS direct reference CUI > non-UMLS cross-reference CUI > base64 CUI) ...')
 # create correct length lists
 node_metadata['cuis'] = node_metadata['base64cui']
 node_metadata['CUI'] = ''
@@ -829,45 +821,12 @@ node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).appl
 # in more consistent assignments.
 node_metadata['CUI'] = node_metadata['cuis'].str[0]
 
-"""
-#JAS 27 MAR 2023
-#----------
-# DEPRECATED - replaced by preceding line.
-
-# iterate to select one CUI from cuis in row order - we ensure each node_id has its own distinct CUI
-# each node_id is assigned one CUI distinct from all others' CUIs to ensure no self-reference in edgelist
-
-node_idCUIs = []
-nmCUI = []
-itest = 0
-for index, rows in node_metadata.iterrows():
-    addedone = False
-    for x in rows.cuis:
-        if ((x in node_idCUIs) | (addedone == True)):
-            dummy = 0
-        else:
-            nmCUI.append(x)
-            node_idCUIs.append(x)
-            addedone = True
-    # JAS 27 MAR 2023
-    # If a unique CUI cannot be found, assign a blank CUI. This preserves the size of the CUI array, but
-    # results in the node being dropped from the ingestion.
-    # This handles the edge case in which multiple nodes have the same cross-reference AND there 
-    # are more nodes than available CUIs (e.g., the case for nodes in MP that share CL 0000959 as a cross-reference).
-    
-    if addedone == False:
-        print('node:',rows.node_id,'with cuilist', rows.cuis,'has no available CUIs; assigning blank')
-        nmCUI.append('')
-        node_idCUIs.append('')
-        
-node_metadata['CUI'] = nmCUI
-"""
 # -----------------------------------------
 
 # ### Join CUI from node_metadata to each edgelist subject and object
 
 # #### Assemble CUI-CUIs
-print('-- Assembling CUI-CUI (concept-concept) relationships...')
+ulog.print_and_logger_info('-- Assembling CUI-CUI (concept-concept) relationships...')
 # In[18]:
 # Merge subject and object nodes with their CUIs; drop the codes; and add the SAB.
 
@@ -965,14 +924,14 @@ edgelist['SAB'] = OWL_SAB
 # Self-references are introduced in the assignment of nodes to preferred CUIs, in the case where the CUI is for
 # a cross-reference that is itself cross-referenced to another CUI.
 
-print('-- Removing self-reference edges introduced from CUI assignment...')
+ulog.print_and_logger_info('-- Removing self-reference edges introduced from CUI assignment...')
 edgelist = edgelist[edgelist['CUI1'] != edgelist['CUI2']]
 
 
 
 # --------------------------------------------------
 # ## Write out files
-print('APPENDING TO ONTOLOGY CSVs...')
+ulog.print_and_logger_info('APPENDING TO ONTOLOGY CSVs...')
 
 # ### Test existence when appropriate in original csvs and then add data for each csv
 
@@ -983,29 +942,41 @@ print('APPENDING TO ONTOLOGY CSVs...')
 # (no prior-existence-check because want them in this SAB)
 
 # In[19]:
-print('-- Appending to CUI-CUIs.csv...')
+ulog.print_and_logger_info('-- Appending to CUI-CUIs.csv...')
 
 # TWO WRITES comment out during development
 
 # JAS 6 JAN 2023 Add evidence_class column to file.
-print('---- Adding evidence_class column to CUI-CUIs.csv...')
+ulog.print_and_logger_info('---- Adding evidence_class column to CUI-CUIs.csv...')
 fcsv = csv_path('CUI-CUIs.csv')
 # evidence_class should be a string.
 new_header_columns = [':START_ID', ':END_ID', ':TYPE,SAB', 'evidence_class:string']
 update_columns_to_csv_header(fcsv, new_header_columns)
 
-print('---- Appending forward relationships...')
+
+ulog.print_and_logger_info('---- Appending forward relationships...')
 # forward ones
 # JAS 6 JAN 2023 Add evidence_class. (The SAB column was added after evidence_class above.)
 edgelist.columns = [':START_ID', ':TYPE', ':END_ID', 'inverse', 'evidence_class', 'SAB']
-edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']].to_csv(csv_path('CUI-CUIs.csv'), mode='a',
+
+if edgelist.shape[0] > TQDM_THRESHOLD:
+    uextract.to_csv_with_progress_bar(df=edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']],
+                                      path=csv_path('CUI-CUIs.csv'), mode='a', header=False, index=False)
+else:
+    edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']].to_csv(csv_path('CUI-CUIs.csv'), mode='a',
                                                                             header=False, index=False)
-print('---- Appending inverse relationships...')
+
+ulog.print_and_logger_info('---- Appending inverse relationships...')
 # reverse ones
 # JAS 6 JAN 2023 Add evidence_class. (The SAB column was added after evidence_class above.)
 edgelist.columns = [':END_ID', 'relation_label', ':START_ID', ':TYPE', 'evidence_class', 'SAB']
-edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']].to_csv(csv_path('CUI-CUIs.csv'), mode='a',
+if edgelist.shape[0] > TQDM_THRESHOLD:
+    uextract.to_csv_with_progress_bar(df=edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']],
+                                      path=csv_path('CUI-CUIs.csv'), mode='a', header=False, index=False)
+else:
+    edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']].to_csv(csv_path('CUI-CUIs.csv'), mode='a',
                                                                             header=False, index=False)
+
 del edgelist
 
 # #### Write CODEs (CodeID:ID,SAB,CODE,value,lowerbound,upperbound,unit) - with existence check against CUI-CODE.csv
@@ -1015,10 +986,10 @@ del edgelist
 
 # In[20]:
 
-print('-- Appending to CODEs.csv...')
+ulog.print_and_logger_info('-- Appending to CODEs.csv...')
 
 # JAS 6 JAN 2023 Add value, lowerbound, upperbound, unit column to file.
-print('---- Adding value, lowerbound, upperbound, unit columns to CODES.csv...')
+ulog.print_and_logger_info('---- Adding value, lowerbound, upperbound, unit columns to CODES.csv...')
 fcsv = csv_path('CODEs.csv')
 # value, lowerbound, and upperbound should be numbers.
 new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit']
@@ -1034,8 +1005,12 @@ newCODEs = newCODEs.rename({'node_id': 'CodeID:ID'}, axis=1)
 subset = ['CodeID:ID', 'SAB', 'CODE']
 newCODEs = newCODEs.dropna(subset=subset).drop_duplicates(subset=subset).reset_index(drop=True).fillna('')
 # write/append - comment out during development
-print('---- Appending...')
-newCODEs.to_csv(csv_path('CODEs.csv'), mode='a', header=False, index=False)
+ulog.print_and_logger_info('---- Appending...')
+if newCODEs.shape[0] > TQDM_THRESHOLD:
+    uextract.to_csv_with_progress_bar(df=newCODEs, path=csv_path('CODEs.csv'), mode='a', header=False, index=False)
+else:
+    newCODEs.to_csv(csv_path('CODEs.csv'), mode='a', header=False, index=False)
+
 
 del newCODEs
 
@@ -1046,7 +1021,7 @@ del newCODEs
 
 # In[21]:
 
-print('-- Appending to CUIs.csv...')
+ulog.print_and_logger_info('-- Appending to CUIs.csv...')
 CUIs = CUI_CODEs[[':START_ID']].dropna().drop_duplicates().reset_index(drop=True)
 CUIs.columns = ['CUI:ID']
 
@@ -1060,7 +1035,10 @@ newCUIs.reset_index(drop=True, inplace=True)
 
 newCUIs = newCUIs.dropna().drop_duplicates().reset_index(drop=True)
 # write/append - comment out during development
-newCUIs.to_csv(csv_path('CUIs.csv'), mode='a', header=False, index=False)
+if newCUIs.shape[0] > TQDM_THRESHOLD:
+    uextract.to_csv_with_progress_bar(df=newCUIs, path=csv_path('CUIs.csv'), mode='a', header=False, index=False)
+else:
+    newCUIs.to_csv(csv_path('CUIs.csv'), mode='a', header=False, index=False)
 
 # del newCUIs - do not delete here because we need newCUIs list later
 # del CUIs
@@ -1082,7 +1060,7 @@ newCUIs.to_csv(csv_path('CUIs.csv'), mode='a', header=False, index=False)
 # 4. a new base64 CUI
 
 # In[22]:
-print('-- Appending to CUI_CODES.csv...')
+ulog.print_and_logger_info('-- Appending to CUI_CODES.csv...')
 
 # The last CUI in cuis is always base64 of node_id - here we grab those only if they are the selected CUI (and all CUIs)
 newCUI_CODEsCUI = node_metadata[['CUI', 'node_id']]
@@ -1102,7 +1080,13 @@ newCUI_CODEs = df.loc[df._merge == 'left_only', df.columns != '_merge']
 newCUI_CODEs = newCUI_CODEs.dropna().drop_duplicates().reset_index(drop=True)
 
 # write/append - comment out during development
-newCUI_CODEs.to_csv(csv_path('CUI-CODEs.csv'), mode='a', header=False, index=False)
+if newCUI_CODEs.shape[0] > TQDM_THRESHOLD:
+    uextract.to_csv_with_progress_bar(df=newCUI_CODEs, path=csv_path('CUI-CODEs.csv'), mode='a', header=False,
+                                      index=False)
+
+else:
+    newCUI_CODEs.to_csv(csv_path('CUI-CODEs.csv'), mode='a', header=False, index=False)
+
 
 del newCUI_CODEsCUI
 del newCUI_CODEscuis
@@ -1123,7 +1107,7 @@ SUIs = SUIs.dropna().drop_duplicates().reset_index(drop=True)
 # #### Write SUIs (SUI:ID,name) part 1, from label - with existence check
 
 # In[24]:
-print('-- Appending terms to SUIs.csv...')
+ulog.print_and_logger_info('-- Appending terms to SUIs.csv...')
 
 # JAS APR 2023
 # Only look for SUIs if the nodes in the node file have labels.
@@ -1145,7 +1129,10 @@ if node_metadata['node_label'].notna().values.any():
     SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
 
     # write out newSUIs - comment out during development
-    newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
+    if newSUIs.shape[0] > TQDM_THRESHOLD:
+        uextract.to_csv_with_progress_bar(df=newSUIs, path=csv_path('SUIs.csv'), mode='a', header=False, index=False)
+    else:
+        newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
 
 
 # del newSUIs - not here because we use this dataframe name later
@@ -1155,7 +1142,7 @@ if node_metadata['node_label'].notna().values.any():
 # JAS MARCH 2023
 # EXPLANATION: CUI-SUIs links terms for concepts--i.e., Terms with relationship PREF_TERM.
 
-print('-- Appending terms to CUI-SUIs.csv...')
+ulog.print_and_logger_info('-- Appending terms to CUI-SUIs.csv...')
 # In[25]:
 
 
@@ -1172,7 +1159,11 @@ if newCUI_SUIs['node_label'].notna().values.any():
     newCUI_SUIs.columns = [':START:ID', ':END_ID']
 
     # write/append - comment out during development
-    newCUI_SUIs.to_csv(csv_path('CUI-SUIs.csv'), mode='a', header=False, index=False)
+    if newCUI_SUIs.shape[0] > TQDM_THRESHOLD:
+        uextract.to_csv_with_progress_bar(df=newCUI_SUIs, path=csv_path('CUI-SUIs.csv'), mode='a', header=False,
+                                          index=False)
+    else:
+        newCUI_SUIs.to_csv(csv_path('CUI-SUIs.csv'), mode='a', header=False, index=False)
 
 # del newCUIs
 # del newCUI_SUIs
@@ -1184,7 +1175,7 @@ if newCUI_SUIs['node_label'].notna().values.any():
 
 # In[26]:
 
-print('-- Appending terms to CODE-SUIs.csv...')
+ulog.print_and_logger_info('-- Appending terms to CODE-SUIs.csv...')
 
 CODE_SUIs = pd.read_csv(csv_path("CODE-SUIs.csv"))
 CODE_SUIs = CODE_SUIs[((CODE_SUIs[':TYPE'] == 'PT') | (CODE_SUIs[':TYPE'] == 'SY'))]
@@ -1252,7 +1243,10 @@ if node_metadata['node_label'].notna().values.any():
     newCODE_SUIs.reset_index(drop=True, inplace=True)
 
     # write out newCODE_SUIs - comment out during development
-    newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
+    if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
+        uextract.to_csv_with_progress_bar(df=newCODE_SUIs, path=csv_path('CODE-SUIs.csv'), mode='a', header=False,index=False)
+    else:
+        newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
 
 # del newCODE_SUIs - will use this variable again later (though its overwrite)
 
@@ -1263,7 +1257,7 @@ if node_metadata['node_label'].notna().values.any():
 
 
 # explode and merge the synonyms
-print('-- Appending synonyms to SUIs.csv...')
+ulog.print_and_logger_info('-- Appending synonyms to SUIs.csv...')
 explode_syns = node_metadata.explode('node_synonyms')[
     ['node_id', 'node_synonyms', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
@@ -1286,7 +1280,10 @@ if explode_syns['node_synonyms'].notna().values.any():
     SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
 
     # write out newSUIs - comment out during development
-    newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
+    if newSUIs.shape[0] > TQDM_THRESHOLD:
+        uextract.to_csv_with_progress_bar(df=newSUIs, path=csv_path('SUIs.csv'), mode='a', header=False, index=False)
+    else:
+        newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
 
     del newSUIs
 # del explode_syns
@@ -1295,7 +1292,7 @@ if explode_syns['node_synonyms'].notna().values.any():
 # #### Write CODE-SUIs (:END_ID,:START_ID,:TYPE,CUI) part 2, from synonyms - with existence check
 
 # In[29]:
-print('-- Appending synonyms to CODE-SUIs.csv...')
+ulog.print_and_logger_info('-- Appending synonyms to CODE-SUIs.csv...')
 # get the SUIs matches
 
 # JAS APR 2023 only merge if node_synonyms has values.
@@ -1312,7 +1309,10 @@ if explode_syns['node_synonyms'].notna().values.any():
     newCODE_SUIs.reset_index(drop=True, inplace=True)
 
     # write out newCODE_SUIs - comment out during development
-    newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
+    if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
+        uextract.to_csv_with_progress_bar(df=newCODE_SUIs, path=csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
+    else:
+        newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
 
     del newCODE_SUIs
 
@@ -1321,7 +1321,7 @@ if explode_syns['node_synonyms'].notna().values.any():
 # EXPLANATION: DEF.csv and DEFrel.csv contain information on Definition nodes in the knowledge graph.
 
 # In[30]:
-print('--Appending to DEFs.csv and DEFrel.csv...')
+ulog.print_and_logger_info('--Appending to DEFs.csv and DEFrel.csv...')
 
 if node_metadata['node_definition'].notna().values.any():
     DEFs = pd.read_csv(csv_path("DEFs.csv"))
@@ -1342,11 +1342,21 @@ if node_metadata['node_definition'].notna().values.any():
     newDEF_REL = newDEF_REL[['ATUI:ID', 'SAB', 'DEF', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
     # Write newDEFs
-    newDEF_REL[['ATUI:ID', 'SAB', 'DEF']].to_csv(csv_path('DEFs.csv'), mode='a', header=False, index=False)
+    if newDEF_REL.shape[0] > TQDM_THRESHOLD:
+        uextract.to_csv_with_progress_bar(df=newDEF_REL[['ATUI:ID', 'SAB', 'DEF']], path=csv_path('DEFs.csv'), mode='a',
+                                          header=False, index=False)
+    else:
+        newDEF_REL[['ATUI:ID', 'SAB', 'DEF']].to_csv(csv_path('DEFs.csv'), mode='a', header=False, index=False)
 
     # Write newDEFrel
-    newDEF_REL[['ATUI:ID', 'CUI']].rename(columns={'ATUI:ID': ':END_ID', 'CUI': ':START_ID'}).to_csv(
+    if newDEF_REL.shape[0] > TQDM_THRESHOLD:
+        uextract.to_csv_with_progress_bar(
+            df=newDEF_REL[['ATUI:ID', 'CUI']].rename(columns={'ATUI:ID': ':END_ID', 'CUI': ':START_ID'}),
+            path=csv_path('DEFrel.csv'), mode='a', header=False, index=False)
+    else:
+        newDEF_REL[['ATUI:ID', 'CUI']].rename(columns={'ATUI:ID': ':END_ID', 'CUI': ':START_ID'}).to_csv(
         csv_path('DEFrel.csv'), mode='a', header=False, index=False)
+
 
     del DEFs
     del DEFrel
