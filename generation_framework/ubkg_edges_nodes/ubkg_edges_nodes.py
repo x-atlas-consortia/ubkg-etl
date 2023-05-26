@@ -23,6 +23,8 @@ import ubkg_logging as ulog
 import ubkg_config as uconfig
 # Calling subprocesses
 import ubkg_subprocess as usub
+# Extracting files
+import ubkg_extract as uextract
 
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
@@ -65,6 +67,22 @@ def getargs()->argparse.Namespace:
 
     return args
 
+def unzipfiles(path: str):
+    # Decompresses all files in a folder path.
+    # Assumes Gzip.
+    for f in os.listdir(path):
+        fname = f.lower()
+        fpath = os.path.join(path, fname)
+        if 'gz' in fname:
+            # Get file name before extension.
+            funzip = os.path.join(path, fname.split('.gz')[0])
+            # Decompress
+            ulog.print_and_logger_info(f'Unzipping {fpath} to {funzip}')
+            funzippath = uextract.extract_from_gzip(zipfilename = fpath, outputpath=path, outfilename=funzip)
+
+    return
+
+
 # -----------------------------------------
 # START
 
@@ -90,6 +108,9 @@ os.system(f'mkdir -p {owl_dir_sab}')
 
 # Get the appropriate file path.
 frompath = config.get_value(section='Paths',key=args.sab)
+
+# Decompress files if necessary.
+unzipfiles(frompath)
 
 if containsEdgeNodeFiles(frompath):
     # Copy files from the local path to the owlnets path.
