@@ -52,9 +52,11 @@ import fileinput
 # The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
 # Find the absolute path. (This assumes that this script is being called from build_csv.py.)
 fpath = os.path.dirname(os.getcwd())
-fpath = os.path.join(fpath,'generation_framework/ubkg_utilities')
+fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
 import ubkg_parsetools as uparse
+import ubkg_extract as uextract
+
 
 def owlnets_path(file: str) -> str:
     # Appends the OWLNETS path to the file argument.
@@ -96,9 +98,10 @@ def update_columns_to_csv_header(file: str, new_columns: list):
         print(newline)
     return
 
+
 # -----------------------------------------------------
 # START OF SCRIPT
-# Asssignnment of SAB for CUI-CUI relationships (edgelist) - typically use file name before .owl in CAPS
+# Assignment of SAB for CUI-CUI relationships (edgelist) - typically use file name before .owl in CAPS
 OWL_SAB = sys.argv[3].upper()
 
 # JAS 15 NOV 2022 - removed organism argument, because we are not ingesting PR.
@@ -121,7 +124,7 @@ print('READING DATA FILES (edges, nodes, relations)...')
 # 2. UBKG edge/nodes
 
 
-nodefilelist = ['OWLNETS_node_metadata.txt','nodes.txt','nodes.tsv']
+nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv']
 nodepath = identify_source_file(nodefilelist)
 
 # JAS 6 JAN 2023 add optional columns (value, lowerbound, upperbound, unit) for UBKG edges/nodes files.
@@ -201,7 +204,7 @@ else:
 # 2. UBKG edge/nodes
 
 print('-- Reading edge file...')
-edgefilelist = ['OWLNETS_edgelist.txt','edges.txt','edges.tsv']
+edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv']
 edgepath = identify_source_file(edgefilelist)
 
 print('---- Dropping duplicates, empty rows, and self-referential edges...')
@@ -304,12 +307,12 @@ else:
 # edgelist['subject'] = \
 # edgelist['subject'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
 print('-- Formatting node IDs...')
-edgelist['subject'] = uparse.codeReplacements(edgelist['subject'],OWL_SAB)
+edgelist['subject'] = uparse.codeReplacements(edgelist['subject'], OWL_SAB)
 
 # JAS 15 NOV 2022
 # Deprecate all prior code that handled object nodes, including from October 2022, in favor of the
 # improved codeReplacements function.
-edgelist['object'] = uparse.codeReplacements(edgelist['object'],OWL_SAB)
+edgelist['object'] = uparse.codeReplacements(edgelist['object'], OWL_SAB)
 
 # MAY 2023
 # Format edges.
@@ -411,7 +414,7 @@ dfrelationtriples = dfrelationtriples.merge(dfnodes, how='left', left_on='obj', 
 
 # May 2023
 # Set a default predicate to capture nodes without predicates.
-dfrelationtriples = dfrelationtriples.fillna(value={'pred':'no predicate'})
+dfrelationtriples = dfrelationtriples.fillna(value={'pred': 'no predicate'})
 
 # ---------------------------------
 # Identify relationship properties that do not have inverses.
@@ -530,8 +533,8 @@ if relations_file_exists:
                  'inverse_RO': 'inverse_RO_fromfilelabeljoinlabel'})
 # JAS APR 2023 - Add null columns if no relations file.
 else:
-    edgelist['relation_label_RO_fromfilelabeljoinlabel']=np.nan
-    edgelist['inverse_RO_fromfilelabeljoinlabel']=np.nan
+    edgelist['relation_label_RO_fromfilelabeljoinlabel'] = np.nan
+    edgelist['inverse_RO_fromfilelabeljoinlabel'] = np.nan
 
 # JAS APR 2023 - Check for relationships in RO, considering the edgelist predicate as an abbreviated IRI
 # in format RO:code. (Use case: GTEX)
@@ -541,9 +544,9 @@ edgelist = edgelist.merge(dfrelationtriples, how='left', left_on='predicate_expa
                           right_on='IRI').drop_duplicates().reset_index(drop=True)
 
 edgelist = edgelist[['subject', 'predicate', 'object', 'evidence_class', 'relation_label_from_file',
-                         'relation_label_RO_fromIRIjoin','inverse_RO_fromIRIjoin',
-                         'relation_label_RO_frompredicatejoinlabel','inverse_RO_frompredicatejoinlabel',
-                         'relation_label_RO_fromfilelabeljoinlabel','inverse_RO_fromfilelabeljoinlabel',
+                         'relation_label_RO_fromIRIjoin', 'inverse_RO_fromIRIjoin',
+                         'relation_label_RO_frompredicatejoinlabel', 'inverse_RO_frompredicatejoinlabel',
+                         'relation_label_RO_fromfilelabeljoinlabel', 'inverse_RO_fromfilelabeljoinlabel',
                          'relation_label_RO', 'inverse_RO']].rename(
         columns={'relation_label_RO': 'relation_label_RO_fromexpandedpredicate',
                  'inverse_RO': 'inverse_RO_fromexpandedpredicate'})
@@ -591,8 +594,8 @@ edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('subCla
                                       edgelist['relation_label'])
 
 # JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
-edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), 'isa',
-                                      edgelist['relation_label'])
+edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                                      'isa', edgelist['relation_label'])
 # The algorithm for inverses is simpler: if one was derived from RO, use it; else leave empty, and
 # the script will create a pseudo-inverse.
 
@@ -694,7 +697,7 @@ explode_dbxrefs = node_metadata.explode('node_dbxrefs')[['node_id', 'node_dbxref
     str).drop_duplicates().reset_index(drop=True)
 
 # Standardize the codes for the cross-references.
-explode_dbxrefs['node_dbxrefs'] = uparse.codeReplacements(explode_dbxrefs['node_dbxrefs'],OWL_SAB)
+explode_dbxrefs['node_dbxrefs'] = uparse.codeReplacements(explode_dbxrefs['node_dbxrefs'], OWL_SAB)
 
 # Create SAB and CODE columns from the node_id.
 # JAS 12 JAN 2023 - force uppercase for SAB
@@ -745,7 +748,7 @@ print('-- Reading existing CUIs from CUI-CODES.csv...')
 CUI_CODEs = pd.read_csv(csv_path("CUI-CODEs.csv"))
 CUI_CODEs = CUI_CODEs.dropna().drop_duplicates().reset_index(drop=True)
 
-# #### A big groupby - ran a couple minutes - changed groupby to not sort the keys to speed it up
+# #### A big groupby - ran a couple of minutes - changed groupby to not sort the keys to speed it up
 
 # JAS 5 OCT 2022
 # Enhancement to force case insensitivity of checking cross-referenced concepts.
@@ -790,7 +793,7 @@ print('-- Identifying non-UMLS cross-references from CUI-CODEs.csv...')
 node_xref_cui = explode_dbxrefs.merge(CUI_CODEs, how='inner', left_on='node_dbxrefs',
                                       right_on=CUI_CODEs[':END_ID'].str.upper())
 # JAS FEB 2023 Adding group_keys=False to silence the FutureWarning.
-node_xref_cui = node_xref_cui.groupby('node_id', sort=False,group_keys=False)[':START_ID'].apply(list).reset_index(name='XrefCUIs')
+node_xref_cui = node_xref_cui.groupby('node_id', sort=False, group_keys=False)[':START_ID'].apply(list).reset_index(name='XrefCUIs')
 node_xref_cui['XrefCUIs'] = node_xref_cui['XrefCUIs'].apply(lambda x: pd.unique(x)).apply(list)
 node_metadata = node_metadata.merge(node_xref_cui, how='left', on='node_id')
 del node_xref_cui
@@ -803,6 +806,7 @@ del explode_dbxrefs
 
 def base64it(x):
     return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
+
 
 # The CUI for the node will be the base64-encoded value of the concatenated SAB and code.
 # JAS MARCH 2023
@@ -853,7 +857,7 @@ node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).appl
 
 # The following code has been compared with the block that it replaces and has been confirmed to be faster, require fewer resources, and result
 # in more consistent assignments.
-node_metadata['CUI']=node_metadata['cuis'].str[0]
+node_metadata['CUI'] = node_metadata['cuis'].str[0]
 
 """
 #JAS 27 MAR 2023
@@ -992,7 +996,7 @@ edgelist['SAB'] = OWL_SAB
 # a cross-reference that is itself cross-referenced to another CUI.
 
 print('-- Removing self-reference edges introduced from CUI assignment...')
-edgelist = edgelist[edgelist['CUI1']!=edgelist['CUI2']]
+edgelist = edgelist[edgelist['CUI1'] != edgelist['CUI2']]
 
 
 
@@ -1267,7 +1271,7 @@ if node_metadata['node_label'].notna().values.any():
     # describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
     # there would be just one term, but with multiple relationships.
 
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]),'PT',OWL_SAB+'_PT')
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]), 'PT',OWL_SAB+'_PT')
 
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
@@ -1289,7 +1293,7 @@ if node_metadata['node_label'].notna().values.any():
 
 
 # explode and merge the synonyms
-print ('-- Appending synonyms to SUIs.csv...')
+print('-- Appending synonyms to SUIs.csv...')
 explode_syns = node_metadata.explode('node_synonyms')[
     ['node_id', 'node_synonyms', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
