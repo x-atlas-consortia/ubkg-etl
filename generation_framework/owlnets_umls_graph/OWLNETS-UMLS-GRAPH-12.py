@@ -98,6 +98,134 @@ def update_columns_to_csv_header(file: str, new_columns: list):
         print(newline)
     return
 
+def getROrelationshiptriples() -> pd.DataFrame:
+
+    # -------------------------------------------------------------
+    # IDENTIFY RELATIONSHIPS AND INVERSE RELATIONSHIPS
+
+    # Obtain descriptions of relationships and their inverses from the Relations Ontology JSON.
+
+    # The Relations Ontology (RO) is an ontology of relationships, in which the nodes are
+    # relationship properties and the edges (predicates) are relationships *between*
+    # relationship properties.
+    # For example,
+    # relationship property RO_0002292 (node) inverseOf (edge) relationship property RO_0002206 (node)
+    # or
+    # "expresses" inverseOf "expressed in"
+
+    print('-- Obtaining relationship reference information from Relations Ontology...')
+    # Fetch the RO JSON.
+    dfro = pd.read_json("https://raw.githubusercontent.com/oborel/obo-relations/master/ro.json")
+
+    # Information on relationship properties (i.e., relationship property nodes) is in the node array.
+    dfnodes = pd.DataFrame(dfro.graphs[0]['nodes'])
+    # Information on edges (i.e., relationships between relationship properties) is in the edges array.
+    dfedges = pd.DataFrame(dfro.graphs[0]['edges'])
+
+    # Information on the relationships between relationship properties *should be* in the edges array.
+    # Example of edge element:
+    # {
+    #      "sub" : "http://purl.obolibrary.org/obo/RO_0002101",
+    #      "pred" : "inverseOf",
+    #      "obj" : "http://purl.obolibrary.org/obo/RO_0002132"
+    #    }
+    #
+    # The ontology graph requires that every relationship have an inverse.
+    # Not all relationships in RO are defined with inverses; for these relationships, the script will create
+    # "pseudo-inverse" relationships--e.g., if the only information available is the label "eats", then
+    # the pseudo-inverse will be "inverse_eats" (instead of, say, "eaten_by").
+
+    # Cases that require pseudo-inverses include:
+    # 1. A property is incompletely specified in terms of both sides of an inverse relationship--e.g.,
+    #    RO_0002206 is listed as the inverse of RO_0002292, but RO_0002292 is not listed as the
+    #    corresponding inverse of RO_0002206. For these properties, the available relationship
+    #    will be inverted when joining relationship information to the edgelist.
+    #    (This is really a case in which both directions of the inverse relationship should have been
+    #    defined in the edges node, but were not.)
+    # 2. A property does not have inverse relationships defined in RO.
+    #    The relationship will be added to the list with a null inverse. The script will later create a
+    #    pseudo-inverse by appending "inverse_" to the relationship label.
+
+    # ---------------------------------
+
+    # Obtain triple information for relationship properties--i.e.,
+    # 1. IRIs for "subject" nodes and "object" nodes (relationship properties)
+    # 2. relationship predicates (relationships between relationship properties)
+
+    # Get subject node, edge
+    # MAY 2023 replace inner join with left
+    dfrelationtriples = dfnodes.merge(dfedges, how='left', left_on='id', right_on='sub')
+    # Get object node
+    dfrelationtriples = dfrelationtriples.merge(dfnodes, how='left', left_on='obj', right_on='id')
+
+    # May 2023
+    # Set a default predicate to capture nodes without predicates.
+    dfrelationtriples = dfrelationtriples.fillna(value={'pred': 'no predicate'})
+
+    # ---------------------------------
+    # Identify relationship properties that do not have inverses.
+    # 1. Group relationship properties by predicate, using count.
+    #    ('pred' here describes the relationship between relationship properties.)
+    dfpred = dfrelationtriples.groupby(['id_x', 'pred']).count().reset_index()
+
+    # 2. Identify the relationships for which the set of predicates does not include "inverseOf".
+    listinv = dfpred[dfpred['pred'] == 'inverseOf']['id_x'].to_list()
+    listnoinv = dfpred[~dfpred['id_x'].isin(listinv)]['id_x'].to_list()
+    dfnoinv = dfrelationtriples.copy()
+    dfnoinv = dfnoinv[dfnoinv['id_x'].isin(listnoinv)]
+
+    # 3. Rename column names to match the relationtriples frame. (Column names are described
+    #    farther down.)
+    dfnoinv = dfnoinv[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
+        columns={'id_x': 'IRI', 'lbl_x': 'relation_label_RO', 'id_y': 'inverse_IRI', 'lbl_y': 'inverse_RO'})
+    # The inverses are undefined.
+    dfnoinv['inverse_IRI'] = np.nan
+    dfnoinv['inverse_RO'] = np.nan
+
+    # ---------------------------------
+    # Look for members of incomplete inverse pairs--i.e., relationship properties that are
+    # the *object* of an inverseOf edge, but not the corresponding *subject* of an inverseOf edge.
+    #
+    # 1. Filter edges to inverseOf.
+    dfedgeinv = dfedges[dfedges['pred'] == 'inverseOf']
+
+    # 2. Find all relation properties that are objects of inverseOf edges.
+    dfnoinv = dfnoinv.merge(dfedgeinv, how='left', left_on='IRI', right_on='obj')
+
+    # 3. Get the label for the relation properties that are subjects of inverseOf edges.
+    dfnoinv = dfnoinv.merge(dfnodes, how='left', left_on='sub', right_on='id')
+    dfnoinv['inverse_IRI'] = np.where(dfnoinv['lbl'].isnull(), dfnoinv['inverse_IRI'], dfnoinv['id'])
+    dfnoinv['inverse_RO'] = np.where(dfnoinv['lbl'].isnull(), dfnoinv['inverse_RO'], dfnoinv['lbl'])
+    dfnoinv = dfnoinv[['IRI', 'relation_label_RO', 'inverse_IRI', 'inverse_RO']]
+
+    # ---------------------------------
+    # Filter the base triples frame to just those relationship properties that have inverses.
+    # This step eliminates relationship properties related by relationships such as "subPropertyOf".
+    dfrelationtriples = dfrelationtriples[dfrelationtriples['pred'] == 'inverseOf']
+
+    # Rename column names.
+    # Column names will be:
+    # IRI - the IRI for the relationship property
+    # relation_label_RO - the label for the relationship property
+    # inverse_RO - the label of the inverse relationship property
+    # inverse_IRI - IRI for the inverse relationship (This will be dropped.)
+    dfrelationtriples = dfrelationtriples[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
+        columns={'id_x': 'IRI', 'lbl_x': 'relation_label_RO', 'id_y': 'inverse_IRI', 'lbl_y': 'inverse_RO'})
+
+    # Add triples for problematic relationship properties--i.e., without inverses or from incomplete pairs.
+    dfrelationtriples = pd.concat([dfrelationtriples, dfnoinv], ignore_index=True).drop_duplicates(subset=['IRI'])
+
+    # Convert stings for labels for relationships to expected delimiting.
+    dfrelationtriples['relation_label_RO'] = \
+        dfrelationtriples['relation_label_RO'].str.replace(' ', '_').str.split('/').str[-1]
+    dfrelationtriples['inverse_RO'] = dfrelationtriples['inverse_RO'].str.replace(' ', '_').str.split('/').str[-1]
+
+    dfrelationtriples = dfrelationtriples.drop(columns='inverse_IRI')
+
+    return dfrelationtriples
+
+
+
 
 # -----------------------------------------------------
 # START OF SCRIPT
@@ -318,166 +446,8 @@ edgelist['object'] = uparse.codeReplacements(edgelist['object'], OWL_SAB)
 # Format edges.
 edgelist['predicate'] = uparse.relationReplacements(edgelist['predicate'])
 
-
-# ------------- DEPRECATED
-# JAS 13 OCT 2022
-# Format object node information.
-# Enhancement to handle special case of HGNC object nodes.
-
-# HGNC nodes are a special case.
-# The codes are in the format "HGNC HGNC:ID", and thus correspond to two delimiters recognized by the
-# general text processing/codeReplacements logic. However, the HGNC codes are stored in CUI-CODES in
-# exactly this format, so processing them breaks the link.
-# Instead of trying to game the general string formatting, simply assume that HGNC codes are properly
-# formatted and do not convert them.
-
-# In general, a set of object nodes can be a mixture of nodes from HGNC and other vocabularies.
-
-# original code:
-# edgelist['object'] = \
-# edgelist['object'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
-# edgelist['object'] = codeReplacements(edgelist['object'])
-
-# new code:
-
-# If the nodes are not from HGNC, replace delimiters with space.
-# edgelist['object'] = np.where(edgelist['object'].str.contains('HGNC') == True, \
-# edgelist['object'], \
-# edgelist['object'].str.replace(':', ' ').str.replace('#', ' ').str.replace('_',
-# ' ').str.split(
-# '/').str[-1])
-# If the nodes are not from HGNC, align code SABs with UMLS.
-# edgelist['object'] = np.where(edgelist['object'].str.contains('HGNC') == True, \
-# edgelist['object'], \
-# codeReplacements(edgelist['object']))
-# ------------- DEPRECATED
-
-
-# -------------------------------------------------------------
-# IDENTIFY RELATIONSHIPS AND INVERSE RELATIONSHIPS
-
-# JAS 8 NOV 2022
-# Obtain descriptions of relationships and their inverses from the Relations Ontology JSON.
-
-# The Relations Ontology (RO) is an ontology of relationships, in which the nodes are
-# relationship properties and the edges (predicates) are relationships *between*
-# relationship properties.
-# For example,
-# relationship property RO_0002292 (node) inverseOf (edge) relationship property RO_0002206 (node)
-# or
-# "expresses" inverseOf "expressed in"
-
-print('-- Obtaining relationship reference information from Relations Ontology...')
-# Fetch the RO JSON.
-dfro = pd.read_json("https://raw.githubusercontent.com/oborel/obo-relations/master/ro.json")
-
-# Information on relationship properties (i.e., relationship property nodes) is in the node array.
-dfnodes = pd.DataFrame(dfro.graphs[0]['nodes'])
-# Information on edges (i.e., relationships between relationship properties) is in the edges array.
-dfedges = pd.DataFrame(dfro.graphs[0]['edges'])
-
-# Information on the relationships between relationship properties *should be* in the edges array.
-# Example of edge element:
-# {
-#      "sub" : "http://purl.obolibrary.org/obo/RO_0002101",
-#      "pred" : "inverseOf",
-#      "obj" : "http://purl.obolibrary.org/obo/RO_0002132"
-#    }
-#
-# The ontology graph requires that every relationship have an inverse.
-# Not all relationships in RO are defined with inverses; for these relationships, the script will create
-# "pseudo-inverse" relationships--e.g., if the only information available is the label "eats", then
-# the pseudo-inverse will be "inverse_eats" (instead of, say, "eaten_by").
-
-# Cases that require pseudo-inverses include:
-# 1. A property is incompletely specified in terms of both sides of an inverse relationship--e.g.,
-#    RO_0002206 is listed as the inverse of RO_0002292, but RO_0002292 is not listed as the
-#    corresponding inverse of RO_0002206. For these properties, the available relationship
-#    will be inverted when joining relationship information to the edgelist.
-#    (This is really a case in which both directions of the inverse relationship should have been
-#    defined in the edges node, but were not.)
-# 2. A property does not have inverse relationships defined in RO.
-#    The relationship will be added to the list with a null inverse. The script will later create a
-#    pseudo-inverse by appending "inverse_" to the relationship label.
-
-# ---------------------------------
-
-# Obtain triple information for relationship properties--i.e.,
-# 1. IRIs for "subject" nodes and "object" nodes (relationship properties)
-# 2. relationship predicates (relationships between relationship properties)
-
-# Get subject node, edge
-# MAY 2023 replace inner join with left
-dfrelationtriples = dfnodes.merge(dfedges, how='left', left_on='id', right_on='sub')
-# Get object node
-dfrelationtriples = dfrelationtriples.merge(dfnodes, how='left', left_on='obj', right_on='id')
-
-# May 2023
-# Set a default predicate to capture nodes without predicates.
-dfrelationtriples = dfrelationtriples.fillna(value={'pred': 'no predicate'})
-
-# ---------------------------------
-# Identify relationship properties that do not have inverses.
-# 1. Group relationship properties by predicate, using count.
-#    ('pred' here describes the relationship between relationship properties.)
-dfpred = dfrelationtriples.groupby(['id_x', 'pred']).count().reset_index()
-
-# 2. Identify the relationships for which the set of predicates does not include "inverseOf".
-listinv = dfpred[dfpred['pred'] == 'inverseOf']['id_x'].to_list()
-listnoinv = dfpred[~dfpred['id_x'].isin(listinv)]['id_x'].to_list()
-dfnoinv = dfrelationtriples.copy()
-dfnoinv = dfnoinv[dfnoinv['id_x'].isin(listnoinv)]
-
-
-# 3. Rename column names to match the relationtriples frame. (Column names are described
-#    farther down.)
-dfnoinv = dfnoinv[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
-    columns={'id_x': 'IRI', 'lbl_x': 'relation_label_RO', 'id_y': 'inverse_IRI', 'lbl_y': 'inverse_RO'})
-# The inverses are undefined.
-dfnoinv['inverse_IRI'] = np.nan
-dfnoinv['inverse_RO'] = np.nan
-
-
-# ---------------------------------
-# Look for members of incomplete inverse pairs--i.e., relationship properties that are
-# the *object* of an inverseOf edge, but not the corresponding *subject* of an inverseOf edge.
-#
-# 1. Filter edges to inverseOf.
-dfedgeinv = dfedges[dfedges['pred'] == 'inverseOf']
-
-# 2. Find all relation properties that are objects of inverseOf edges.
-dfnoinv = dfnoinv.merge(dfedgeinv, how='left', left_on='IRI', right_on='obj')
-
-# 3. Get the label for the relation properties that are subjects of inverseOf edges.
-dfnoinv = dfnoinv.merge(dfnodes, how='left', left_on='sub', right_on='id')
-dfnoinv['inverse_IRI'] = np.where(dfnoinv['lbl'].isnull(), dfnoinv['inverse_IRI'], dfnoinv['id'])
-dfnoinv['inverse_RO'] = np.where(dfnoinv['lbl'].isnull(), dfnoinv['inverse_RO'], dfnoinv['lbl'])
-dfnoinv = dfnoinv[['IRI', 'relation_label_RO', 'inverse_IRI', 'inverse_RO']]
-
-# ---------------------------------
-# Filter the base triples frame to just those relationship properties that have inverses.
-# This step eliminates relationship properties related by relationships such as "subPropertyOf".
-dfrelationtriples = dfrelationtriples[dfrelationtriples['pred'] == 'inverseOf']
-
-# Rename column names.
-# Column names will be:
-# IRI - the IRI for the relationship property
-# relation_label_RO - the label for the relationship property
-# inverse_RO - the label of the inverse relationship property
-# inverse_IRI - IRI for the inverse relationship (This will be dropped.)
-dfrelationtriples = dfrelationtriples[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
-    columns={'id_x': 'IRI', 'lbl_x': 'relation_label_RO', 'id_y': 'inverse_IRI', 'lbl_y': 'inverse_RO'})
-
-# Add triples for problematic relationship properties--i.e., without inverses or from incomplete pairs.
-dfrelationtriples = pd.concat([dfrelationtriples, dfnoinv], ignore_index=True).drop_duplicates(subset=['IRI'])
-
-# Convert stings for labels for relationships to expected delimiting.
-dfrelationtriples['relation_label_RO'] = \
-    dfrelationtriples['relation_label_RO'].str.replace(' ', '_').str.split('/').str[-1]
-dfrelationtriples['inverse_RO'] = dfrelationtriples['inverse_RO'].str.replace(' ', '_').str.split('/').str[-1]
-
-dfrelationtriples = dfrelationtriples.drop(columns='inverse_IRI')
-
+# Obtain relationship information from the Relations Ontology.
+dfrelationtriples = getROrelationshiptriples()
 
 # ---------------------------------------------------------
 # JAS 8 NOV 2022
