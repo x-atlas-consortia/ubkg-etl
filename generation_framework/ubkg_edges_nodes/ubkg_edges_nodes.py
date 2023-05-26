@@ -26,13 +26,14 @@ import ubkg_subprocess as usub
 # Extracting files
 import ubkg_extract as uextract
 
+
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
     argparse.RawTextHelpFormatter
 ):
     pass
 
-def containsEdgeNodeFiles(path: str)->bool:
+def containsEdgeNodeFiles(path: str) -> bool:
     # Checks files in a local path.
 
     # Files should be one of two types:
@@ -49,14 +50,16 @@ def containsEdgeNodeFiles(path: str)->bool:
 
     return isedge
 
-def getOWLfilename(path: str)->str:
-    #Returns the first file in a path, under the assumption that the directory contains a single OWL file.
+
+def getOWLfilename(path: str) -> str:
+    # Returns the first file in a path, under the assumption that the directory contains a single OWL file.
     for f in os.listdir(path):
         fpath = os.path.join(path, f)
         if os.path.isfile(fpath):
             return f
 
-def getargs()->argparse.Namespace:
+
+def getargs() -> argparse.Namespace:
     # Parse command line arguments.
     parser = argparse.ArgumentParser(
         description='Copies ingest files in UBKG edges/nodes format from a local directory.',
@@ -78,7 +81,7 @@ def unzipfiles(path: str):
             funzip = os.path.join(path, fname.split('.gz')[0])
             # Decompress
             ulog.print_and_logger_info(f'Unzipping {fpath} to {funzip}')
-            funzippath = uextract.extract_from_gzip(zipfilename = fpath, outputpath=path, outfilename=funzip)
+            funzippath = uextract.extract_from_gzip(zipfilename=fpath, outputpath=path, outfilename=funzip)
 
     return
 
@@ -88,7 +91,7 @@ def unzipfiles(path: str):
 
 args = getargs()
 
-OWLNETS_SCRIPT = os.path.join(os.path.dirname(os.getcwd()),'generation_framework/owlnets_script/__main__.py')
+OWLNETS_SCRIPT = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/owlnets_script/__main__.py')
 
 # Read from config file.
 cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/ubkg_edges_nodes/edges_nodes.ini')
@@ -97,17 +100,17 @@ config = uconfig.ubkgConfigParser(cfgfile)
 # Get OWLNETS directory.
 # The config file contains absolute paths to the parent directories in the local repo.
 # Affix the SAB to the paths.
-owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),config.get_value(section='Directories',key='owlnets_dir'))
+owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owlnets_dir'))
 print(args.sab)
-owlnets_dir_sab=os.path.join(owlnets_dir,args.sab)
-owl_dir = os.path.join(os.path.dirname(os.getcwd()),config.get_value(section='Directories',key='owl_dir'))
-owl_dir_sab=os.path.join(owl_dir,args.sab)
+owlnets_dir_sab = os.path.join(owlnets_dir, args.sab)
+owl_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owl_dir'))
+owl_dir_sab = os.path.join(owl_dir, args.sab)
 # Make the subdirectories.
 os.system(f'mkdir -p {owlnets_dir_sab}')
 os.system(f'mkdir -p {owl_dir_sab}')
 
 # Get the appropriate file path.
-frompath = config.get_value(section='Paths',key=args.sab)
+frompath = config.get_value(section='Paths', key=args.sab)
 
 # Decompress files if necessary.
 unzipfiles(frompath)
@@ -122,6 +125,6 @@ else:
     os.system(f'cp {frompath}/*.* {owl_dir_sab}')
     url = os.path.join(owl_dir_sab, getOWLfilename(frompath))
     # Call OWLNETS script using the path to the local copy of the OWL file as the url.
-    owlnets_script= f"{OWLNETS_SCRIPT} --ignore_owl_md5 -l {owlnets_dir} -o {owl_dir} {url} {args.sab}"
+    owlnets_script = f"{OWLNETS_SCRIPT} --ignore_owl_md5 -l {owlnets_dir} -o {owl_dir} {url} {args.sab}"
     ulog.print_and_logger_info(f"Running: {owlnets_script}")
     usub.call_subprocess(owlnets_script)
