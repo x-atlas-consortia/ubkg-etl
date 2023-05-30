@@ -148,10 +148,11 @@ def to_csv_with_progress_bar(df: pd.DataFrame, path:str, sep: str=',', header: b
 
     chunks = np.array_split(df.index, 100)  # split into 100 chunks
     for chunk, subset in enumerate(tqdm(chunks,desc='Writing')):
-        if chunk == 0:  # first row
-            df.loc[subset].to_csv(path, mode='w', index=True,sep=sep)
+        if chunk == 0:
+            #First row, which may be part of an append of the contents of df to an existing file.
+            df.loc[subset].to_csv(path, header=header, mode=mode, index=index,sep=sep)
         else:
-            df.loc[subset].to_csv(path, header=None, mode='a', index=True,sep=sep)
+            df.loc[subset].to_csv(path, header=None, mode='a', index=index,sep=sep)
 
     return
 
