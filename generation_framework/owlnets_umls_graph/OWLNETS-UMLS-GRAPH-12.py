@@ -58,7 +58,7 @@ sys.path.append(fpath)
 import ubkg_parsetools as uparse
 import ubkg_extract as uextract
 import ubkg_logging as ulog
-
+import ubkg_reporting as ureport
 
 def owlnets_path(file: str) -> str:
     # Appends the OWLNETS path to the file argument.
@@ -244,6 +244,9 @@ OWL_SAB = sys.argv[3].upper()
 
 TQDM_THRESHOLD=10000
 
+# Start QC report.
+qcpath = owlnets_path('ubkg_qc.txt')
+ubkg_report = ureport.UbkgReport(path=qcpath,sab=OWL_SAB)
 
 pd.set_option('display.max_colwidth', None)
 
@@ -261,6 +264,7 @@ ulog.print_and_logger_info('READING DATA FILES (edges, nodes, relations)...')
 
 nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv']
 nodepath = identify_source_file(nodefilelist)
+
 
 # JAS 6 JAN 2023 add optional columns (value, lowerbound, upperbound, unit) for UBKG edges/nodes files.
 # JAS 6 JAN 2023 skip bad rows. (There is at least one in line 6814 of the node_metadata file generated from EFO.)
@@ -327,8 +331,10 @@ if relations_file_exists:
     # Format edges.
     relations['relation_id'] = uparse.relationReplacements(relations['relation_id'])
     relations['relation_label'] = uparse.relationReplacements(relations['relation_label'])
+
 else:
     ulog.print_and_logger_info('---- No relations metadata found; obtaining relations data from edgelist file.')
+
 
 # -------------------------------------------------------
 # EDGE LIST INFORMATION
@@ -347,6 +353,7 @@ edgepath = identify_source_file(edgefilelist)
 ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-referential edges...')
 # JAS 6 JAN 2023 - add evidence_class; limit columns.
 edgelist=uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip',sep='\t')
+
 #edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
     edgelist['evidence_class'] = np.nan
@@ -607,6 +614,15 @@ ulog.print_and_logger_info('Translating node metadata...')
 ulog.print_and_logger_info('-- Formatting node ids...')
 node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'], OWL_SAB)
 
+# --------------------------------------------------
+# QC REPORTING, workflow point 1 - after nodes and edges have been harmonized.
+ulog.print_and_logger_info('QC report: writing statistics on nodes and edges after reading and parsing.')
+ubkg_report.edgelist = edgelist
+ubkg_report.node_metadata = node_metadata
+ubkg_report.report_file_statistics()
+ubkg_report.report_edge_node_statistics()
+# --------------------------------------------------
+
 # NODE SYNONYMS
 # original comment: synonyms .loc of notna to control for owl with no syns
 
@@ -678,6 +694,14 @@ ulog.print_and_logger_info('-- Identifying cross-references that are UMLS CUIs..
 # Separate code/CUI from SAB for each cross-reference.
 explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(' ').str[-1]
 
+# --------------------------------------------------
+# QC REPORTING, workflow point 2 - after dbxrefs are processed
+ulog.print_and_logger_info('QC report: writing statistics on nodes after dbxref expansion and parsing.')
+ubkg_report.explode_dbxrefs = explode_dbxrefs
+ubkg_report.report_dbxref_statistics()
+# --------------------------------------------------
+
+
 # JAS JAN 2023 - added group_keys=False to silence the FutureWarning from Pandas.
 # Identify cross-references that are UMLS CUIs.
 #explode_dbxrefs_UMLS = \
@@ -691,6 +715,7 @@ explode_dbxrefs_UMLS = \
 # UMLS CUI.
 node_metadata = node_metadata.merge(explode_dbxrefs_UMLS, how='left', on='node_id')
 del explode_dbxrefs_UMLS
+
 del explode_dbxrefs['nodeXrefCodes']
 
 # --------------------------------------------------
@@ -760,7 +785,6 @@ node_xref_cui['XrefCUIs'] = node_xref_cui['XrefCUIs'].apply(lambda x: pd.unique(
 node_metadata = node_metadata.merge(node_xref_cui, how='left', on='node_id')
 del node_xref_cui
 del explode_dbxrefs
-
 
 # ### Add column for base64 CUIs
 
@@ -926,8 +950,6 @@ edgelist['SAB'] = OWL_SAB
 
 ulog.print_and_logger_info('-- Removing self-reference edges introduced from CUI assignment...')
 edgelist = edgelist[edgelist['CUI1'] != edgelist['CUI2']]
-
-
 
 # --------------------------------------------------
 # ## Write out files
@@ -1362,3 +1384,15 @@ if node_metadata['node_definition'].notna().values.any():
     del DEFrel
     del DEF_REL
     del newDEF_REL
+
+# --------------------------------------------------
+# QC reporting, Workflow point 3
+# Statistics on final ontology CSVs
+# Comparisons of dbxrefs with CODEs.csv.
+ulog.print_and_logger_info('QC reporting: ontology CSV statistics')
+CODEs = uextract.read_csv_with_progress_bar(path=csv_path("CODEs.csv"))
+ubkg_report.CODEs = CODEs
+ubkg_report.report_ontology_csv_statistics()
+
+
+
