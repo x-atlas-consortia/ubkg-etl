@@ -244,19 +244,27 @@ def write_nodes_file(df:pd.DataFrame, owlnets_dir: str):
                 node = str(row['Class ID'])
                 node_namespace = args.owl_sab
                 node_label = str(row['Preferred Label'])
-                if 'definition' in dfontology.columns:
+                if 'definition' in df.columns:
                     node_definition = str(row['definition'])
-                if 'Definitions' in dfontology.columns:
+                if 'Definitions' in df.columns:
                     node_definition = str(row['Definitions'])
 
                 # Note: The use case for which this was developed, XCO, has multiple synonym columns.
                 # Other ontology CSVs may name synonym columns differently.
-                if 'has_exact_synonyms' in dfontology.columns:
+                if 'has_exact_synonyms' in df.columns:
                     node_synonyms = str(row['has_exact_synonym'])
-                if 'Synonyms' in dfontology.columns:
+                if 'Synonyms' in df.columns:
                     node_synonyms = str(row['Synonyms'])
 
-                node_dbxrefs = str(row['database_cross_reference'])
+                # June 2023 - HRAVS uses a different column name for database_cross_reference.
+                # It's unclear whether the CSV format is standard--i.e., that there should be a column named
+                # database_cross_reference.
+                if 'database_cross_reference' in df.columns:
+                    node_dbxrefs = str(row['database_cross_reference'])
+                elif 'http://www.geneontology.org/formats/oboInOwl#hasDbXref' in df.columns:
+                    node_dbxrefs = str(row['http://www.geneontology.org/formats/oboInOwl#hasDbXref'])
+                else:
+                    node_dbxrefs = np.nan
 
                 # The synonym field is an optional pipe-delimited list of string values.
                 if node_synonyms in (np.nan, 'nan'):
@@ -265,7 +273,6 @@ def write_nodes_file(df:pd.DataFrame, owlnets_dir: str):
                 if node_dbxrefs in (np.nan, 'nan'):
                     node_dbxrefs = 'None'
 
-                node_dbxrefs = 'None'
                 out.write(
                     node + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t' + node_synonyms + '\t' + node_dbxrefs + '\n')
     return
