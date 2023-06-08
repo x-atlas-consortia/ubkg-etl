@@ -261,7 +261,11 @@
   },
   "GLYCANS": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GLYCANS",
-    "comment": "GLYCANS"
+    "comment": "GlyGen GLYCANS"
+  },
+  "PROTEOFORM": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py PROTEOFORM",
+    "comment": "GlyGen PROTEOFORM"
   },
   "IDGP": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py IDGP",
@@ -271,17 +275,9 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py IDGD",
     "comment": "IDG - compound-disease interactions"
   },
-  "MWCM": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MWCM",
-    "comment": "Metabolic Workbench - cell-metabolite"
-  },
-  "MWGM": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MWGM",
-    "comment": "Metabolic Workbench - gene-metabolite"
-  },
-  "MWDM": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MWDM",
-    "comment": "Metabolic Workbench - disease-metabolite"
+  "MW": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MW",
+    "comment": "Metabolic Workbench"
   },
   "ERCCRBS": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py ERCCRBS",
