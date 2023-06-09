@@ -242,7 +242,8 @@ def getROrelationshiptriples() -> pd.DataFrame:
 # Assignment of SAB for CUI-CUI relationships (edgelist) - typically use file name before .owl in CAPS
 OWL_SAB = sys.argv[3].upper()
 
-TQDM_THRESHOLD=10000
+# Threshold number of rows for which to show TQDM progress bars when writing to output.
+TQDM_THRESHOLD=100000
 
 # Start QC report.
 qcpath = owlnets_path('ubkg_qc.txt')
@@ -262,7 +263,7 @@ ulog.print_and_logger_info('READING DATA FILES (edges, nodes, relations)...')
 # 1. OWLNETS
 # 2. UBKG edge/nodes
 
-nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv']
+nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv','OWLNETS_node_metadata.tsv']
 nodepath = identify_source_file(nodefilelist)
 
 
@@ -285,6 +286,8 @@ if 'value' not in node_metadata.columns:
 
 node_metadata = node_metadata[['node_id', 'node_label', 'node_definition', 'node_synonyms',
                                'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
+
+
 ulog.print_and_logger_info('---- Dropping duplicate nodes...')
 # Replace 'None' with nan
 node_metadata = node_metadata.replace({'None': np.nan})
@@ -292,6 +295,17 @@ node_metadata = node_metadata.replace({'None': np.nan})
 # Drop duplicate nodes.
 # The subset is necessary because the node file may contain optional columns with cells with no data.
 node_metadata = node_metadata.dropna(subset=['node_id']).drop_duplicates(subset='node_id').reset_index(drop=True)
+
+# June 2023 only process nodes for terms if labels are available.
+node_metadata_has_labels = len(node_metadata['node_label'].value_counts()) > 0
+
+# June 2023 Use case: GlyGen PROTEOFORM, in which the label column had very few values at the bottom,
+# all of which are numeric.
+# Pandas assigns a data type of float to the entire column, which causes issues for attempts to merge
+# with files like SUIs.csv, for which all columns are assigned to type object.
+# Explicitly cast the 'node_label' column as object.
+node_metadata['node_label'] = node_metadata['node_label'].astype(object)
+
 
 # -------------------------------------------------------
 # OPTIONAL RELATIONS INFORMATION
@@ -347,7 +361,7 @@ else:
 # 2. UBKG edge/nodes
 
 ulog.print_and_logger_info('-- Reading edge file...')
-edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv']
+edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv','OWLNETS_edgelist.tsv']
 edgepath = identify_source_file(edgefilelist)
 
 ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-referential edges...')
@@ -1131,10 +1145,11 @@ SUIs = SUIs.dropna().drop_duplicates().reset_index(drop=True)
 # In[24]:
 ulog.print_and_logger_info('-- Appending terms to SUIs.csv...')
 
-# JAS APR 2023
+# JAS APR/June 2023
 # Only look for SUIs if the nodes in the node file have labels.
 
-if node_metadata['node_label'].notna().values.any():
+if node_metadata_has_labels:
+
     newSUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['node_id', 'node_label', 'CUI', 'SUI:ID', 'name']]
 
     # for Term.name that don't join with node_label update the SUI:ID with base64 of node_label
@@ -1167,15 +1182,17 @@ if node_metadata['node_label'].notna().values.any():
 ulog.print_and_logger_info('-- Appending terms to CUI-SUIs.csv...')
 # In[25]:
 
-
 # get the newCUIs associated metadata (CUIs are unique in node_metadata)
+
 newCUI_SUIs = newCUIs.merge(node_metadata, how='inner', left_on='CUI:ID', right_on='CUI')
 
+print('DEBUG: post merge of newCUIs and node_metadata')
 # JAS APR 2023 Only look for SUIs if there are values for node_label.
-if newCUI_SUIs['node_label'].notna().values.any():
+if node_metadata_has_labels:
     newCUI_SUIs = newCUI_SUIs[['node_label', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
     # get the SUIs matches
+
     newCUI_SUIs = newCUI_SUIs.merge(SUIs, how='left', left_on='node_label', right_on='name')[
     ['CUI', 'SUI:ID']].dropna().drop_duplicates().reset_index(drop=True)
     newCUI_SUIs.columns = [':START:ID', ':END_ID']
@@ -1230,7 +1247,7 @@ CODE_SUIs = CODE_SUIs.dropna().drop_duplicates().reset_index(drop=True)
 
 # JAS APR 2023:
 # Only check for SUIs if there is a value for node_label.
-if node_metadata['node_label'].notna().values.any():
+if node_metadata_has_labels:
     newCODE_SUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
     newCODE_SUIs.insert(2, ':TYPE', 'PT')
@@ -1283,8 +1300,10 @@ ulog.print_and_logger_info('-- Appending synonyms to SUIs.csv...')
 explode_syns = node_metadata.explode('node_synonyms')[
     ['node_id', 'node_synonyms', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
-# JAS APR 2023 only check SUIs if there are values for node_synonyms.
-if explode_syns['node_synonyms'].notna().values.any():
+# JAS APR/June 2023 only check SUIs if there are values for node_synonyms.
+node_metadata_has_synonyms= len(node_metadata['node_synonyms'].value_counts()) > 0
+
+if node_metadata_has_synonyms:
     newSUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
     ['node_id', 'node_synonyms', 'CUI', 'SUI:ID', 'name']]
 
@@ -1317,8 +1336,8 @@ if explode_syns['node_synonyms'].notna().values.any():
 ulog.print_and_logger_info('-- Appending synonyms to CODE-SUIs.csv...')
 # get the SUIs matches
 
-# JAS APR 2023 only merge if node_synonyms has values.
-if explode_syns['node_synonyms'].notna().values.any():
+# JAS APR/June 2023 only merge if node_synonyms has values.
+if node_metadata_has_synonyms:
     newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
     ['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
     newCODE_SUIs.insert(2, ':TYPE', 'SY')
@@ -1345,7 +1364,10 @@ if explode_syns['node_synonyms'].notna().values.any():
 # In[30]:
 ulog.print_and_logger_info('--Appending to DEFs.csv and DEFrel.csv...')
 
-if node_metadata['node_definition'].notna().values.any():
+# June 2023 - Only process if there are any definitions.
+node_metadata_has_definitions = len(node_metadata['node_definition'].value_counts()) > 0
+
+if node_metadata_has_definitions:
     DEFs = pd.read_csv(csv_path("DEFs.csv"))
     DEFrel = pd.read_csv(csv_path("DEFrel.csv")).rename(columns={':START_ID': 'CUI', ':END_ID': 'ATUI:ID'})
     DEF_REL = DEFs.merge(DEFrel, how='inner', on='ATUI:ID')[
