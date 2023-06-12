@@ -282,5 +282,13 @@
   "ERCCRBS": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py ERCCRBS",
     "comment": "ERCC - Remote Binding Site"
+  },
+  "CHLO": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CHLO",
+    "comment": "CHLO - Chromosome Location Ontology"
+  },
+  "4DN": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py 4DN",
+    "comment": "4D Nucleome"
   }
 }

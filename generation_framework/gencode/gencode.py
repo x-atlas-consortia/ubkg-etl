@@ -378,6 +378,10 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
     # 4. Feature has directional form (strand direction)
     # 5. Feature isa for all PGO codes in the ont field
 
+
+    # June 2023 - replaced concatenation using + with f strings to account for null column values.
+    # Pandas sets the type of a column for which the first row is null to float.
+
     # Read the node information from GENCODE_ONT.
     dfGenCode_ont = getGenCodeOnt(path=ont_path)
 
@@ -408,11 +412,11 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # Look for proteins in both SwissProt and Trembl annotations of UniProtKB
             predicate = 'http://purl.obolibrary.org/obo/RO_0002205' # has_gene_product
             if row['UNIPROTKB_SwissProt_AN'] != '':
-                object = 'UNINPROTKB:'+ row['UNIPROTKB_SwissProt_AN']
+                object = f'UNINPROTKB:{row["UNIPROTKB_SwissProt_AN"]}'
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
             if row['UNIPROTKB_TrEMBL_AN'] != '':
-                object = 'UNIPROTKB:' + row['UNIPROTKB_TrEMBL_AN']
+                object = f'UNIPROTKB:{row["UNIPROTKB_TrEMBL_AN"]}'
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
         # ASSERTIONS for features (genes, transcripts, etc.)
@@ -421,9 +425,9 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
             # feature ID
             if row['transcript_id'] != '':
-                subject = 'ENSEMBL:' + row['transcript_id']
+                subject = f'ENSEMBL:{row["transcript_id"]}'
             else:
-                subject = 'ENSEMBL:' + row['gene_id']
+                subject = f'ENSEMBL:{row["gene_id"]}'
 
             object = ''
 
@@ -486,11 +490,11 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # Assume that the ont field can be a list of PGO IDs.
             # Assume that PGO nodes were ingested prior to the GENCODE ingestion.
             predicate = 'subClassOf'
-            if row['ont'] != '':
-                listPGO = row['ont'].split(',')
+            if str(row['ont']).strip() != '':
+                listPGO = str(row['ont']).split(',')
                 for pgo in listPGO:
-                    # Replace colon with space for codeReplacements function.
-                    object = 'PGO_' + pgo.split(':')[-1]
+                    # Replace colon with underscore for codeReplacements function.
+                    object = f'PGO_{pgo.split(":")[-1]}'
                     out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
             object = ''
@@ -498,10 +502,10 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # The RefSeq nodes will be created as part of the GENCODE ingestion.
             predicate = 'has_refSeq_ID'
             if row['RefSeq_RNA_id'] != '':
-                object = 'REFSEQ  ' + row['RefSeq_RNA_id']
+                object = f'REFSEQ  {row["RefSeq_RNA_id"]}'
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
             if row['RefSeq_protein_id'] != '':
-                object = 'REFSEQ  ' + row['RefSeq_protein_id']
+                object = f'REFSEQ  {row["RefSeq_protein_id"]}'
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
 
@@ -546,7 +550,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
 
         # Show TQDM progress bar.
         for index, row in tqdm(dfgene.iterrows(), total=dfgene.shape[0]):
-            node_id = 'ENSEMBL:' + row['gene_id']
+            node_id = f'ENSEMBL:{row["gene_id"]}'
             node_namespace = 'GENCODE'
             node_label = row['gene_name'].strip()
 
@@ -578,7 +582,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         ulog.print_and_logger_info('Writing transcript nodes')
 
         for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
-            node_id = 'ENSEMBL:' + row['transcript_id']
+            node_id = f'ENSEMBL:{row["transcript_id"]}'
             node_namespace = 'GENCODE'
             node_label = row['transcript_name']
             node_definition = ''
@@ -600,7 +604,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         dfEntrez = dftranscript[dftranscript['Entrez_Gene_id']!='']
         dfEntrez = dfEntrez.drop_duplicates(subset=['Entrez_Gene_id']).reset_index(drop=True)
         for index, row in tqdm(dfEntrez.iterrows(), total=dfEntrez.shape[0]):
-            node_id = 'ENTREZ:' + str(int(row['Entrez_Gene_id']))
+            node_id = f'ENTREZ:{int(row["Entrez_Gene_id"])}'
             node_namespace = 'GENCODE'
             node_label = row['gene_name']
             node_definition = ''
@@ -619,7 +623,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         dfRefSeq = df[df['RefSeq_RNA_id'] != '']
         dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_RNA_id']).reset_index(drop=True)
         for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
-            node_id = 'REFSEQ ' + (row['RefSeq_RNA_id'])
+            node_id = f'REFSEQ {row["RefSeq_RNA_id"]}'
             node_namespace = 'GENCODE'
             node_label = row['RefSeq_RNA_id']
             node_definition = ''
@@ -638,7 +642,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         dfRefSeq = df[df['RefSeq_RNA_id'] != '']
         dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_protein_id']).reset_index(drop=True)
         for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
-            node_id = 'REFSEQ ' + (row['RefSeq_protein_id'])
+            node_id = f'REFSEQ {row["RefSeq_protein_id"]}'
             node_namespace = 'GENCODE'
             node_label = row['RefSeq_protein_id']
             node_definition = ''
@@ -743,15 +747,17 @@ if args.skipbuild:
     path = os.path.join(owlnets_dir, ann_file)
     ann_rows=0
     dfAnnotation = uextract.read_csv_with_progress_bar(path=path, rows_to_read=ann_rows)
-    dfAnnotation = dfAnnotation.replace(np.nan, '')
 else:
     # Download and decompress GZIP files of GENCODE content from FTP site.
     lst_gtf = download_source_files(cfg=gencode_config, owl_dir=owl_dir, owlnets_dir=owlnets_dir)
     # Build the DataFrame that combines translated GTF annotation data with metadata.
     dfAnnotation = buildTranslatedAnnotationDataFrame(path=owlnets_dir, cfg=gencode_config, outfile=ann_file)
 
+dfAnnotation = dfAnnotation.replace(np.nan, '')
+
 write_edges_file(df=dfAnnotation, path=owlnets_dir, ont_path=ont_dir)
 write_nodes_file(df=dfAnnotation, path=owlnets_dir)
 write_relations_file(path=owlnets_dir)
+
 
 
