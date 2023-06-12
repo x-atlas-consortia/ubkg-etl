@@ -1186,7 +1186,6 @@ ulog.print_and_logger_info('-- Appending terms to CUI-SUIs.csv...')
 
 newCUI_SUIs = newCUIs.merge(node_metadata, how='inner', left_on='CUI:ID', right_on='CUI')
 
-print('DEBUG: post merge of newCUIs and node_metadata')
 # JAS APR 2023 Only look for SUIs if there are values for node_label.
 if node_metadata_has_labels:
     newCUI_SUIs = newCUI_SUIs[['node_label', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
