@@ -1,16 +1,7 @@
 {
-  "CCFOLD": {
-    "owl_url": "https://ccf-ontology.hubmapconsortium.org/ccf.owl",
-    "comment": "Currently has just AS (using ccf_part_of as the relationship)"
-  },
-  "CCFASCTB": {
-    "owl_url": "https://ccf-ontology.hubmapconsortium.org/ccf-asctb.owl",
-    "comment": "From Indiana: First version of the ASCT+B tables as OWL",
-    "sab": "CCFV1"
-  },
   "CCF": {
-    "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/11/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
-    "comment": "HuBMAP Common Coordinate Framework",
+    "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/12/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "comment": "Human Reference Atlas Common Coordinate Framework Ontology",
     "sab": "CCF"
   },
   "CCO": {
@@ -131,11 +122,6 @@
     "owl_url": "https://data.bioontology.org/ontologies/BAO/submissions/41/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/BAO",
     "comment": "The BioAssay Ontology (BAO) describes chemical biology screening assays and their results"
-  },
-  "CCF": {
-    "owl_url": "https://hubmapconsortium.github.io/hubmap-ontology/ccf.owl",
-    "home_url": "https://hubmapconsortium.github.io/ccf/pages/ccf-ontology.html",
-    "comment": "HuBMAP CCF Ontology"
   },
   "UO": {
     "owl_url": "https://data.bioontology.org/ontologies/UO/submissions/216/download?apikey=4983e1fe-1f54-412e-99bb-74764d659cb0",
