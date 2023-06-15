@@ -20,6 +20,15 @@ import subprocess
 import hashlib
 from typing import Dict
 import pandas as pd
+import sys
+
+# The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
+# Find the absolute path. (This assumes that this script is being called from build_csv.py.)
+fpath = os.path.dirname(os.getcwd())
+fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
+sys.path.append(fpath)
+# Extracting files
+import ubkg_extract as uextract
 
 # JAS Jan 2023 - to handle errors from parsing OWL files in Turtle format
 from xml.parsers.expat import ParserCreate, ExpatError, errors
@@ -333,6 +342,7 @@ logger.info('Loading ontology')
 # Another problem is with chebi, there is a redirect which Graph.parse(uri, ...) may not handle.
 owl_dir: str = os.path.join(args.owl_dir, args.owl_sab)
 working_file: str = file_from_uri(uri)
+
 owl_file: str = os.path.join(owl_dir, working_file)
 
 if args.force_owl_download is True or os.path.exists(owl_file) is False:
@@ -346,6 +356,27 @@ elif compare_file_md5(owl_file) is False:
     if args.verbose:
         print_and_logger_info(f"Downloading .owl file to {owl_file} (MD5 of .owl file does not match)")
     download_owl(uri, owl_dir, working_file)
+
+# June 2023
+# If the downloaded OWL file does not have an extension, then rename it to a default:
+# <SAB>.owl
+if '.' not in working_file[len(working_file)-5:len(working_file)]:
+    working_file_new = args.owl_sab + '.OWL'
+    print_and_logger_info(f'Renaming OWL file from {working_file} to {working_file_new}')
+    os.system(f"mv {os.path.join(owl_dir,working_file)} {os.path.join(owl_dir,working_file_new)}")
+
+    working_file = working_file_new
+    owl_file = os.path.join(owl_dir, working_file_new)
+
+# If the downloaded OWL file is GZipped, expand it.
+# The first two bytes of a GZip file are 1f:8b
+filetest = open(os.path.join(owl_dir,working_file),mode='rb')
+if filetest.read(2) == b'\x1f\x8b':
+    print_and_logger_info(f'{working_file} is a GZip archive. Expanding.')
+    # Append .gz to the downloaded file.
+    working_file_gz = working_file + '.gz'
+    os.system(f"mv {os.path.join(owl_dir, working_file)} {os.path.join(owl_dir, working_file_gz)}")
+    fileexpand = uextract.extract_from_gzip(zipfilename=os.path.join(owl_dir,working_file_gz),outputpath=owl_dir,outfilename='')
 
 if args.verbose:
     print_and_logger_info(f"Using .owl file at {owl_file}")
@@ -371,7 +402,7 @@ except:
     # It is assumed that such a case would be properly addressed--i.e., either don't use the file as input or
     # modify this logic further to account for the other formats.
 
-    print_and_logger_info(f'Error parsing {owl_file}. The file may not be in RDF/XML format. Assuming Turtle format. Attempting to convert...')
+    print_and_logger_info(f'Error parsing {owl_file} as RDF/XML. The file may not be in RDF/XML format. Assuming Turtle format. Attempting to convert...')
     #graph = Graph().parse(owl_file, format='n3')
     graph = Graph().parse(owl_file,format='ttl')
     convertedpath = os.path.join(owl_dir,'converted.owl')

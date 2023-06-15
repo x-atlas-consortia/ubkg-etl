@@ -179,6 +179,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
 
     # June 2023 - CCF, which uses underscores in codes
     ret = np.where(x.str.contains('http://purl.org/ccf/'),'CCF ' + x.str.split('/').str[-1], ret)
+    # HGNCNR, too
+    ret = np.where(x.str.contains('http://purl.bioontology.org/ontology/HGNC/'), 'HGNCNR ' + x.str.split('/').str[-1], ret)
     # ---------------
     # FINAL PROCESSING
     # JAS 12 JAN 2023 - Force SAB to uppercase.
