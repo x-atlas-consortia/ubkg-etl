@@ -1,8 +1,14 @@
 {
   "CCF": {
-    "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/12/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/13/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "comment": "Human Reference Atlas Common Coordinate Framework Ontology",
     "sab": "CCF"
+  },
+  "HGNCNR": {
+    "owl_url": "https://data.bioontology.org/ontologies/HGNC-NR/submissions/5/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "home_url": "https://bioportal.bioontology.org/ontologies/HGNC-NR",
+    "comment": "Human Reference Atlas Common Coordinate Framework Ontology",
+    "sab": "HGNCNR"
   },
   "CCO": {
     "owl_url": "http://brg.ai.sri.com/CCO/downloads/cco.owl",

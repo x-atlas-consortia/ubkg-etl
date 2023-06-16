@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 
+# June 2023 - Added description
+# This script uses the PheKnowLator package to convert a file in OWL serialization to
+# OWLNETS format. It is based on the Example Application provided in the PheKnowLator GitHub at
+# https://github.com/callahantiff/PheKnowLator/blob/master/notebooks/OWLNETS_Example_Application.ipynb
+
+# Early versions of the script assumed well-behaved publications of OWL files in RDF/XML format, downloaded from
+# reference sites such as NCBO BioPortal or OBO Foundry.
+# The script has been expanded to account for a number of edge cases, including:
+# 1. Files in serializations other than RDF/XML, such as Turtle. (OWL/XML and SKOS should probably be handled, too.)
+# 2. Files that are Gzipped, including those that do not have a gz extension.
+# 3. Local files (instead of downloaded ones)
+# 4. Files with "bad lines"--e.g., inline EOFs.
+
+# Note: this script executes GNU wget from the os command line to download OWL files.
+
 import argparse
 import os
 import pkt_kg as pkt
@@ -15,11 +30,20 @@ import logging.config
 import time
 from datetime import timedelta
 from lxml import etree
-from urllib.request import urlopen
+# from urllib.request import urlopen
 import subprocess
 import hashlib
 from typing import Dict
 import pandas as pd
+import sys
+
+# The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
+# Find the absolute path. (This assumes that this script is being called from build_csv.py.)
+fpath = os.path.dirname(os.getcwd())
+fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
+sys.path.append(fpath)
+# Extracting files
+import ubkg_extract as uextract
 
 # JAS Jan 2023 - to handle errors from parsing OWL files in Turtle format
 from xml.parsers.expat import ParserCreate, ExpatError, errors
@@ -112,6 +136,8 @@ def file_from_path(path_str: str) -> str:
 
 
 def download_owltools(loc: str) -> None:
+
+    # OWLtools is a JAR package from PheKnowLator.
     owl_tools_url = 'https://github.com/callahantiff/PheKnowLator/raw/master/pkt_kg/libs/owltools'
 
     cmd = os.system(f"ls {loc}{os.sep}owltools > /dev/null 2>&1")
@@ -220,22 +246,26 @@ def look_for_none_in_node_metadata_file(dir: str) -> None:
     # This accounts for nodes files with erroneous characters, such as EOFs
     # (https://www.shanelynn.ie/pandas-csv-error-error-tokenizing-data-c-error-eof-inside-string-starting-at-line/)
     # Use case that occasioned this change: GLYCORDF
-    data = pd.read_csv(file, sep='\t',engine='python',on_bad_lines='skip')
+    data = pd.read_csv(file, sep='\t', engine='python', on_bad_lines='skip')
 
     # TODO: We will potentially find ontologies without synonyms.
     message: str = f"Total columns in {file}: {len(data['node_synonyms'])}"
     print_and_logger_info(message)
-    node_synonyms_not_None = data[data['node_synonyms'].str.contains('None')==False]
+    node_synonyms_not_None = data[data['node_synonyms'].str.contains('None') == False]
     message: str = f"Columns in {file} where node_synonyms is not None: {len(node_synonyms_not_None)}"
     print_and_logger_info(message)
-    node_dbxrefs_not_None = data[data['node_dbxrefs'].str.contains('None')==False]
+    node_dbxrefs_not_None = data[data['node_dbxrefs'].str.contains('None') == False]
     message: str = f"Columns in {file} where node_dbxrefs is not None: {len(node_dbxrefs_not_None)}"
     print_and_logger_info(message)
-    both_not_None = node_synonyms_not_None[node_synonyms_not_None['node_dbxrefs'].str.contains('None')==False]
+    both_not_None = node_synonyms_not_None[node_synonyms_not_None['node_dbxrefs'].str.contains('None') == False]
     print(f"Columns where node_synonyms && node_dbxrefs is not None: {len(both_not_None)}")
 
 
 def robot_merge(owl_url: str) -> None:
+
+    # ROBOT is a tool from OBO used to work with OWL files. It is provided as a JAR file and executed from the
+    # command line.
+
     logger.info(f"Running robot merge on '{uri}'")
     loc = f'.{os.sep}robot'
     robot_jar = 'https://github.com/ontodev/robot/releases/download/v1.8.1/robot.jar'
@@ -247,7 +277,7 @@ def robot_merge(owl_url: str) -> None:
     java_home: str = os.getenv('JAVA_HOME')
     jdk: str = file_from_path(java_home)
     if not re.match(r'^jdk-.*\.jdk$', jdk):
-        print_and_logger_info(f'Environment variable JAVA_HOME={java_home} does not appear to point to a valid JDK?')
+        print_and_logger_info(f'Environment variable JAVA_HOME={java_home} does not appear to point to a valid JDK.')
         exit(1)
 
     cwd = os.getcwd()
@@ -273,6 +303,9 @@ def robot_merge(owl_url: str) -> None:
     os.chdir(cwd)
 
 
+# -------------------------
+# Main
+
 if args.verbose is True:
     print('Parameters:')
     print(f" * Verbose mode")
@@ -294,45 +327,46 @@ if args.verbose is True:
 start_time = time.time()
 
 print(f"Processing '{uri}'")
-logger.info(f"Processing '{uri}'")
+print_and_logger_info(f"Processing '{uri}'")
 
 # This should remove imports if any. Currently it's a one shot deal and exits.
 # TODO: In the future the output of this can be fed into the pipeline so that the processing contains no imports.
 if args.robot is True:
     robot_merge(uri)
     elapsed_time = time.time() - start_time
-    print_and_logger_info('Done! Elapsed time %s', "{:0>8}".format(str(timedelta(seconds=elapsed_time))))
+    print('Done! Elapsed time %s', "{:0>8}".format(str(timedelta(seconds=elapsed_time))))
     exit(0)
 
 download_owltools(args.owltools_dir)
 
 working_dir: str = os.path.join(args.owlnets_dir, args.owl_sab)
-logger.info("Make sure working directory '%s' exists", working_dir)
+print("Make sure working directory '%s' exists", working_dir)
 os.system(f"mkdir -p {working_dir}")
 
 if args.clean is True:
     msg: str = f"Deleting OWLNETS files in working directory {working_dir}"
-    logger.info(msg)
+    print_and_logger_info(msg)
     if args.verbose:
         print(msg)
     os.system(f"cd {working_dir}; rm -f *")
     working_dir_file_list = os.listdir(working_dir)
     if len(working_dir_file_list) == 0:
-        logger.info(f"Working directory {working_dir} is empty")
+        print_and_logger_info(f"Working directory {working_dir} is empty")
     else:
-        logger.error(f"Working directory {working_dir} is NOT empty")
+        print_and_logger_info(f"Working directory {working_dir} is NOT empty")
 
 
 # Code below taken from:
 # https://github.com/callahantiff/PheKnowLator/blob/master/notebooks/OWLNETS_Example_Application.ipynb
 
 
-logger.info('Loading ontology')
+print_and_logger_info('Loading ontology')
 # ALWAYS parse a local copy of the .owl file (uri).
 # NOTE: Sometimes, with large documents (eg., chebi) the uri parse hangs, so here we download the document first
 # Another problem is with chebi, there is a redirect which Graph.parse(uri, ...) may not handle.
 owl_dir: str = os.path.join(args.owl_dir, args.owl_sab)
 working_file: str = file_from_uri(uri)
+
 owl_file: str = os.path.join(owl_dir, working_file)
 
 if args.force_owl_download is True or os.path.exists(owl_file) is False:
@@ -347,13 +381,51 @@ elif compare_file_md5(owl_file) is False:
         print_and_logger_info(f"Downloading .owl file to {owl_file} (MD5 of .owl file does not match)")
     download_owl(uri, owl_dir, working_file)
 
+# June 2023
+# Some download URLs (e.g., many from NCBO BioPortal) are REST calls that result in file names like
+# download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb
+# If the downloaded OWL file does not have an extension, then rename it to the default: <SAB>.owl
+if '.' not in working_file[len(working_file)-5:len(working_file)]:
+    working_file_new = args.owl_sab + '.OWL'
+    print_and_logger_info(f'Renaming OWL file from {working_file} to {working_file_new}')
+    os.system(f"mv {os.path.join(owl_dir,working_file)} {os.path.join(owl_dir,working_file_new)}")
+
+    working_file = working_file_new
+    owl_file = os.path.join(owl_dir, working_file_new)
+
+# June 2023
+# In at least one use case (HGNCNR in NCBO), the downloaded file is a GZip archive.
+# If the downloaded OWL file is GZipped, expand it.
+# To identify Gzip files, check the first two bytes of the file: those of a GZip file are 1f:8b.
+filetest = open(os.path.join(owl_dir, working_file), mode='rb')
+if filetest.read(2) == b'\x1f\x8b':
+    print_and_logger_info(f'{working_file} is a GZip archive.')
+    # If the archive does not have a .gz file extension, add one so that the expansion will not overwrite it.
+    # (Use case: again, HGNCNR.)
+    # The expansion will write to a file with the original name.
+    archive = working_file[working_file.rfind('/') + 1:]
+    archive_extension = archive[archive.rfind('.'):len(archive)]
+    if archive_extension.lower() != '.gz':
+        print_and_logger_info(f'Adding gz extension to {working_file}.')
+        # Append .gz to the downloaded file.
+        working_file_gz = working_file + '.gz'
+        os.system(f"mv {os.path.join(owl_dir, working_file)} {os.path.join(owl_dir, working_file_gz)}")
+    else:
+        working_file_gz = working_file
+
+    # The extract_from_gzip will expand to a file with the same name, but minus the .gz extension.
+    # e.g., ABC.OWL.gz -> ABC.OWL
+    # ABC.OWL that's actually a GZip -> ABC.OWL.GZ_> ABC.OWL
+    print_and_logger_error(f'Expanding {working_file_gz} to {working_file}.')
+    fileexpand = uextract.extract_from_gzip(zipfilename=os.path.join(owl_dir, working_file_gz), outputpath=owl_dir, outfilename='')
+
 if args.verbose:
     print_and_logger_info(f"Using .owl file at {owl_file}")
 
 search_owl_file_for_imports(owl_file)
 
 # JAS January 2023
-# The original logic assumed that OWL files were in RDF/XML format. Almost all of the OWL files that have been
+# The original logic assumed that OWL files were in RDF/XML format. Almost all the OWL files that have been
 # encountered up to January 2023 have been in RDF/XML. (The exception is GlycoRDF, which is available in both
 # RDF/XML and OWL/XML serializations.)
 #
@@ -364,17 +436,19 @@ try:
 except:
     # Note: If the file is not in RDF/XML, the exception will be from xml (ExpatError), not rdflib.
     # Exception handling does not seem able to catch this lower-level error, so this logic uses the generic
-    # exception handler.
+    # exception handler. The risk here, of course, is that the error is not from ExpatError.
 
     # This logic does not handle the use case of an input file being in some format other than RDF/XML or Turtle--
-    # in particular, if the file is OWL/RDF.
-    # It is assumed that such a case would be properly addressed--i.e., either don't use the file as input or
-    # modify this logic further to account for the other formats.
+    # in particular, if the file is OWL/RDF or RDF
+    # It is assumed that such a case would be properly addressed prior to ingestion--i.e., either don't use the
+    # file as input or modify this logic further to account for the other formats.
+    # TODO: Check for OWL/XML and reserialize as RDF/XML using code here: https://github.com/RDFLib/rdflib/discussions/1571
 
-    print_and_logger_info(f'Error parsing {owl_file}. The file may not be in RDF/XML format. Assuming Turtle format. Attempting to convert...')
-    #graph = Graph().parse(owl_file, format='n3')
-    graph = Graph().parse(owl_file,format='ttl')
-    convertedpath = os.path.join(owl_dir,'converted.owl')
+    print_and_logger_info(f'Error parsing {owl_file} as RDF/XML.')
+    print_and_logger_info('Assuming Turtle format. Attempting to convert...')
+    # graph = Graph().parse(owl_file, format='n3')
+    graph = Graph().parse(owl_file, format='ttl')
+    convertedpath = os.path.join(owl_dir, 'converted.owl')
     print_and_logger_info(f'Serializing {owl_file} to RDF/XML format in file {convertedpath}')
     v = graph.serialize(format='xml', destination=convertedpath)
     graph2 = Graph().parse(convertedpath, format='xml')
@@ -431,7 +505,7 @@ for obj in tqdm(ont_objects):
     entity_metadata['relations'][str(obj)] = {'label': label, 'namespace': namespace,
                                              'definitions': str(ont_defs[obj]) if obj in ont_defs.keys() else 'None'}
 
-logger.info('Add RDF:type and RDFS:subclassOf')
+print_and_logger_info('Add RDF:type and RDFS:subclassOf')
 entity_metadata['relations']['http://www.w3.org/2000/01/rdf-schema#subClassOf'] =\
     {'label': 'subClassOf', 'definitions': 'None', 'namespace': 'www.w3.org'}
 entity_metadata['relations']['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'] =\
@@ -440,7 +514,7 @@ entity_metadata['relations']['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'] 
 print_and_logger_info('Stats for original graph before running OWL-NETS')
 pkt.utils.derives_graph_statistics(graph)
 
-logger.info('Initialize owlnets class')
+print_and_logger_info('Initialize owlnets class')
 # graph: An RDFLib object or a list of RDFLib Graph objects.
 # write_location: A file path used for writing knowledge graph data (e.g. "resources/".
 # filename: A string containing the filename for the full knowledge graph (e.g. "/hpo_owlnets").
@@ -480,7 +554,7 @@ for x in tqdm(set(owlnets.graph.subjects(RDF.type, OWL.Axiom))):
     elif (OWL.Class in src and len(tgt) == 0) or (OWL.Class in tgt and len(src) == 0): owl_axioms += [x]
     else: pass
 node_list = list(set(owl_classes) | set(owl_axioms))
-logger.info('There are:\n-{} OWL:Class objects\n-{} OWL:Axiom Objects'. format(len(owl_classes), len(owl_axioms)))
+print_and_logger_info('There are:\n-{} OWL:Class objects\n-{} OWL:Axiom Objects'. format(len(owl_classes), len(owl_axioms)))
 
 print_and_logger_info('Decode owl semantics')
 owlnets.cleans_owl_encoded_entities(node_list)
