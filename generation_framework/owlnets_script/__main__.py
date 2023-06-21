@@ -221,12 +221,12 @@ def search_owl_file_for_imports(owl_filename: str) -> None:
     tree: etree.ElementTree = etree.parse(owl_filename, parser)
     imports: list = scan_xml_tree_for_imports(tree)
     if len(imports) != 0:
-        logger.info(f"Found the following imports were found in the OWL file {uri} : {', '.join(imports)}")
+        logger.info(f"Found the following imports were found in the OWL file {owl_filename} : {', '.join(imports)}")
         if args.with_imports is not True:
-            print_and_logger_info(f"Imports found in OWL file {uri}. Exiting")
+            print_and_logger_info(f"Imports found in OWL file {owl_filename}. Exiting")
             exit(1)
     else:
-        print_and_logger_info(f"No imports were found in OWL file {uri}")
+        print_and_logger_info(f"No imports were found in OWL file {owl_filename}")
 
 
 def log_files_and_sizes(dir: str) -> None:
