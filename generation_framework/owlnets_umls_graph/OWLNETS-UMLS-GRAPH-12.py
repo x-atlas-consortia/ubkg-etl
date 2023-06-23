@@ -280,9 +280,25 @@ if 'value' not in node_metadata.columns:
     node_metadata['upperbound'] = np.nan
     node_metadata['unit'] = np.nan
 
+# June 2023
+# The following fields are not technically required in the node file. For example, if a set of assertions
+# contains only relationships between nodes from other ontologies, or if the owner of nodes does not provide
+# additional information, the nodes file might contain only a node_id field. Instead of insisting that
+# the nodes file have the optional field headers, simply add them in.
+# node_label
+# node_definition
+# node_synonyms
+# node_dbxrefs
+node_optional_fields = ['node_label','node_definition','node_synonyms','node_dbxrefs']
+for node in node_optional_fields:
+    if node not in node_metadata.columns:
+        node_metadata[node] = np.nan
+
 # JAS Feb 2023 ignore 'node_namespace'. This is an artifact of the PheKnowLator output.
 # node_metadata = node_metadata[['node_id', 'node_namespace', 'node_label', 'node_definition', 'node_synonyms',
                                # 'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
+
+
 
 node_metadata = node_metadata[['node_id', 'node_label', 'node_definition', 'node_synonyms',
                                'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
