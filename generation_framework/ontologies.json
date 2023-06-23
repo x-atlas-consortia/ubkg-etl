@@ -1,6 +1,6 @@
 {
   "CCF": {
-    "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/13/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/14/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "comment": "Human Reference Atlas Common Coordinate Framework Ontology",
     "sab": "CCF"
   },
@@ -207,7 +207,7 @@
     "comment": "Data from GenCode",
     "execute": "./gencode/gencode.py"
   },
-  "NPOSKCAN": {
+  "NPOSCKAN": {
     "owl_url": "https://github.com/SciCrunch/NIF-Ontology/releases/download/sckan-2023-04-29/npo-simple-sckan-merged.ttl",
     "home_url": "https://github.com/SciCrunch/NIF-Ontology",
     "comment": "NPO-SKCAN in Turtle"
@@ -282,5 +282,9 @@
   "4DN": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py 4DN",
     "comment": "4D Nucleome"
+  },
+  "HRA": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HRA",
+    "comment": "Human Reference Atlas"
   }
 }

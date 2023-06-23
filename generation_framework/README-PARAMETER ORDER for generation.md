@@ -31,8 +31,7 @@ the following ontologies:
 - UBERON 
 - PATO
 - CL 
-- DOID 
-- CCF
+- DOID
 - OBI 
 - EDAM
 - HSAPDV

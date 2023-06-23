@@ -326,7 +326,6 @@ if args.verbose is True:
 
 start_time = time.time()
 
-print(f"Processing '{uri}'")
 print_and_logger_info(f"Processing '{uri}'")
 
 # This should remove imports if any. Currently it's a one shot deal and exits.
