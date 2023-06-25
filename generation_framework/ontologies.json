@@ -207,7 +207,7 @@
     "comment": "Data from GenCode",
     "execute": "./gencode/gencode.py"
   },
-  "NPOSCKAN": {
+  "NPOSKCAN": {
     "owl_url": "https://github.com/SciCrunch/NIF-Ontology/releases/download/sckan-2023-04-29/npo-simple-sckan-merged.ttl",
     "home_url": "https://github.com/SciCrunch/NIF-Ontology",
     "comment": "NPO-SKCAN in Turtle"
@@ -286,5 +286,21 @@
   "HRA": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HRA",
     "comment": "Human Reference Atlas"
+  },
+  "ERCCRBP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py ERCCRBP",
+    "comment": "ERCC exRNA Remote Binding Proteins"
+  },
+  "ERCCREG": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py ERCCREG",
+    "comment": "ERCC Regulatory Elements"
+  },
+  "MOTORPAC": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MOTORPAC",
+    "comment": "MOTORPAC"
+  },
+  "KFPT": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py KFPT",
+    "comment": "Gabriella Miller Kids First"
   }
 }
