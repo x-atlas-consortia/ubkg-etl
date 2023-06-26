@@ -164,7 +164,15 @@ def write_nodes_file(df: pd.DataFrame, owlnets_dir: str):
             if index >= 0:  # non-header
                 node_id = str(row['code'])
                 node_namespace = ''
+
                 node_label = str(row['term'])
+                # June 2023
+                # The SimpleKnowledge editor requires unique terms, which corresponds to the node_label field.
+                # To work around the unique term requirement, some vitessce hints are stored as "x_vitessce_hint".
+                # Strip the postfix.
+                if '_vitessce_hint' in node_label:
+                    node_label = node_label[0:node_label.find('_vitessce_hint')]
+
                 node_definition = str(row['definition'])
 
                 node_synonyms = str(row['synonyms'])
