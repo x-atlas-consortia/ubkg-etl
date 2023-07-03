@@ -60,6 +60,7 @@ import ubkg_extract as uextract
 import ubkg_logging as ulog
 import ubkg_reporting as ureport
 
+
 def owlnets_path(file: str) -> str:
     # Appends the OWLNETS path to the file argument.
     return os.path.join(sys.argv[1], file)
@@ -92,7 +93,7 @@ def update_columns_to_csv_header(file: str, new_columns: list):
 
     # Set up tqdm progress bar.
     file_size = os.path.getsize(file)
-    pbar = tqdm(total=file_size,unit='MB')
+    pbar = tqdm(total=file_size, unit='MB')
 
     for line in fileinput.input(file, inplace=True):
         if fileinput.isfirstline():
@@ -109,6 +110,7 @@ def update_columns_to_csv_header(file: str, new_columns: list):
     pbar.close()
 
     return
+
 
 def getROrelationshiptriples() -> pd.DataFrame:
 
@@ -243,11 +245,11 @@ def getROrelationshiptriples() -> pd.DataFrame:
 OWL_SAB = sys.argv[3].upper()
 
 # Threshold number of rows for which to show TQDM progress bars when writing to output.
-TQDM_THRESHOLD=100000
+TQDM_THRESHOLD = 100000
 
 # Start QC report.
 qcpath = owlnets_path('ubkg_qc.txt')
-ubkg_report = ureport.UbkgReport(path=qcpath,sab=OWL_SAB)
+ubkg_report = ureport.UbkgReport(path=qcpath, sab=OWL_SAB)
 
 pd.set_option('display.max_colwidth', None)
 
@@ -263,15 +265,15 @@ ulog.print_and_logger_info('READING DATA FILES (edges, nodes, relations)...')
 # 1. OWLNETS
 # 2. UBKG edge/nodes
 
-nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv','OWLNETS_node_metadata.tsv']
+nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv', 'OWLNETS_node_metadata.tsv']
 nodepath = identify_source_file(nodefilelist)
 
 
 # JAS 6 JAN 2023 add optional columns (value, lowerbound, upperbound, unit) for UBKG edges/nodes files.
 # JAS 6 JAN 2023 skip bad rows. (There is at least one in line 6814 of the node_metadata file generated from EFO.)
 ulog.print_and_logger_info('-- Reading nodes file...')
-#node_metadata = pd.read_csv(owlnets_path(nodepath), sep='\t', on_bad_lines='skip')
-node_metadata= uextract.read_csv_with_progress_bar(path=owlnets_path(nodepath), on_bad_lines='skip',sep='\t')
+# node_metadata = pd.read_csv(owlnets_path(nodepath), sep='\t', on_bad_lines='skip')
+node_metadata = uextract.read_csv_with_progress_bar(path=owlnets_path(nodepath), on_bad_lines='skip', sep='\t')
 
 if 'value' not in node_metadata.columns:
     # This set of assertions does not have optional property/relationship columns.
@@ -289,7 +291,7 @@ if 'value' not in node_metadata.columns:
 # node_definition
 # node_synonyms
 # node_dbxrefs
-node_optional_fields = ['node_label','node_definition','node_synonyms','node_dbxrefs']
+node_optional_fields = ['node_label', 'node_definition', 'node_synonyms', 'node_dbxrefs']
 for node in node_optional_fields:
     if node not in node_metadata.columns:
         node_metadata[node] = np.nan
@@ -299,10 +301,8 @@ for node in node_optional_fields:
                                # 'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
 
 
-
 node_metadata = node_metadata[['node_id', 'node_label', 'node_definition', 'node_synonyms',
                                'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
-
 
 ulog.print_and_logger_info('---- Dropping duplicate nodes...')
 # Replace 'None' with nan
@@ -321,7 +321,6 @@ node_metadata_has_labels = len(node_metadata['node_label'].value_counts()) > 0
 # with files like SUIs.csv, for which all columns are assigned to type object.
 # Explicitly cast the 'node_label' column as object.
 node_metadata['node_label'] = node_metadata['node_label'].astype(object)
-
 
 # -------------------------------------------------------
 # OPTIONAL RELATIONS INFORMATION
@@ -377,14 +376,14 @@ else:
 # 2. UBKG edge/nodes
 
 ulog.print_and_logger_info('-- Reading edge file...')
-edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv','OWLNETS_edgelist.tsv']
+edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv', 'OWLNETS_edgelist.tsv']
 edgepath = identify_source_file(edgefilelist)
 
 ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-referential edges...')
 # JAS 6 JAN 2023 - add evidence_class; limit columns.
-edgelist=uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip',sep='\t')
+edgelist = uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip', sep='\t')
 
-#edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
+# edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
     edgelist['evidence_class'] = np.nan
 edgelist = edgelist[['subject', 'predicate', 'object', 'evidence_class']]
@@ -635,6 +634,9 @@ edgelist.loc[edgelist['inverse'].isnull(), 'inverse'] = 'inverse_' + edgelist['r
 # In[11]:
 
 ulog.print_and_logger_info('Translating node metadata...')
+# JUNE 2023
+# Drop duplicate nodes.
+node_metadata = node_metadata.drop_duplicates(subset=['node_id']).reset_index(drop=True)
 
 # JAS 15 November string replacements moved to codeReplacements function.
 # node_metadata['node_id'] = \
@@ -784,6 +786,7 @@ CODE_CUIs = CUI_CODEs.groupby(':END_ID', sort=False)[':START_ID'].progress_apply
 # JAS the call to upper is new.
 ulog.print_and_logger_info('-- Merging data from CUI_CODEs with node metadata...')
 node_metadata = node_metadata.merge(CODE_CUIs, how='left', left_on='node_id', right_on=CODE_CUIs[':END_ID'].str.upper())
+
 del CODE_CUIs
 del node_metadata[':END_ID']
 
@@ -879,7 +882,7 @@ node_metadata['CUI'] = node_metadata['cuis'].str[0]
 
 # ### Join CUI from node_metadata to each edgelist subject and object
 
-# #### Assemble CUI-CUIs
+# #### ASSEMBLE CUI-CUIs
 ulog.print_and_logger_info('-- Assembling CUI-CUI (concept-concept) relationships...')
 # In[18]:
 # Merge subject and object nodes with their CUIs; drop the codes; and add the SAB.
@@ -889,88 +892,129 @@ ulog.print_and_logger_info('-- Assembling CUI-CUI (concept-concept) relationship
 # e.g.,
 # CUI1 isa CUI2 inverse_isa
 
-# JAS 20 OCT 2022 Trim objnode1 and objnode2 DataFrames to reduce memory demand. (This is an issue for large
-# ontologies, such as PR.)
-if OWL_SAB == 'PR':
-    # The node_metadata DataFrame has been filtered to proteins from a specified organism.
-    # The edgelist DataFrame also needs to be filtered via merging.
-    mergehow = 'inner'
-else:
-    # The node_metadata has not been filtered.
-    mergehow = 'left'
+# JULY 2023 - The algorithm that assigns CUI to nodes based on whether the node is in node_metadata
+# or CUI-CODES was generalized for both subject and object nodes in the edgelist.
 
 # Assign CUIs to subject nodes.
-edgelist = edgelist.merge(node_metadata, how=mergehow, left_on='subject', right_on='node_id')
-# JAS 6 JANUARY 2023 - add evidence_class
-edgelist = edgelist[['CUI', 'relation_label', 'object', 'inverse', 'evidence_class']]
-edgelist.columns = ['CUI1', 'relation_label', 'object', 'inverse', 'evidence_class']
 
+# (paleo, as in prior to 2022) original code:
+# edgelist = edgelist.merge(node_metadata, how=mergehow, left_on='subject', right_on='node_id')
+# JAS 6 JANUARY 2023 - add evidence_class
+# edgelist = edgelist[['CUI', 'relation_label', 'object', 'inverse', 'evidence_class']]
+# edgelist.columns = ['CUI1', 'relation_label', 'object', 'inverse', 'evidence_class']
+
+# Account for case of nodes in assertions that are external to the set of assertions. The
+# use cases include
+# 1. the mapping of UNIPROTKB proteins to genes in HGNC
+# 2. Metabolics Workbench
+
+# A node (subject or object) in the edgelist can be one of three types:
+# 1. A node that is also in node_metadata. This is the *expected* case for subjects
+#    and objects that are owned by the SAB that also owns the assertions--e.g., UBERON nodes in the UBERON ontology.
+#    The assumption is that the node will be new to the UBKG, and so should be defined in the node file.
+# 2. A node that is not in node_metadata, but may be in the CUI-CODEs data.
+#    This is the case for assertions that involve nodes from ontologies that were previously ingested--e.g.,
+#    UBERON nodes in the PATO ontology.
+# 3. A node that is in neither in node_metadata nor CUI-CODEs. Assertions involving this node will not be ingested.
+
+#    If a node is not in node_metadata, it is assumed that the codes and CUIs for object nodes
+#    conform to their representation in CUI-CODEs.
+
+# In general, a node column in edgelist would be of a combination of all three types of nodes--i.e., with
+# some object nodes  defined in node_metadata and others in CUI-CODEs. (The third type, of course, is
+# not desired.) It is necessary to check both possibilities for each node in the edge list.
+
+# Check first for subject nodes in node_metadata--i.e., of type 1.
+# Matching CUIs will be in a field named 'CUI', from node_metadata.
+subjnode1 = edgelist.merge(node_metadata, how='inner', left_on='subject', right_on='node_id')
+subjnode1 = subjnode1[['subject', 'CUI']]
+subjnode1 = subjnode1.drop_duplicates(subset=['subject'])
+
+# Check for subject nodes in CUI_CODEs--i.e., of type 2. Matching CUIs will be in a field named ':END_ID'.
+subjnode2 = edgelist.merge(CUI_CODEs, how='inner', left_on='subject', right_on=':END_ID')
+# Add evidence_class
+subjnode2 = subjnode2[['subject', ':START_ID']]
+subjnode2 = subjnode2.drop_duplicates(subset=['subject'])
+
+# Concatenate subjNode1 and subjNode2 to allow for conditional selection of CUI.
+# The result is a DataFrame with columns for each node:
+# subject CUI relation_label inverse CUI :START_ID
+
+#subjnode = subjnode1.merge(subjnode2, how='inner', left_on='subject', right_on='subject')
+subjnode = pd.concat([subjnode1, subjnode2]).drop_duplicates()
+subjnode = subjnode[['subject', 'CUI', ':START_ID']]
+
+# If CUI is non-null, then the node is of the first type; otherwise, it is likely of the second type.
+subjnode['CUI1'] = subjnode[':START_ID'].where(subjnode['CUI'].isna(), subjnode['CUI'])
+
+edgelist = edgelist.merge(subjnode, how='left', left_on='subject', right_on='subject')
+edgelist=edgelist[['subject','CUI1', 'relation_label', 'object', 'inverse', 'evidence_class']]
+
+# Report on subject nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
+subjnode3 = edgelist[edgelist['CUI1']=='']
+ubkg_report.report_missing_node(nodetype='subject', dfmissing=subjnode3)
+
+del subjnode
+del subjnode1
+del subjnode2
+del subjnode3
+
+# -------
 # Assign CUIs to object nodes.
 
-# Original code for object node CUIs
+# (paleo) original code
 # edgelist = edgelist.merge(node_metadata, how='left', left_on='object', right_on='node_id')
 # edgelist = edgelist[['CUI1','relation_label','CUI','inverse']]
 # edgelist.columns = ['CUI1','relation_label','CUI2','inverse']
 
-# JAS 11 OCT 2022
-# Enhancement to allow for case of object nodes in relationships that are external to the ontology. The
-# initial use case is the mapping of UNIPROTKB proteins to genes in HGNC.
-
-# Object nodes can be one of two types:
-# 1. Object nodes that are also subject nodes, and thus in node_metadata. This is usually the case for subjects
-#    and objects that are from the same ontology. The codes and CUIs for these are properly formatted for the
-#    ontology as a consequence of this script.
-# 2. Object nodes that are not subject nodes in node_metadata, but may be in the CUI-CODEs data.
-#    This is the case for ontologies for which nodes have relations with nodes in other ontologies that
-#    are not isa (subClassOf) or dbxref (equivalence classes)--e.g., UNIPROTKB, in which
-#    concepts from UNIPROTKB have "gene product of" relationships to HGNC concepts.
-#    Because the object nodes are not in node_metada, it is assumed that the codes and CUIs for object nodes
-#    conform to their representation in CUI-CODEs.
-
-# It is, in theory, possible that an ontology's object nodes would be of a combination of internal and external
-# concepts--i.e., that some object nodes are defined in node_metadata and others in CUI-CODEs. It is necessary
-# to check both possibilities for each subject node in the edge list.
-
 # Check first for object nodes in node_metadata--i.e., of type 1.
-# Matching CUIs will be in a field named 'CUI'.
-# JAS 6 JANUARY 2023 - add evidence_class
-objnode1 = edgelist.merge(node_metadata, how=mergehow, left_on='object', right_on='node_id')
-objnode1 = objnode1[['object', 'CUI1', 'relation_label', 'inverse', 'CUI', 'evidence_class']]
+objnode1 = edgelist.merge(node_metadata, how='inner', left_on='object', right_on='node_id')
+objnode1 = objnode1[['object', 'CUI']]
 
 # Check for object nodes in CUI_CODEs--i.e., of type 2. Matching CUIs will be in a field named ':END_ID'.
-objnode2 = edgelist.merge(CUI_CODEs, how=mergehow, left_on='object', right_on=':END_ID')
-# JAS 6 JANUARY 2023 - add evidence_class
-objnode2 = objnode2[['object', 'CUI1', 'relation_label', 'inverse', ':START_ID', 'evidence_class']]
+objnode2 = edgelist.merge(CUI_CODEs, how='inner', left_on='object', right_on=':END_ID')
+objnode2 = objnode2[['object', ':START_ID']]
 
-# Union (pd.concat with drop_duplicates) objNode1 and objNode2 to allow for conditional
-# selection of CUI.
+# Concatenate objNode1 and objNode2 to allow for conditional selection of CUI.
 # The union will result in a DataFrame with columns for each node:
 # object CUI1 relation_label inverse CUI :START_ID
 
 objnode = pd.concat([objnode1, objnode2]).drop_duplicates()
 
 # If CUI is non-null, then the node is of the first type; otherwise, it is likely of the second type.
-objnode['CUIMatch'] = objnode[':START_ID'].where(objnode['CUI'].isna(), objnode['CUI'])
+objnode['CUI2'] = objnode[':START_ID'].where(objnode['CUI'].isna(), objnode['CUI'])
 
-# original code
-# edgelist = edgelist.merge(node_metadata, how='left', left_on='object', right_on='node_id')
+edgelist = edgelist.merge(objnode, how='left', left_on='object', right_on='object')
+edgelist = edgelist[['subject','CUI1', 'relation_label', 'object','CUI2', 'inverse', 'evidence_class']]
 
-# JAS 6 JANUARY 2023 - add evidence_class
-edgelist = objnode[['CUI1', 'relation_label', 'CUIMatch', 'inverse', 'evidence_class']]
+# Report on object nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
+objnode3 = edgelist[edgelist['CUI2']=='']
+ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
 
-# Merge object nodes with subject nodes.
+del objnode
+del objnode1
+del objnode2
+del objnode3
+
 
 # original code
 # edgelist = edgelist.dropna().drop_duplicates().reset_index(drop=True)
 # edgelist = edgelist[['CUI1','relation_label','CUI','inverse']]
 
 # JAS 6 JANUARY 2023 - Add evidence_class
-edgelist.columns = ['CUI1', 'relation_label', 'CUI2', 'inverse', 'evidence_class']
+# edgelist.columns = ['CUI1', 'relation_label', 'CUI2', 'inverse', 'evidence_class']
 # JAS 6 JANUARY 2023 - subset to account for optional evidence_class
-subset = ['CUI1', 'relation_label', 'CUI2', 'inverse']
-edgelist = edgelist.dropna(subset=subset).drop_duplicates(subset=subset).reset_index(drop=True)
+# subset = ['CUI1', 'relation_label', 'CUI2', 'inverse']
+# edgelist = edgelist.dropna(subset=subset).drop_duplicates(subset=subset).reset_index(drop=True)
 
+edgelist = edgelist[['CUI1', 'relation_label', 'CUI2', 'inverse', 'evidence_class']]
 edgelist['SAB'] = OWL_SAB
+
+edgelist = edgelist.drop_duplicates(subset=['CUI1','relation_label','CUI2'])
+
+
+print('DEBUG: PRINTING EDGELIST')
+edgelist.to_csv('EDGELIST.CSV')
 
 # -------------------------------------------------
 # JAS 27 MAR 2023
@@ -1168,6 +1212,11 @@ if node_metadata_has_labels:
 
     newSUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['node_id', 'node_label', 'CUI', 'SUI:ID', 'name']]
 
+    # June 2023
+    # Drop duplicates. This became an issue with the Data Distillery ingests.
+    newSUIs = newSUIs.dropna(subset='node_label')
+    newSUIs = newSUIs.drop_duplicates(subset='node_label').reset_index(drop=True)
+
     # for Term.name that don't join with node_label update the SUI:ID with base64 of node_label
     newSUIs.loc[(newSUIs['name'] != newSUIs['node_label']), 'SUI:ID'] = \
         newSUIs[newSUIs['name'] != newSUIs['node_label']]['node_label'].apply(base64it).str[0]
@@ -1286,7 +1335,7 @@ if node_metadata_has_labels:
     # describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
     # there would be just one term, but with multiple relationships.
 
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]), 'PT',OWL_SAB+'_PT')
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]), 'PT', OWL_SAB+'_PT')
 
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
@@ -1298,7 +1347,7 @@ if node_metadata_has_labels:
 
     # write out newCODE_SUIs - comment out during development
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
-        uextract.to_csv_with_progress_bar(df=newCODE_SUIs, path=csv_path('CODE-SUIs.csv'), mode='a', header=False,index=False)
+        uextract.to_csv_with_progress_bar(df=newCODE_SUIs, path=csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
     else:
         newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
 
@@ -1316,7 +1365,7 @@ explode_syns = node_metadata.explode('node_synonyms')[
     ['node_id', 'node_synonyms', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
 # JAS APR/June 2023 only check SUIs if there are values for node_synonyms.
-node_metadata_has_synonyms= len(node_metadata['node_synonyms'].value_counts()) > 0
+node_metadata_has_synonyms = len(node_metadata['node_synonyms'].value_counts()) > 0
 
 if node_metadata_has_synonyms:
     newSUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
@@ -1416,7 +1465,6 @@ if node_metadata_has_definitions:
         newDEF_REL[['ATUI:ID', 'CUI']].rename(columns={'ATUI:ID': ':END_ID', 'CUI': ':START_ID'}).to_csv(
         csv_path('DEFrel.csv'), mode='a', header=False, index=False)
 
-
     del DEFs
     del DEFrel
     del DEF_REL
@@ -1430,6 +1478,3 @@ ulog.print_and_logger_info('QC reporting: ontology CSV statistics')
 CODEs = uextract.read_csv_with_progress_bar(path=csv_path("CODEs.csv"))
 ubkg_report.CODEs = CODEs
 ubkg_report.report_ontology_csv_statistics()
-
-
-

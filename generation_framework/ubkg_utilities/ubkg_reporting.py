@@ -273,3 +273,16 @@ class UbkgReport:
                 self.write_line(row['sab'])
 
         return
+
+
+    def report_missing_node(self, nodetype: str, dfmissing: pd.DataFrame):
+
+        # Reports subject or object nodes that are neither in the node file or in CUI-CODEs.csv (i.e, previously
+        # ingested)
+
+        if dfmissing.shape[0] > 0:
+            self.write_line(f'{nodetype} nodes that were neither in nodes file or already in UBKG. Assertions for these nodes will not be ingested.')
+            self.write_line('')
+            for index, row in dfmissing.iterrows():
+                self.write_line(row[nodetype])
+        return

@@ -4,6 +4,9 @@ import numpy as np
 import pandas as pd
 import os
 
+# UBKG logging utility
+import ubkg_logging as ulog
+
 # UBKG utilities for parsing
 
 # codeReplacements - shared by at least the following scripts:
@@ -53,6 +56,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
 
     # This script relies on a resource file named prefixes.csv.
 
+    # ulog.print_and_logger_info('codeReplacements: default conversions')
     # ---------------
     # DEFAULT
     # Convert the code string to the CodeID format.
@@ -60,6 +64,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # The hash and backslash figure are delimiters in URIs.
     ret = x.str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
 
+    # ulog.print_and_logger_info('codeReplacements: UMLS SAB conversions')
     # --------------
     # SPECIAL CONVERSIONS: UMLS SABS
     # For various reasons, some SABs in the UMLS diverge from the format.
@@ -88,6 +93,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
 
 
+    # ulog.print_and_logger_info('codeReplacements: non-UMLS SAB conversions')
     # -------------
     # SPECIAL CASES - Non-UMLS sets of assertions
 
@@ -147,6 +153,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # The HCOP node_ids are formatted to resemble HGNC node_ids.
     ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
 
+    # ulog.print_and_logger_info('codeReplacements: special non-UMLS SAB IRI prefix conversions')
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
     # translated to IRIs that are not formatted as expected. Obtain the original namespace prefixes for
@@ -178,9 +185,10 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = np.where(x.str.contains('HGNC HGNC '), x.str.replace('HGNC HGNC ','HGNC HGNC:'), ret)
 
     # June 2023 - CCF, which uses underscores in codes
-    ret = np.where(x.str.contains('http://purl.org/ccf/'),'CCF ' + x.str.split('/').str[-1], ret)
-    # HGNCNR, too
-    ret = np.where(x.str.contains('http://purl.bioontology.org/ontology/HGNC/'), 'HGNCNR ' + x.str.split('/').str[-1], ret)
+    # (Deprecated after we switched from CCF to HRA)
+    # ret = np.where(x.str.contains('http://purl.org/ccf/'),'CCF ' + x.str.split('/').str[-1], ret)
+    # HGNCNR was a dependency for CCF, so also deprecated
+    # ret = np.where(x.str.contains('http://purl.bioontology.org/ontology/HGNC/'), 'HGNCNR ' + x.str.split('/').str[-1], ret)
     # ---------------
     # FINAL PROCESSING
     # JAS 12 JAN 2023 - Force SAB to uppercase.
@@ -189,6 +197,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # After the preceding conversions, ret has changed from a Pandas Series to a numpy array.
     # Split each element; convert the SAB portion to uppercase; and rejoin.
 
+    # ulog.print_and_logger_info('codeReplacements: SAB uppercase conversion')
     for idx, x in np.ndenumerate(ret):
         x2 = x.split(sep=' ', maxsplit=1)
         x2[0] = x2[0].upper()
