@@ -409,15 +409,18 @@ if filetest.read(2) == b'\x1f\x8b':
         # Append .gz to the downloaded file.
         working_file_gz = working_file + '.gz'
         os.system(f"mv {os.path.join(owl_dir, working_file)} {os.path.join(owl_dir, working_file_gz)}")
+
     else:
         working_file_gz = working_file
+
 
     # The extract_from_gzip will expand to a file with the same name, but minus the .gz extension.
     # e.g., ABC.OWL.gz -> ABC.OWL
     # ABC.OWL that's actually a GZip -> ABC.OWL.GZ_> ABC.OWL
     print_and_logger_error(f'Expanding {working_file_gz} to {working_file}.')
     fileexpand = uextract.extract_from_gzip(zipfilename=os.path.join(owl_dir, working_file_gz), outputpath=owl_dir, outfilename='')
-
+    working_file = str(fileexpand).split('/')[-1]
+    owl_file = os.path.join(owl_dir, working_file)
 if args.verbose:
     print_and_logger_info(f"Using .owl file at {owl_file}")
 
