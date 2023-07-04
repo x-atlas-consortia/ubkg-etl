@@ -168,13 +168,16 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
             ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
                            x.str.replace(' ', '_').str.replace('/', '_').str.split('#').str[-1],
                            ret)
+        # July 2023: other prefixes are only from NPO, NPOSKCAN
         else:
-            # Other SABs format IRIs with a terminal backslash and the code string.
-            # A notable exception is the PantherDB format (in NPOSKCAN), for which the IRI is an API call
-            # (e.g., http://www.pantherdb.org/panther/family.do?clsAccession=PTHR10558).
-            ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
+            if ingestSAB in ['NPO','NPOSKCAN']:
+                # Other SABs format IRIs with a terminal backslash and the code string.
+                # A notable exception is the PantherDB format (in NPOSKCAN), for which the IRI is an API call
+                # (e.g., http://www.pantherdb.org/panther/family.do?clsAccession=PTHR10558).
+                ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
                            x.str.replace(' ', '_').str.replace('/','_').str.replace('=','_').str.split('_').str[-1],
                            ret)
+
 
     # UNIPROT (not to be confused with UNIPROTKB).
     # UNIPROT IRIs are formatted differently than those in Glygen, but are in the Glygen OWL files, so they need
