@@ -16,9 +16,9 @@
     "comment": "Cell Component Ontology"
   },
   "CHEBI": {
-    "owl_url": "http://purl.obolibrary.org/obo/chebi.owl",
+    "owl_url": "http://purl.obolibrary.org/obo/chebi.owl.gz",
     "home_url": "http://www.obofoundry.org/ontology/chebi.html",
-    "comment": "Chemical Entities of Biological Interest"
+    "comment": "Chemical Entities of Biological Interest, zipped"
   },
   "CL": {
     "owl_url": "http://purl.obolibrary.org/obo/cl.owl",

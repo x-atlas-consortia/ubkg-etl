@@ -954,6 +954,7 @@ edgelist=edgelist[['subject','CUI1', 'relation_label', 'object', 'inverse', 'evi
 subjnode3 = edgelist[edgelist['CUI1']=='']
 ubkg_report.report_missing_node(nodetype='subject', dfmissing=subjnode3)
 
+
 del subjnode
 del subjnode1
 del subjnode2
@@ -970,16 +971,19 @@ del subjnode3
 # Check first for object nodes in node_metadata--i.e., of type 1.
 objnode1 = edgelist.merge(node_metadata, how='inner', left_on='object', right_on='node_id')
 objnode1 = objnode1[['object', 'CUI']]
+objnode1 = objnode1.drop_duplicates(subset=['object'])
 
 # Check for object nodes in CUI_CODEs--i.e., of type 2. Matching CUIs will be in a field named ':END_ID'.
 objnode2 = edgelist.merge(CUI_CODEs, how='inner', left_on='object', right_on=':END_ID')
 objnode2 = objnode2[['object', ':START_ID']]
+objnode2 = objnode2.drop_duplicates(subset=['object'])
 
 # Concatenate objNode1 and objNode2 to allow for conditional selection of CUI.
 # The union will result in a DataFrame with columns for each node:
 # object CUI1 relation_label inverse CUI :START_ID
 
 objnode = pd.concat([objnode1, objnode2]).drop_duplicates()
+
 
 # If CUI is non-null, then the node is of the first type; otherwise, it is likely of the second type.
 objnode['CUI2'] = objnode[':START_ID'].where(objnode['CUI'].isna(), objnode['CUI'])
@@ -990,6 +994,7 @@ edgelist = edgelist[['subject','CUI1', 'relation_label', 'object','CUI2', 'inver
 # Report on object nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
 objnode3 = edgelist[edgelist['CUI2']=='']
 ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
+
 
 del objnode
 del objnode1
@@ -1011,10 +1016,6 @@ edgelist = edgelist[['CUI1', 'relation_label', 'CUI2', 'inverse', 'evidence_clas
 edgelist['SAB'] = OWL_SAB
 
 edgelist = edgelist.drop_duplicates(subset=['CUI1','relation_label','CUI2'])
-
-
-print('DEBUG: PRINTING EDGELIST')
-edgelist.to_csv('EDGELIST.CSV')
 
 # -------------------------------------------------
 # JAS 27 MAR 2023
@@ -1048,7 +1049,6 @@ fcsv = csv_path('CUI-CUIs.csv')
 # evidence_class should be a string.
 new_header_columns = [':START_ID', ':END_ID', ':TYPE,SAB', 'evidence_class:string']
 update_columns_to_csv_header(fcsv, new_header_columns)
-
 
 ulog.print_and_logger_info('---- Appending forward relationships...')
 # forward ones
