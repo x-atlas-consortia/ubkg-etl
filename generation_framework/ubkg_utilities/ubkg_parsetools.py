@@ -36,6 +36,14 @@ def getPrefixes()->pd.DataFrame:
 
 def codeReplacements(x:pd.Series, ingestSAB: str):
 
+    # JULY 2023 -
+    # 1. Assume that data from SABs have been reformatted so that
+    #    HGNC HGNC:CODE -> HGNC CODE
+    #    GO GO:CODE -> GO CODE
+    #    HPO HP:CODE -> HPO CODE
+    # 2. Use colon as exclusive delimiter between SAB and CODE.
+    # -------
+
     # JAS 15 Nov 2022 - Refactor
 
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
@@ -74,24 +82,31 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = ret.str.replace('NCIT ', 'NCI ', regex=False)
     # MESH
     ret = ret.str.replace('MESH ', 'MSH ', regex=False)
-    # GO
-    ret = ret.str.replace('GO ', 'GO GO:', regex=False)
+
+    # GO (deprecated July 2023)
+    # ret = ret.str.replace('GO ', 'GO GO:', regex=False)
+
     # NCBI Taxonomy
     ret = ret.str.replace('NCBITaxon ', 'NCBI ', regex=False)
     # UMLS
     ret = ret.str.replace('.*UMLS.*\s', 'UMLS ', regex=True)
     # SNOMED
     ret = ret.str.replace('.*SNOMED.*\s', 'SNOMEDCT_US ', regex=True)
-    # HPO
+
+    # HPO (deprecated July 2023)
     ret = ret.str.replace('HP ', 'HPO HP:', regex=False)
+
     # FMA
     ret = ret.str.replace('^fma', 'FMA ', regex=True)
     # HGNC
     # Note that non-UMLS sets of assertions may also refer to HGNC codes differently. See below.
     ret = ret.str.replace('Hugo.owl HGNC ', 'HGNC ', regex=False)
-    ret = ret.str.replace('HGNC ', 'HGNC HGNC:', regex=False)
-    ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
 
+    # Deprecated July 2023
+    # ret = ret.str.replace('HGNC ', 'HGNC HGNC:', regex=False)
+    # Changed July 2023
+    # ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
+    ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC ', regex=False)
 
     # ulog.print_and_logger_info('codeReplacements: non-UMLS SAB conversions')
     # -------------
@@ -103,7 +118,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # UNIPROTKB
     # The HGNC codes in the UNIPROTKB ingest files were in the expected format of HGNC HGNC:code.
     # Remove duplications introduced from earlier conversions in this script.
-    ret = np.where(x.str.contains('HGNC HGNC:'), x, ret)
+    # Deprecated July 2023. The script will be changed, too.
+    # ret = np.where(x.str.contains('HGNC HGNC:'), x, ret)
 
     # EDAM
     # EDAM uses subdomains--e.g, format_3750, which translates to a SAB of "format". Force all
@@ -126,8 +142,11 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # 1. MONDO identifies genes with IRIs in format
     # http://identifiers.org/hgnc/<id>
     # Convert to HGNC HGNC:<id>
+    # Changed July 2023
+    # ret = np.where(x.str.contains('http://identifiers.org/hgnc'),
+                   #'HGNC HGNC:' + x.str.split('/').str[-1], ret)
     ret = np.where(x.str.contains('http://identifiers.org/hgnc'),
-                   'HGNC HGNC:' + x.str.split('/').str[-1], ret)
+                   'HGNC ' + x.str.split('/').str[-1], ret)
     # 2. MONDO uses both OBO-3 compliant IRIs (e.g., "http://purl.obolibrary.org/obo/MONDO_0019052") and
     #    non-compliant ones (e.g., "http://purl.obolibrary.org/obo/mondo#ordo_clinical_subtype")
     ret = np.where(x.str.contains('http://purl.obolibrary.org/obo/mondo#'),
@@ -137,8 +156,9 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # PGO
     # Restore changes made related to GO.
     # PGO nodes are written as http://purl.obolibrary.org/obo/PGO_(code)
-    ret = np.where(x.str.contains('PGO'),
-                   'PGO PGO:' + x.str.split('_').str[-1], ret)
+    # Deprecated July 2023
+    # ret = np.where(x.str.contains('PGO'),
+                   # 'PGO PGO:' + x.str.split('_').str[-1], ret)
 
     # REFSEQ - keep underscores
     ret = np.where(x.str.contains('REFSEQ'),
@@ -147,11 +167,13 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # MAY 2023
     # HPO
     # If expected format (HPO HP:code) was used, revert to avoid duplication.
-    ret = np.where(x.str.contains('HPO HP:'),
-                   'HPO HP:' + x.str.split(':').str[-1], ret)
+    # Deprecated July 2023
+    # ret = np.where(x.str.contains('HPO HP:'),
+                   # 'HPO HP:' + x.str.split(':').str[-1], ret)
     # HCOP
     # The HCOP node_ids are formatted to resemble HGNC node_ids.
-    ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
+    # Deprecated July 2023
+    # ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
 
     # ulog.print_and_logger_info('codeReplacements: special non-UMLS SAB IRI prefix conversions')
     # PREFIXES
@@ -184,8 +206,9 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # to be translated separately from GlyGen nodes.
     ret = np.where(x.str.contains('uniprot.org'), 'UNIPROT ' + x.str.split('/').str[-1], ret)
 
-    #JAS MAY 2023 - For case of HGNC codes added as dbxrefs.
-    ret = np.where(x.str.contains('HGNC HGNC '), x.str.replace('HGNC HGNC ','HGNC HGNC:'), ret)
+    # JAS MAY 2023 - For case of HGNC codes added as dbxrefs.
+    # Deprecated July 2023
+    # ret = np.where(x.str.contains('HGNC HGNC '), x.str.replace('HGNC HGNC ','HGNC HGNC:'), ret)
 
     # June 2023 - CCF, which uses underscores in codes
     # (Deprecated after we switched from CCF to HRA)
