@@ -14,8 +14,9 @@ def call_subprocess(command_line_str: str) -> None:
     runargs = shlex.split(command_line_str)
 
     try:
-        subprocess.run(runargs, check=True)
+        result = subprocess.run(runargs, capture_output=True, text=True)
     except:
-        # Because capture_output was False, the exception from the subprocess will be displayed. Simply exit.
+        print(result.stdout)
+        print(result.stderr)
         sys.exit(1)
     return
