@@ -3,16 +3,20 @@
 
 # JULY 2023
 # Script that initializes the set of UMLS CSVs extracted from the Neptune data warehouse.
-# Reformats codes from SABs that do not comply with the standard format of SAB CODE.
-# Known cases are:
-# HGNC (which formats as HGNC HGNC:CODE)
-# GO (which formats as GO GO:CODE)
-# HPO (which formats as HPO HP:CODE)
+# 1. Reformats codes from SABs that do not comply with the standard format of SAB CODE.
+#    Known cases are:
+#    HGNC (which formats as HGNC HGNC:CODE)
+#    GO (which formats as GO GO:CODE)
+#    HPO (which formats as HPO HP:CODE)
+#    HCPCS Level codes (which format like "HCPCS Level 3: E0181-E0199")
+# 2. Establishes the colon as the exclusive delimiter between SAB and CODE. (For HCPCS Level, the colon is removed.
+
 # ------
 
 import sys
 import os
 import pandas as pd
+import numpy as np
 
 # The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
 # Find the absolute path. (This assumes that this script is being called from build_csv.py.)
@@ -50,12 +54,13 @@ dictfile_columns = config.get_section(section='File_column')
 dictsabs = config.get_section(section='Duplicate_SAB')
 
 # 1. Read each file that should be converted.
-#   Each of these files contains one or more columns that may contain codes from SABs that do not conform to the
-#   standard format of SAB CODE. The known cases are:
-#   HGNC and GO (which format as SAB SAB:CODE)
-#   HPO (which formats as HPO HP:CODE)
-
-# 2. Replace original file with converted file.
+# 2. Reformat relevant code colums:
+#   a. Each of these files contains one or more columns that may contain codes from SABs that do not conform to the
+#      standard format of SAB CODE. The known cases are:
+#      HGNC and GO (which format as SAB SAB:CODE)
+#      HPO (which formats as HPO HP:CODE)
+#   b. Establish the colon as delimiter between SAB and CODE. This involves handling the special case of HCPCS Level codes.
+# 3. Replace original file with converted file.
 
 for f in dictfile_columns:
     filename = f + '.csv'
@@ -73,5 +78,10 @@ for f in dictfile_columns:
             sabstring = dictsabs[sabkey]
             dffile[col] = dffile[col].str.replace(sabstring, '')
 
+        # Delimiter:
+        # If the code contains 'Level', remove the colon and replace all spaces with underscore;
+        # otherwise, replace the space with a colon.
+        dffile[col] = np.where(dffile[col].str.contains('Level'),dffile[col].str.replace(': ','_').str.replace('Level ','Level_'),dffile[col])
+        dffile[col] = dffile[col].str.replace(' ',':')
     ulog.print_and_logger_info(f'Rewriting {csvfile}')
     uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)

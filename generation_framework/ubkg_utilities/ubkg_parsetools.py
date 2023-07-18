@@ -223,11 +223,12 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # After the preceding conversions, ret has changed from a Pandas Series to a numpy array.
     # Split each element; convert the SAB portion to uppercase; and rejoin.
 
+    # JULY 2023 - Replace the space delimiter with the colon
     # ulog.print_and_logger_info('codeReplacements: SAB uppercase conversion')
     for idx, x in np.ndenumerate(ret):
         x2 = x.split(sep=' ', maxsplit=1)
         x2[0] = x2[0].upper()
-        ret[idx] = ' '.join(x2)
+        ret[idx] = ':'.join(x2)
 
     return ret
 
