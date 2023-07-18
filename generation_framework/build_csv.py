@@ -336,15 +336,18 @@ for ontology_name in ontology_names:
 
     # JAS 15 nov 2022 - removed organism argument
     # JAS 19 OCT 2022 added organism argument
-    umls_graph_script: str = f"{UMLS_GRAPH_SCRIPT} {working_owlnets_dir} {args.umls_csvs_dir} {owl_sab}"
-    ulog.print_and_logger_info(f"Running: {umls_graph_script}")
 
-    # JAS 4 APR 2023 - Replaced os.system call with subprocess and error handling.
-    # os.system(umls_graph_script)
-    usub.call_subprocess(umls_graph_script)
+    # JAS July 2023 - Do not call UMLS_GRAPH_SCRIPT for the initial UMLS reformatting.
+    if owl_sab != 'UMLS':
+        umls_graph_script: str = f"{UMLS_GRAPH_SCRIPT} {working_owlnets_dir} {args.umls_csvs_dir} {owl_sab}"
+        ulog.print_and_logger_info(f"Running: {umls_graph_script}")
 
-    lines_in_csv_files(args.umls_csvs_dir, save_csv_dir)
+        # JAS 4 APR 2023 - Replaced os.system call with subprocess and error handling.
+        # os.system(umls_graph_script)
+        usub.call_subprocess(umls_graph_script)
 
-# Add log entry for how long it took to do the processing...
-elapsed_time = time.time() - start_time
-ulog.print_and_logger_info(f'Done! Total Elapsed time {"{:0>8}".format(str(timedelta(seconds=elapsed_time)))}')
+        lines_in_csv_files(args.umls_csvs_dir, save_csv_dir)
+
+    # Add log entry for how long it took to do the processing...
+    elapsed_time = time.time() - start_time
+    ulog.print_and_logger_info(f'Done! Total Elapsed time {"{:0>8}".format(str(timedelta(seconds=elapsed_time)))}')
