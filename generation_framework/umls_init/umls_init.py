@@ -5,11 +5,13 @@
 # Script that initializes the set of UMLS CSVs extracted from the Neptune data warehouse.
 # 1. Reformats codes from SABs that do not comply with the standard format of SAB CODE.
 #    Known cases are:
-#    HGNC (which formats as HGNC HGNC:CODE)
-#    GO (which formats as GO GO:CODE)
-#    HPO (which formats as HPO HP:CODE)
-#    HCPCS Level codes (which format like "HCPCS Level 3: E0181-E0199")
-# 2. Establishes the colon as the exclusive delimiter between SAB and CODE. (For HCPCS Level, the colon is removed.
+#    HGNC - from HGNC HGNC:CODE to HGNC:CODE
+#    GO - from GO GO:CODE TO GO:CODE
+#    HPO - from HPO HP:CODE TO HPO:CODE
+#    HCPCS Level codes - from format like "HCPCS Level 3: E0181-E0199" to "HCPCS:Level_3_E0181-E0199".
+# 2. Establishes the colon as the exclusive delimiter between SAB and CODE.
+
+# The result is that every column in a UMLS CSV file that corresponds to a CodeID will be formatted as SAB:CODE.
 
 # ------
 
