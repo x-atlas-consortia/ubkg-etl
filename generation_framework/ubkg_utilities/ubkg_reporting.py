@@ -127,8 +127,9 @@ class UbkgReport:
         # node_type: subject or object
 
         dfbysab = self.edgelist.drop_duplicates(subset=[node_type]).reset_index(drop=True)
-        # Parsed nodes are in format SAB<space>code
-        dfbysab['sab'] = dfbysab[node_type].str.split(' ').str[0]
+        # JULY 2023 - Format is now SAB:CODE
+        # Parsed nodes are in format SAB:code
+        dfbysab['sab'] = dfbysab[node_type].str.split(':').str[0]
         dfbysab = dfbysab.groupby('sab', group_keys=False).size().sort_values(ascending=False)\
             .reset_index(name='counts')
 
@@ -187,7 +188,8 @@ class UbkgReport:
         dfbysab = dfedgenode[dfedgenode['node_match'] == 'False']
         dfbysab = dfbysab.drop_duplicates(subset=[node_type]).reset_index(drop=True)
 
-        dfbysab['sab'] = dfbysab[node_type].str.split(' ').str[0]
+        # JULY 2023 Format is now SAB:CODE
+        dfbysab['sab'] = dfbysab[node_type].str.split(':').str[0]
         dfbysab = dfbysab.groupby('sab', group_keys=False).size().sort_values(ascending=False).\
             reset_index(name='counts')
 
@@ -212,7 +214,8 @@ class UbkgReport:
         self.write_line('NODE STATISTICS')
 
         dfdbxref = self.explode_dbxrefs
-        dfdbxref['sab'] = dfdbxref['node_dbxrefs'].str.split(' ').str[0]
+        # July 2023 Format is now SAB:CODE
+        dfdbxref['sab'] = dfdbxref['node_dbxrefs'].str.split(':').str[0]
         dfdbxref = dfdbxref.groupby('sab', group_keys=False).size().sort_values(ascending=False).reset_index(
             name='counts')
 
@@ -250,7 +253,8 @@ class UbkgReport:
         # Group by SAB and compare with SABs from CODEs.csv.
 
         dfdbxref = self.explode_dbxrefs
-        dfdbxref['sab'] = dfdbxref['node_dbxrefs'].str.split(' ').str[0]
+        # July 2023 Format is now SAB:CODE
+        dfdbxref['sab'] = dfdbxref['node_dbxrefs'].str.split(':').str[0]
         dfxrefsab = dfdbxref.groupby('sab', group_keys=False).size().sort_values(ascending=False). \
             reset_index(name='counts')
 

@@ -41,7 +41,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     #    HGNC HGNC:CODE -> HGNC CODE
     #    GO GO:CODE -> GO CODE
     #    HPO HP:CODE -> HPO CODE
-    # 2. Use colon as exclusive delimiter between SAB and CODE.
+    # 2. Establish the colon as the exclusive delimiter between SAB and code.
     # -------
 
     # JAS 15 Nov 2022 - Refactor
@@ -118,7 +118,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # UNIPROTKB
     # The HGNC codes in the UNIPROTKB ingest files were in the expected format of HGNC HGNC:code.
     # Remove duplications introduced from earlier conversions in this script.
-    # Deprecated July 2023. The script will be changed, too.
+    # Deprecated July 2023.
     # ret = np.where(x.str.contains('HGNC HGNC:'), x, ret)
 
     # EDAM
@@ -215,22 +215,29 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # ret = np.where(x.str.contains('http://purl.org/ccf/'),'CCF ' + x.str.split('/').str[-1], ret)
     # HGNCNR was a dependency for CCF, so also deprecated
     # ret = np.where(x.str.contains('http://purl.bioontology.org/ontology/HGNC/'), 'HGNCNR ' + x.str.split('/').str[-1], ret)
+
+
     # ---------------
     # FINAL PROCESSING
     # JAS 12 JAN 2023 - Force SAB to uppercase.
     # Some CodeIds will be in format SAB <space> <other string>, and <other string> can be mixed case.
     # <other string> can also have spaces.
     # After the preceding conversions, ret has changed from a Pandas Series to a numpy array.
-    # Split each element; convert the SAB portion to uppercase; and rejoin.
+    # 1. Split each element.
+    # 2. Convert the SAB portion (first element) to uppercase.
+    # JULY 2023
+    # 3. Add the colon between the SAB and the code.
 
-    # JULY 2023 - Replace the space delimiter with the colon
     # ulog.print_and_logger_info('codeReplacements: SAB uppercase conversion')
     for idx, x in np.ndenumerate(ret):
-        x2 = x.split(sep=' ', maxsplit=1)
-        x2[0] = x2[0].upper()
-        ret[idx] = ':'.join(x2)
-
+        xsplit = x.split(sep=' ', maxsplit=1)
+        sab = xsplit[0].upper()
+        code = ' '.join(xsplit[1:len(xsplit)])
+        ret[idx] = sab+':'+code
     return ret
+
+
+
 
     # -------------
     # ORIGINAL CODE for historical purposes

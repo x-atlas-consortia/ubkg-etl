@@ -680,21 +680,25 @@ ulog.print_and_logger_info('-- Preparing cross-references: splitting and formatt
 # For every row with a non-na string in node_dbxrefs, replace colons with spaces--
 # i.e., standardize the SAB-CODE delimiter.
 # e.g., node1 / SAB1:Code1|SAB2:Code2 => node 1 / SAB1 Code1|SAB2 Code2
+
+# JULY 2023 - Deprecated replacement of colons with spaces. *COLON* IS THE SAB-CODE DELIMITER.
 node_metadata.loc[node_metadata['node_dbxrefs'].notna(), 'node_dbxrefs'] = \
-    node_metadata[node_metadata['node_dbxrefs'].notna()]['node_dbxrefs'].astype('str').str.upper().str.replace(':', ' ')
+    node_metadata[node_metadata['node_dbxrefs'].notna()]['node_dbxrefs'].astype('str').str.upper()#.str.replace(':', ' ')
+
+# JULY 2023 - In-line documentation modified to assumption of colon as SAB:code delimiter.
 
 # Convert the dbxref strings to a list, splitting on the CODE-CODE delimiter.
-# e.g., node1 / 1SAB1 Code1|SAB2 Code2 => node1/ [SAB1 Code1, SAB2 Code2]
+# e.g., node1 / SAB1:Code1|SAB2:Code2 => node1/ [SAB1:Code1, SAB2:Code2]
 node_metadata['node_dbxrefs'] = node_metadata['node_dbxrefs'].str.split('|')
 
 # Explode node_metadata to a DataFrame in which each row from node_metadata maps a node to a single cross-reference
 # from the list.
 # e.g., nodeID / node_dbxrefs
-#       node1/ [SAB1 Code1, SAB2 Code2] =>
+#       node1/ [SAB1:Code1, SAB2:Code2] =>
 #
 #       nodeID / node_dbxrefs
-#       node1 / SAB1 Code1
-#       node1 / SAB2 Code2
+#       node1 / SAB1:Code1
+#       node1 / SAB2:Code2
 
 explode_dbxrefs = node_metadata.explode('node_dbxrefs')[['node_id', 'node_dbxrefs']].dropna().astype(
     str).drop_duplicates().reset_index(drop=True)
@@ -704,8 +708,9 @@ explode_dbxrefs['node_dbxrefs'] = uparse.codeReplacements(explode_dbxrefs['node_
 
 # Create SAB and CODE columns from the node_id.
 # JAS 12 JAN 2023 - force uppercase for SAB
-node_metadata['SAB'] = node_metadata['node_id'].str.split(' ').str[0].str.upper()
-node_metadata['CODE'] = node_metadata['node_id'].str.split(' ').str[-1]
+# JULY 2023 - Colon is the SAB:CODE delimiter.
+node_metadata['SAB'] = node_metadata['node_id'].str.split(':').str[0].str.upper()
+node_metadata['CODE'] = node_metadata['node_id'].str.split(':').str[-1]
 
 # del node_metadata['node_namespace']
 # del explode_dbxrefs - not deleted here because we need it later
@@ -724,7 +729,8 @@ node_metadata['CODE'] = node_metadata['node_id'].str.split(' ').str[-1]
 ulog.print_and_logger_info('-- Identifying cross-references that are UMLS CUIs...')
 
 # Separate code/CUI from SAB for each cross-reference.
-explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(' ').str[-1]
+# JULY 2023 - Colon is SAB:Code delimiter
+explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(':').str[-1]
 
 # --------------------------------------------------
 # QC REPORTING, workflow point 2 - after dbxrefs are processed
@@ -739,8 +745,9 @@ ubkg_report.report_dbxref_statistics()
 #explode_dbxrefs_UMLS = \
     #explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS C') == True].groupby('node_id', sort=False, group_keys=False)[
         #'nodeXrefCodes'].apply(list).reset_index(name='nodeCUIs')
+# JUlY 2023 - Colon is the delimiter between SAB:CODE (in this case, SAB:CUI)
 explode_dbxrefs_UMLS = \
-    explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS C') == True].groupby('node_id', sort=False, group_keys=False)[
+    explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS:C') == True].groupby('node_id', sort=False, group_keys=False)[
         'nodeXrefCodes'].progress_apply(list).reset_index(name='nodeCUIs')
 # Associate nodes with cross-references that have UMLS CUIs.
 # In general, this could result in a node having more than one row, if the node was associated with more than one
