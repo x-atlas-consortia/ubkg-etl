@@ -160,8 +160,10 @@ def write_edges_file(df: pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, p
             hgnc_name = row['Gene Names'].split(' ')[0]
             # Map to the corresponding entry in the genenames.org data.
             dfobject = dfHGNC[dfHGNC['Approved symbol'].values == hgnc_name]
+            # JULY 2023 - CodeID format changed to SAB:CODE.
             if dfobject.shape[0] > 0:
-                object = 'HGNC ' + dfobject['HGNC ID'].iloc[0]
+                #object = 'HGNC ' + dfobject['HGNC ID'].iloc[0]
+                object = dfobject['HGNC ID'].iloc[0]
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
     return

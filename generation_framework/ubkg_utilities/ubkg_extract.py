@@ -66,6 +66,8 @@ def download_file(url: str, download_full_path: str, encoding: str='UTF-8', cont
     """
 
     response = requests.get(url, stream=True,headers=headers)
+    if response.status_code != 200:
+        response.raise_for_status()
 
     # Get the size of the response (downloaded file).
     total = int(response.headers.get('content-length', 0))
