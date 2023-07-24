@@ -154,7 +154,7 @@ def write_edges_file(df: pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, p
         out.write('subject' + '\t' + 'predicate' + '\t' + 'object' + '\n')
         # Show TQDM progress bar.
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-            subject = 'UNIPROTKB_' + row['Entry']
+            subject = 'UNIPROTKB:' + row['Entry']
             # Obtain the latest HGNC ID, using the gene name.
             # Ignore synonyms or obsolete gene names.
             hgnc_name = row['Gene Names'].split(' ')[0]
@@ -190,7 +190,7 @@ def write_nodes_file(df: pd.DataFrame,  owlnets_dir: str):
             'node_id' + '\t' + 'node_namespace' + '\t' + 'node_label' + '\t' + 'node_definition' + '\t' + 'node_synonyms' + '\t' + 'node_dbxrefs' + '\n')
         # Show TQDM progress bar.
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-            node_id = 'UNIPROTKB_' + row['Entry']
+            node_id = 'UNIPROTKB:' + row['Entry']
             node_namespace = 'UNIPROTKB'
             node_label = row['Entry Name']
             node_definition = row['Protein names']
