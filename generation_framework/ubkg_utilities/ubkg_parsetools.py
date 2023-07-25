@@ -36,21 +36,10 @@ def getPrefixes()->pd.DataFrame:
 
 def codeReplacements(x:pd.Series, ingestSAB: str):
 
-    # JULY 2023 -
-    # 1. Assume that data from SABs have been reformatted so that
-    #    HGNC HGNC:CODE -> HGNC CODE
-    #    GO GO:CODE -> GO CODE
-    #    HPO HP:CODE -> HPO CODE
-    # 2. Establish the colon as the exclusive delimiter between SAB and code.
-    # -------
-
-    # JAS 15 Nov 2022 - Refactor
-
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
     # recognized by the knowledge graph.
 
-    # Because of the variety of formats used for codes in various sources, this standardization is
-    # complicated.
+    # The standard format is SAB:code.
 
     # Arguments:
     #  x - Pandas Series object containing information on either:
@@ -59,22 +48,34 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     #  ingestSAB: the SAB for a set of assertions.
     #
 
+    # JULY 2023 -
+    # 1. Assume that data from SABs from UMLS have been reformatted so that
+    #    HGNC HGNC:CODE -> HGNC CODE
+    #    GO GO:CODE -> GO CODE
+    #    HPO HP:CODE -> HPO CODE
+    # 2. Establishes the colon as the exclusive delimiter between SAB and code.
+    # -------
+
+    # Because of the variety of formats used for codes in various sources, this standardization is
+    # complicated.
+
     # For the majority of nodes, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML serialization,
-    # the code format is:
-    # <SAB><space><code>
+    # the formatting is straightforward. However, there are a number of special cases, which are handled below.
 
-    # However, there are a number of special cases, which are handled below.
-
-    # This script relies on a resource file named prefixes.csv.
+    # For some SABs, the reformatting is complicated enough to warrant a resource file named prefixes.csv, which
+    # should be in the application folder.
 
     # ---------------
     # DEFAULT
     # Convert the code string to the CodeID format.
-    # The colon, underscore, and space characters are reserved as delimters between SAB and code in sources--e.g.,
-    # SAB:CODE; SAB_CODE; SAB CODE.
-    # However, the underscore is also used in code strings in some cases--e.g., RefSeq.
+    # The colon, underscore, and space characters are reserved as delimters between SAB and code in input sources--e.g.,
+    #   SAB:CODE
+    #   SAB_CODE
+    #   SAB CODE
+    # However, the underscore is also used in code strings in some cases--e.g., RefSeq, with REFSEQ:NR_number.
 
-    # The hash and backslash figure are delimiters in URIs--e.g., ...#/SAB_CODE
+    # In addition, the hash and backslash figure are delimiters in URIs--e.g., ...#/SAB_CODE
+
     # Start by reformatting as SAB<space>CODE. The exclusive delimiter (colon) will be added at the end of this
     # script.
     ret = x.str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
@@ -82,7 +83,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # --------------
     # SPECIAL CONVERSIONS: UMLS SABS
     # 1. Standardize SABs--e.g., convert NCBITaxon (from IRIs) to NCBI (in UMLS); MESH to MSH; etc.
-    # 2. For various reasons, some SABs in the UMLS diverge from the format.
+    # 2. For various reasons, some SABs in the UMLS diverge from the standard format.
     #    A common divergence is the case in which the SAB is included in the code to account
     #    for codes with leading zeroes
     #    -- e.g., HGNC, GO, HPO
@@ -238,25 +239,28 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # 1. SAB CODE, where
     #    a. SAB may be lowercase
     #    b. CODE may be mixed case, wiht spaces.
-    # 2. The result of a custom formatting.
+    # 2. The result of a custom formatting--e.g., HGNC:code.
+
+    # The assumption is that if there are spaces at this point, the first space is the one between the SAB
+    # and the code.
 
     # Force SAB to uppercase. Force the colon to be the delimiter between SAB and code.
 
     # After the preceding conversions, ret has changed from a Pandas Series to a numpy array.
     # 1. Split each element on the initial space, if one exists.
     # 2. Convert the SAB portion (first element) to uppercase.
-
     # JULY 2023
     # 3. Add the colon between the SAB (first element) and the code.
 
-    # Note: The following does not affect the special cases, which already are in the correct
+    # Note: The following should not affect the special cases, which already are in the correct
     # code format of SAB:code.
 
     for idx, x in np.ndenumerate(ret):
         xsplit = x.split(sep=' ', maxsplit=1)
-        sab = xsplit[0].upper()
-        code = ' '.join(xsplit[1:len(xsplit)])
-        ret[idx] = sab+':'+code
+        if len(xsplit)>1:
+            sab = xsplit[0].upper()
+            code = ' '.join(xsplit[1:len(xsplit)])
+            ret[idx] = sab+':'+code
     return ret
 
     # -------------
