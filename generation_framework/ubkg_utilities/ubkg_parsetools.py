@@ -161,8 +161,9 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
                    # 'PGO PGO:' + x.str.split('_').str[-1], ret)
 
     # REFSEQ - keep underscores
-    ret = np.where(x.str.contains('REFSEQ'),
-                   'REFSEQ ' + x.str.split(' ').str[-1], ret)
+    # JULY 2023 - Deprecated for SAB:CODE refactoring
+    # ret = np.where(x.str.contains('REFSEQ'),
+                   # 'REFSEQ ' + x.str.split(' ').str[-1], ret)
 
     # MAY 2023
     # HPO
@@ -187,7 +188,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
         if ingestSAB in ['GLYCOCOO','GLYCORDF']:
             #GlyCoCOO (a Turtle) and GlyCoRDF use IRIs that delimit with hash and use underlines.
             #"http://purl.glycoinfo.org/ontology/codao#Compound_disease_association
-            ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
+            # July 2023 - refactored to use colon as SAB:code delimiter
+            ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ':' +
                            x.str.replace(' ', '_').str.replace('/', '_').str.split('#').str[-1],
                            ret)
         # July 2023: other prefixes are only from NPO, NPOSKCAN
@@ -196,7 +198,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
                 # Other SABs format IRIs with a terminal backslash and the code string.
                 # A notable exception is the PantherDB format (in NPOSKCAN), for which the IRI is an API call
                 # (e.g., http://www.pantherdb.org/panther/family.do?clsAccession=PTHR10558).
-                ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
+                # July 2023 - refactored to use colon as SAB:code delimiter
+                ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ':' +
                            x.str.replace(' ', '_').str.replace('/','_').str.replace('=','_').str.split('_').str[-1],
                            ret)
 
@@ -204,7 +207,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # UNIPROT (not to be confused with UNIPROTKB).
     # UNIPROT IRIs are formatted differently than those in Glygen, but are in the Glygen OWL files, so they need
     # to be translated separately from GlyGen nodes.
-    ret = np.where(x.str.contains('uniprot.org'), 'UNIPROT ' + x.str.split('/').str[-1], ret)
+    # July 2023 - refactored to use colon as SAB:code delimiter
+    ret = np.where(x.str.contains('uniprot.org'), 'UNIPROT:' + x.str.split('/').str[-1], ret)
 
     # JAS MAY 2023 - For case of HGNC codes added as dbxrefs.
     # Deprecated July 2023
