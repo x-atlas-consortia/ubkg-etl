@@ -961,6 +961,8 @@ edgelist=edgelist[['subject','CUI1', 'relation_label', 'object', 'inverse', 'evi
 subjnode3 = edgelist[edgelist['CUI1']=='']
 ubkg_report.report_missing_node(nodetype='subject', dfmissing=subjnode3)
 
+# July 2023- remove type 3 nodes.
+edgelist = edgelist.dropna(subset=['CUI1'])
 
 del subjnode
 del subjnode1
@@ -1002,6 +1004,8 @@ edgelist = edgelist[['subject','CUI1', 'relation_label', 'object','CUI2', 'inver
 objnode3 = edgelist[edgelist['CUI2']=='']
 ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
 
+# July 2023 - Remove type 3 object nodes.
+edgelist = edgelist.dropna(subset=['CUI2'])
 
 del objnode
 del objnode1
@@ -1036,6 +1040,7 @@ edgelist = edgelist[edgelist['CUI1'] != edgelist['CUI2']]
 # --------------------------------------------------
 # ## Write out files
 ulog.print_and_logger_info('APPENDING TO ONTOLOGY CSVs...')
+# edgelist.to_csv('EDGELIST.csv')
 
 # ### Test existence when appropriate in original csvs and then add data for each csv
 
