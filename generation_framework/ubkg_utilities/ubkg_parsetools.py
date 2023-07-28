@@ -177,16 +177,22 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # Assumes that code at this point is in format REFSEQ NR X, to be reformatted as REFSEQ:NR_X.
     ret = np.where(x.str.contains('REFSEQ'),x.str.replace('REFSEQ ','REFSEQ:').str.replace(' ','_'),ret)
 
+    # July 2023
+    # MSIGDB - restore underscores.
+    ret = np.where(x.str.contains('MSIGDB'), x.str.replace('MSIGDB ', 'MSIGDB:').str.replace(' ', '_'), ret)
+
     # MAY 2023
     # HPO
     # If expected format (HPO HP:code) was used, revert to avoid duplication.
     # Deprecated July 2023: incoming code format now HPO:CODE.
     # ret = np.where(x.str.contains('HPO HP:'),
-                   # 'HPO HP:' + x.str.split(':').str[-1], ret)
+                    #'HPO HP:' + x.str.split(':').str[-1], ret)
+
     # HCOP
     # The HCOP node_ids are formatted to resemble HGNC node_ids.
     # Deprecated July 2023; no longer needed because HGNC is now formatted as HGNC:CODE.
     # ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
+
 
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
@@ -231,6 +237,16 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # HGNCNR was a dependency for CCF, so also deprecated
     # ret = np.where(x.str.contains('http://purl.bioontology.org/ontology/HGNC/'), 'HGNCNR ' + x.str.split('/').str[-1], ret)
 
+    # July 2023 - For Data Distillery use cases, where code formats conformed to the earlier paradigms.
+    # HGNC HGNC:
+    # HPO HP:
+    # HCOP HCOP:
+    ret = np.where(x.str.contains('HGNC HGNC:'), x.str.replace('HGNC HGNC:','HGNC:'), ret)
+    ret = np.where(x.str.contains('HPO HP:'), x.str.replace('HPO HP:', 'HPO:'), ret)
+    ret = np.where(x.str.contains('HCOP HCOP:'), x.str.replace('HCOP HCOP:', 'HCOP:'), ret)
+
+    ret = np.where(x.str.contains('NCBI Gene'), x.str.replace('NCBI Gene', 'ENTREZ:'), ret)
+
 
     # ---------------
     # FINAL PROCESSING
@@ -252,8 +268,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # JULY 2023
     # 3. Add the colon between the SAB (first element) and the code.
 
-    # Note: The following should not affect the special cases, which already are in the correct
-    # code format of SAB:code.
+    # Note: Special cases should already be in the correct code format of SAB:code.
 
     for idx, x in np.ndenumerate(ret):
         xsplit = x.split(sep=' ', maxsplit=1)
@@ -261,6 +276,12 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
             sab = xsplit[0].upper()
             code = ' '.join(xsplit[1:len(xsplit)])
             ret[idx] = sab+':'+code
+        else:
+            # JULY 2023
+            # For the case of a CodeID that appears to be a "naked" UMLS CUI, format as UMLS:CUI.
+            if x[0] == 'C' and x[1].isnumeric:
+             ret[idx] = 'UMLS:'+x
+
     return ret
 
     # -------------

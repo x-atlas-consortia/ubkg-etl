@@ -273,7 +273,7 @@ nodepath = identify_source_file(nodefilelist)
 # JAS 6 JAN 2023 skip bad rows. (There is at least one in line 6814 of the node_metadata file generated from EFO.)
 ulog.print_and_logger_info('-- Reading nodes file...')
 # node_metadata = pd.read_csv(owlnets_path(nodepath), sep='\t', on_bad_lines='skip')
-node_metadata = uextract.read_csv_with_progress_bar(path=owlnets_path(nodepath), on_bad_lines='skip', sep='\t')
+node_metadata = uextract.read_csv_with_progress_bar(path=owlnets_path(nodepath), on_bad_lines='skip', sep='\t',rows_to_read=100000)
 
 if 'value' not in node_metadata.columns:
     # This set of assertions does not have optional property/relationship columns.
@@ -381,7 +381,7 @@ edgepath = identify_source_file(edgefilelist)
 
 ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-referential edges...')
 # JAS 6 JAN 2023 - add evidence_class; limit columns.
-edgelist = uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip', sep='\t')
+edgelist = uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip', sep='\t',rows_to_read=100000)
 
 # edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
@@ -753,6 +753,8 @@ explode_dbxrefs_UMLS = \
 # In general, this could result in a node having more than one row, if the node was associated with more than one
 # UMLS CUI.
 node_metadata = node_metadata.merge(explode_dbxrefs_UMLS, how='left', on='node_id')
+
+
 del explode_dbxrefs_UMLS
 
 del explode_dbxrefs['nodeXrefCodes']
@@ -831,7 +833,8 @@ del explode_dbxrefs
 # In[16]:
 
 def base64it(x):
-    return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
+
+     return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
 
 
 # The CUI for the node will be the base64-encoded value of the concatenated SAB and code.
@@ -839,8 +842,10 @@ def base64it(x):
 # EXPLANATION: the base64-encoded CUI will be assigned to a node if the node is brand new to the
 # knowledge graph--i.e., if it cannot be associated by either direct reference or cross-reference to another
 # CUI that already exists in the knowledge graph at the time of ingestion.
-ulog.print_and_logger_info('-- Defining base64 CUIs for nodes...')
-node_metadata['base64cui'] = node_metadata['node_id'].apply(base64it)
+
+# July 2023 - CUIs for non-UMLS codes are no longer base64-encoded.
+ulog.print_and_logger_info('-- Defining CUIs for nodes...')
+node_metadata['base64cui'] = node_metadata['node_id']#.apply(base64it)
 
 # ### Add cuis list and preferred cui to complete the node "atoms" (code, label, syns, xrefs, cuis, CUI)
 
@@ -1348,7 +1353,8 @@ if node_metadata_has_labels:
     # describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
     # there would be just one term, but with multiple relationships.
 
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]), 'PT', OWL_SAB+'_PT')
+    # July 2023 - Delimiter between SAB and Code is colon.
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT', OWL_SAB+'_PT')
 
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
