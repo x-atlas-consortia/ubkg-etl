@@ -276,11 +276,13 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
             sab = xsplit[0].upper()
             code = ' '.join(xsplit[1:len(xsplit)])
             ret[idx] = sab+':'+code
-        else:
+        elif len(x)>0:
             # JULY 2023
             # For the case of a CodeID that appears to be a "naked" UMLS CUI, format as UMLS:CUI.
             if x[0] == 'C' and x[1].isnumeric:
              ret[idx] = 'UMLS:'+x
+        else:
+            ret[idx] = x
 
     return ret
 

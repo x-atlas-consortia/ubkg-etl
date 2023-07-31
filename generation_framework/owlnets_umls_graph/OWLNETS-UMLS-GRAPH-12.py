@@ -273,7 +273,7 @@ nodepath = identify_source_file(nodefilelist)
 # JAS 6 JAN 2023 skip bad rows. (There is at least one in line 6814 of the node_metadata file generated from EFO.)
 ulog.print_and_logger_info('-- Reading nodes file...')
 # node_metadata = pd.read_csv(owlnets_path(nodepath), sep='\t', on_bad_lines='skip')
-node_metadata = uextract.read_csv_with_progress_bar(path=owlnets_path(nodepath), on_bad_lines='skip', sep='\t',rows_to_read=100000)
+node_metadata = uextract.read_csv_with_progress_bar(path=owlnets_path(nodepath), on_bad_lines='skip', sep='\t')
 
 if 'value' not in node_metadata.columns:
     # This set of assertions does not have optional property/relationship columns.
@@ -381,7 +381,7 @@ edgepath = identify_source_file(edgefilelist)
 
 ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-referential edges...')
 # JAS 6 JAN 2023 - add evidence_class; limit columns.
-edgelist = uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip', sep='\t',rows_to_read=100000)
+edgelist = uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip', sep='\t')
 
 # edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
@@ -864,12 +864,16 @@ node_metadata['CUI'] = ''
 # 4. base64cui - the base64 CUI (base64 encoding of the node id) for a node that does not currently
 #                exist in the ontology CSVs
 
+# July 2023 - After disabling base64 encoding of CUIs, it is necessary to convert the value of teh base64cui field
+# to a list; otherwise, the subsequent tolist function treats the field as a character list.
+node_metadata['base64cui'] = node_metadata[['base64cui']].values.tolist()
 node_metadata['cuis'] = node_metadata[['nodeCUIs', 'CUI_CODEs', 'XrefCUIs', 'base64cui']].values.tolist()
 
 # remove nan, flatten, and remove duplicates - retains order of elements which is key to consistency
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for i in x if i == i])
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for row in x for i in row])
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).apply(list)
+
 
 # JAS 27 MAR 2023
 # Assign the preferred CUI for the node.
@@ -1343,18 +1347,20 @@ if node_metadata_has_labels:
     # 1. MP codes will have a PT term.
     # 2. PATO codes will have terms with the following relationships:
     #    a. PT - from the ingestion of PATO
-    #    b. MP_PT - from the ingestion of MP
+    #    b. PT_MB - from the ingestion of MP
     # 3. UBERON codes will have terms with the following relationships:
     #    a. PT - from the ingestion of UBERON
-    #    b. PATO_PT - from the ingestion of PATO
-    #    c. MP_PT - from the ingestion of MP
+    #    b. PT_PATO - from the ingestion of PATO
+    #    c. PT_MP - from the ingestion of MP
 
     # If terms for codes are different in the different ontologies (e.g. MP, UBERON, and PATO used different terms to
     # describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
     # there would be just one term, but with multiple relationships.
 
     # July 2023 - Delimiter between SAB and Code is colon.
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT', OWL_SAB+'_PT')
+    # July 2023 - Changed type from SAB_PT to PT_SAB
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT',
+                                    'PT_'+OWL_SAB)
 
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
@@ -1363,6 +1369,33 @@ if node_metadata_has_labels:
                                           indicator=True)
     newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
     newCODE_SUIs.reset_index(drop=True, inplace=True)
+
+    # July 2023
+    # Only add a PT_SAB term if it differs from the PT term, or if there is no PT term.
+    # 1. Find all existing SUIs of type PT and obtain the term string.
+    dfCODE_SUIsPT = CODE_SUIs[CODE_SUIs[':TYPE']=='PT'].drop_duplicates()
+    dfCODE_SUIsPT = dfCODE_SUIsPT.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
+
+    # 2. Left merge new SUIs with existing SUIs of type PT.
+    # Obtain term string for the new terms.
+    newCODE_SUIs = newCODE_SUIs.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
+    newCODE_SUIs = newCODE_SUIs.merge(dfCODE_SUIsPT,how='left',left_on=':START_ID',right_on=':START_ID')
+
+    # 3. Only keep a new term if one of the following is true:
+    #   a. The type (with field name :TYPE_x after the merge) is PT
+    #   b. The term string (with field name name_x after the merge) is different from the term string for
+    #   the associated PT (with field name name_y after the merge).
+    # This logic also accounts for the case in which the CUI for the new term is for a UMLS concept, for which the preferred term
+    # has type PREF_TERM instead of PT.
+
+    # The logic involve multiple steps because pandas does not seem to handle the complex logic required here.
+    # Pandas functions are used because they are faster than looping through each row of the dataframe.
+    newCODE_SUIs['matched_name'] = np.where(newCODE_SUIs['name_x'] == newCODE_SUIs['name_y'],'yes','no')
+    newCODE_SUIs = newCODE_SUIs[(newCODE_SUIs[':TYPE_x'] == 'PT') | (newCODE_SUIs['matched_name'] == 'no')]
+
+    # Restore column headers.
+    newCODE_SUIs=newCODE_SUIs[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
+    newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
     # write out newCODE_SUIs - comment out during development
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
