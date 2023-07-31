@@ -1372,10 +1372,9 @@ if node_metadata_has_labels:
     newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
     newCODE_SUIs.reset_index(drop=True, inplace=True)
 
-    """
     # July 2023
-    # The logic in this block was developed and tested, but not deployed. 
-    # It is not possible to eliminate the issue of a term having both a PT_SAB and PT relationship with a code
+
+    # It is not possible to eliminate completely the issue of a term having both a PT_SAB and PT relationship with a code
     # during ingestion, because of interdependent ontologies--two ontologies that make assertions using codes 
     # from each other. The order of ingestion of ontologies affects the logic.
     
@@ -1405,8 +1404,6 @@ if node_metadata_has_labels:
     # Restore column headers.
     newCODE_SUIs=newCODE_SUIs[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
-
-    """
 
     # write out newCODE_SUIs - comment out during development
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
