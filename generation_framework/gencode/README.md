@@ -126,3 +126,10 @@ These nodes have dbxrefs to HGNC nodes.
 A node will be created for each value in the _RefSeq_RNA_id_ or _RefSeq_protein_id_ field of the annotation file. 
 RefSeq nodes will be in **has RefSeq** assertions.
 
+### Ensembl IDs
+GenCode includes the version number in the Ensembl ID of a gene or transcript--e.g., ENSG00000227232.5.
+Other references usually do not use the version number.
+
+The script:
+1. Stores in **node_id** (which becomes the CodeID of the node) the Ensembl ID without the version number.
+2. Stores the version number in the **value** property.

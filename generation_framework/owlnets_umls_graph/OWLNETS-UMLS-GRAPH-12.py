@@ -845,7 +845,7 @@ def base64it(x):
 
 # July 2023 - CUIs for non-UMLS codes are no longer base64-encoded.
 ulog.print_and_logger_info('-- Defining CUIs for nodes...')
-node_metadata['base64cui'] = node_metadata['node_id']+' - CUI'#.apply(base64it)
+node_metadata['base64cui'] = node_metadata['node_id']+' CUI'#.apply(base64it)
 
 # ### Add cuis list and preferred cui to complete the node "atoms" (code, label, syns, xrefs, cuis, CUI)
 
