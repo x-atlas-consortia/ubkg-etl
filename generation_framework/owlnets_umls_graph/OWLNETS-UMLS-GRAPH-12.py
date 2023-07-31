@@ -845,7 +845,7 @@ def base64it(x):
 
 # July 2023 - CUIs for non-UMLS codes are no longer base64-encoded.
 ulog.print_and_logger_info('-- Defining CUIs for nodes...')
-node_metadata['base64cui'] = node_metadata['node_id']#.apply(base64it)
+node_metadata['base64cui'] = node_metadata['node_id']+' - CUI'#.apply(base64it)
 
 # ### Add cuis list and preferred cui to complete the node "atoms" (code, label, syns, xrefs, cuis, CUI)
 
@@ -864,8 +864,9 @@ node_metadata['CUI'] = ''
 # 4. base64cui - the base64 CUI (base64 encoding of the node id) for a node that does not currently
 #                exist in the ontology CSVs
 
-# July 2023 - After disabling base64 encoding of CUIs, it is necessary to convert the value of teh base64cui field
+# July 2023 - After disabling base64 encoding of CUIs, it is necessary to convert the value of the base64cui field
 # to a list; otherwise, the subsequent tolist function treats the field as a character list.
+
 node_metadata['base64cui'] = node_metadata[['base64cui']].values.tolist()
 node_metadata['cuis'] = node_metadata[['nodeCUIs', 'CUI_CODEs', 'XrefCUIs', 'base64cui']].values.tolist()
 
@@ -1075,6 +1076,7 @@ ulog.print_and_logger_info('---- Appending forward relationships...')
 # forward ones
 # JAS 6 JAN 2023 Add evidence_class. (The SAB column was added after evidence_class above.)
 edgelist.columns = [':START_ID', ':TYPE', ':END_ID', 'inverse', 'evidence_class', 'SAB']
+
 
 if edgelist.shape[0] > TQDM_THRESHOLD:
     uextract.to_csv_with_progress_bar(df=edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']],
@@ -1370,7 +1372,14 @@ if node_metadata_has_labels:
     newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
     newCODE_SUIs.reset_index(drop=True, inplace=True)
 
+    """
     # July 2023
+    # The logic in this block was developed and tested, but not deployed. 
+    # It is not possible to eliminate the issue of a term having both a PT_SAB and PT relationship with a code
+    # during ingestion, because of interdependent ontologies--two ontologies that make assertions using codes 
+    # from each other. The order of ingestion of ontologies affects the logic.
+    
+    # Logic:
     # Only add a PT_SAB term if it differs from the PT term, or if there is no PT term.
     # 1. Find all existing SUIs of type PT and obtain the term string.
     dfCODE_SUIsPT = CODE_SUIs[CODE_SUIs[':TYPE']=='PT'].drop_duplicates()
@@ -1396,6 +1405,8 @@ if node_metadata_has_labels:
     # Restore column headers.
     newCODE_SUIs=newCODE_SUIs[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+
+    """
 
     # write out newCODE_SUIs - comment out during development
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
