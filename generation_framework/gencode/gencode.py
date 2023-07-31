@@ -357,6 +357,12 @@ def getargs() -> argparse.Namespace:
 
     return args
 
+def getensemblnoversion(ensembl: str) -> str:
+
+    # July 2023
+    # Strips the version number from an ENSEMBL ID.
+    return ensembl.split('.')[0]
+
 
 def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
@@ -400,8 +406,9 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
         # Show TQDM progress bar.
         for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
-            subject = 'ENSEMBL:' + row['transcript_id']
-            object = 'ENSEMBL:' + row['gene_id']
+            # July 2023 - strip version from Ensembl IDs.
+            subject = 'ENSEMBL:' + getensemblnoversion(row['transcript_id'])
+            object = 'ENSEMBL:' + getensemblnoversion(row['gene_id'])
 
 
             # ASSERTION: transcribed_from
@@ -424,10 +431,11 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
 
             # feature ID
+            # July 2023 - Strip Ensembl IDs.
             if row['transcript_id'] != '':
-                subject = f'ENSEMBL:{row["transcript_id"]}'
+                subject = f'ENSEMBL:{getensemblnoversion(row["transcript_id"])}'
             else:
-                subject = f'ENSEMBL:{row["gene_id"]}'
+                subject = f'ENSEMBL:{getensemblnoversion(row["gene_id"])}'
 
             object = ''
 
@@ -553,10 +561,13 @@ def write_nodes_file(df: pd.DataFrame, path: str):
 
         # Show TQDM progress bar.
         for index, row in tqdm(dfgene.iterrows(), total=dfgene.shape[0]):
-            node_id = f'ENSEMBL:{row["gene_id"]}'
+            # July 2023 - Strip version from Ensembl ID
+            node_id = f'ENSEMBL:{getensemblnoversion(row["gene_id"])}'
             node_namespace = 'GENCODE'
             node_label = row['gene_name'].strip()
 
+            # July 2023 - store the full Ensembl ID, including version, as value.
+            value = row["gene_id"]
             node_definition = ''
             node_synonyms = ''
 
@@ -573,7 +584,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             if len(dbxreflist) > 0:
                 node_dbxrefs = '|'.join(dbxreflist)
 
-            value = ''
+            #value = ''
             lowerbound = str(int(row['genomic_start_location']))
             upperbound = str(int(row['genomic_end_location']))
             unit = ''
@@ -587,12 +598,14 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         ulog.print_and_logger_info('Writing transcript nodes')
 
         for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
-            node_id = f'ENSEMBL:{row["transcript_id"]}'
+            # July 2023 - Strip version from Ensembl ID.
+            node_id = f'ENSEMBL:{getensemblnoversion(row["transcript_id"])}'
             node_namespace = 'GENCODE'
             node_label = row['transcript_name']
             node_definition = ''
             node_synonyms = ''
-            value = ''
+            # July 2023 - provide full Ensembl ID as value.
+            value = row["transcript_id"]
             lowerbound = str(int(row['genomic_start_location']))
             upperbound = str(int(row['genomic_end_location']))
             unit = ''
