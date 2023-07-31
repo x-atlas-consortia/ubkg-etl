@@ -241,7 +241,7 @@ if args.verbose is True:
     umls_csvs_dir_islink = False
     if os.path.islink(args.umls_csvs_dir) is True:
         umls_csvs_dir_islink = os.path.realpath(args.umls_csvs_dir)
-    print(f" * Directory containing the UMLS Graph Extract .csv files to process: {args.umls_csvs_dir} (exitst: {os.path.isdir(args.umls_csvs_dir)}) (simlink: {umls_csvs_dir_islink})")
+    print(f" * Directory containing the UMLS Graph Extract .csv files to process: {args.umls_csvs_dir} (exists: {os.path.isdir(args.umls_csvs_dir)}) (simlink: {umls_csvs_dir_islink})")
     if args.force_owl_download is True:
         print(f" * PheKnowLator will force .owl file downloads")
     if args.with_imports is True:
