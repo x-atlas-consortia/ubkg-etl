@@ -132,4 +132,4 @@ Other references usually do not use the version number.
 
 The script:
 1. Stores in **node_id** (which becomes the CodeID of the node) the Ensembl ID without the version number.
-2. Stores the full Ensembl ID, including version number, in the **value** property.
+2. Stores the version number in the **value** property.

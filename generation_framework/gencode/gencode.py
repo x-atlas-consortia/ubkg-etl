@@ -63,9 +63,9 @@ def load_GTF_into_DataFrame(file_pattern: str, path: str, skip_lines: int=0, row
 
     for filename in list_gtf:
         if file_pattern in filename:
-            gtffile = os.path.join(path,filename)
+            gtffile = os.path.join(path, filename)
             ulog.print_and_logger_info(f'Reading {gtffile}')
-            return uextract.read_csv_with_progress_bar(path=gtffile, rows_to_read=rows_to_read, comment='#',sep='\t')
+            return uextract.read_csv_with_progress_bar(path=gtffile, rows_to_read=rows_to_read, comment='#', sep='\t')
 
     # ERROR condition
     ulog.print_and_logger_info(f'Error: missing file with name that includes \'{file_pattern}\'.')
@@ -102,7 +102,7 @@ def build_key_value_column(dfGTFl1: pd.DataFrame, search_key: str):
         dfSplit_level_2 = dfGTFl1[col].str.split(' ', expand=True).apply(lambda x: x.str.strip())
 
         # The split gives the key and value columns numeric names. Rename for clarity.
-        dfSplit_level_2.columns = ['key','value']
+        dfSplit_level_2.columns = ['key', 'value']
 
         # Obtain values that correspond to the search key
         # In general, there are multiple values for a key on a row, so there will be multiple rows in the
@@ -269,6 +269,7 @@ def build_Annotation_DataFrame(cfg: uconfig.ubkgConfigParser, path: str) -> pd.D
     dfGTF = dfGTF.drop(columns=droplabels)
     return dfGTF
 
+
 def build_Metadata_DataFrame(file_pattern: str, path: str, column_headers: list[str]) -> pd.DataFrame:
 
     # Builds a DataFrame that translates one of the GenCode metadata files.
@@ -357,12 +358,18 @@ def getargs() -> argparse.Namespace:
 
     return args
 
-def getensemblnoversion(ensembl: str) -> str:
+
+def strippedEnsemblID(ensembl: str) -> str:
 
     # July 2023
     # Strips the version number from an ENSEMBL ID.
     return ensembl.split('.')[0]
 
+
+def getEnsemblVersion(ensembl: str) -> float:
+    # July 2023
+    # Obtains the version number from an ENSEMBL ID.
+    return float(ensembl.split('.')[1])
 
 def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
@@ -383,7 +390,6 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
     # 3. Feature has biotype, based on whether the feature is a gene (gene_type) or not (transcript_type)
     # 4. Feature has directional form (strand direction)
     # 5. Feature isa for all PGO codes in the ont field
-
 
     # June 2023 - replaced concatenation using + with f strings to account for null column values.
     # Pandas sets the type of a column for which the first row is null to float.
@@ -407,9 +413,8 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
         # Show TQDM progress bar.
         for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
             # July 2023 - strip version from Ensembl IDs.
-            subject = 'ENSEMBL:' + getensemblnoversion(row['transcript_id'])
-            object = 'ENSEMBL:' + getensemblnoversion(row['gene_id'])
-
+            subject = 'ENSEMBL:' + strippedEnsemblID(row['transcript_id'])
+            object = 'ENSEMBL:' + strippedEnsemblID(row['gene_id'])
 
             # ASSERTION: transcribed_from
             predicate = 'http://purl.obolibrary.org/obo/RO_0002510' # transcribed from
@@ -433,9 +438,9 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # feature ID
             # July 2023 - Strip Ensembl IDs.
             if row['transcript_id'] != '':
-                subject = f'ENSEMBL:{getensemblnoversion(row["transcript_id"])}'
+                subject = f'ENSEMBL:{strippedEnsemblID(row["transcript_id"])}'
             else:
-                subject = f'ENSEMBL:{getensemblnoversion(row["gene_id"])}'
+                subject = f'ENSEMBL:{strippedEnsemblID(row["gene_id"])}'
 
             object = ''
 
@@ -444,8 +449,8 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # Obtain from GENCODE_ONT the node_id for the node that corresponds
             # to the value from the chromosome_name column.
             if dfGenCode_ont.loc[dfGenCode_ont['node_label']==row['chromosome_name'],'node_id'].shape[0] > 0:
-                object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label']==row['chromosome_name'],'node_id'].iat[0])
-                if object !='':
+                object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['chromosome_name'], 'node_id'].iat[0])
+                if object != '':
                     out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
             object = ''
@@ -463,9 +468,9 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # There is currently no appropriate relation property in RO.
             predicate = 'is_gene_biotype'
             if row['gene_type'] != '':
-                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].shape[0] >0:
+                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].shape[0] > 0:
                     object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].iat[0])
-                    if object !='':
+                    if object != '':
                         out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
             object = ''
@@ -490,7 +495,7 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             if direction != '':
                 if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].shape[0] > 0:
                     object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].iat[0])
-            if object !='':
+            if object != '':
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
             object = ''
@@ -518,7 +523,6 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             if row['RefSeq_protein_id'] != '':
                 object = f'REFSEQ:{row["RefSeq_protein_id"]}'
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
-
 
     return
 
@@ -562,12 +566,12 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         # Show TQDM progress bar.
         for index, row in tqdm(dfgene.iterrows(), total=dfgene.shape[0]):
             # July 2023 - Strip version from Ensembl ID
-            node_id = f'ENSEMBL:{getensemblnoversion(row["gene_id"])}'
+            node_id = f'ENSEMBL:{strippedEnsemblID(row["gene_id"])}'
             node_namespace = 'GENCODE'
             node_label = row['gene_name'].strip()
 
             # July 2023 - store the full Ensembl ID, including version, as value.
-            value = row["gene_id"]
+            value = getEnsemblVersion(row["gene_id"])
             node_definition = ''
             node_synonyms = ''
 
@@ -576,15 +580,14 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             if row['hgnc_id'] != '':
                 # dbxreflist.append('HGNC ' + row['hgnc_id'])
                 dbxreflist.append(row['hgnc_id'])
-            #if row['mgi_id'] != '':
-                #dbxreflist.append('MGI:' + row['mgi_id'])
-
+            # if row['mgi_id'] != '':
+                # dbxreflist.append('MGI:' + row['mgi_id'])
 
             node_dbxrefs = ''
             if len(dbxreflist) > 0:
                 node_dbxrefs = '|'.join(dbxreflist)
 
-            #value = ''
+            # value = ''
             lowerbound = str(int(row['genomic_start_location']))
             upperbound = str(int(row['genomic_end_location']))
             unit = ''
@@ -599,13 +602,13 @@ def write_nodes_file(df: pd.DataFrame, path: str):
 
         for index, row in tqdm(dftranscript.iterrows(), total=dftranscript.shape[0]):
             # July 2023 - Strip version from Ensembl ID.
-            node_id = f'ENSEMBL:{getensemblnoversion(row["transcript_id"])}'
+            node_id = f'ENSEMBL:{strippedEnsemblID(row["transcript_id"])}'
             node_namespace = 'GENCODE'
             node_label = row['transcript_name']
             node_definition = ''
             node_synonyms = ''
             # July 2023 - provide full Ensembl ID as value.
-            value = row["transcript_id"]
+            value = getEnsemblVersion(row["transcript_id"])
             lowerbound = str(int(row['genomic_start_location']))
             upperbound = str(int(row['genomic_end_location']))
             unit = ''
@@ -619,7 +622,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         # Map them to HGNC IDs.
         ulog.print_and_logger_info('Writing Entrez nodes')
 
-        dfEntrez = dftranscript[dftranscript['Entrez_Gene_id']!='']
+        dfEntrez = dftranscript[dftranscript['Entrez_Gene_id'] != '']
         dfEntrez = dfEntrez.drop_duplicates(subset=['Entrez_Gene_id']).reset_index(drop=True)
         for index, row in tqdm(dfEntrez.iterrows(), total=dfEntrez.shape[0]):
             node_id = f'ENTREZ:{int(row["Entrez_Gene_id"])}'
@@ -679,6 +682,7 @@ def write_nodes_file(df: pd.DataFrame, path: str):
 
     return
 
+
 def write_relations_file(path: str):
 
     # Writes a relations file in OWLNETS format.
@@ -699,10 +703,10 @@ def write_relations_file(path: str):
         relation1_id = 'http://purl.obolibrary.org/obo/RO_0002510' # transcribed from
         relation1_label = 'transcribed from'
         relation2_id = 'http://purl.obolibrary.org/obo/RO_0002205' # has_gene_product
-        relation2_label='has gene product'
+        relation2_label = 'has gene product'
         relation3_id = 'http://purl.obolibrary.org/obo/RO_0001025'  # located in
         relation3_label = 'located in'
-        relation4_id='is_feature_type'
+        relation4_id = 'is_feature_type'
         relation4_label='is_feature_type'
         relation5_id = 'is_gene_biotype'
         relation5_label ='is_gene_biotype'
@@ -759,10 +763,10 @@ owl_dir = os.path.join(os.path.dirname(os.getcwd()), gencode_config.get_value(se
 owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), gencode_config.get_value(section='Directories', key='owlnets_dir'))
 
 # Obtain the path to the OWLNETS files that correspond to the application ontology information for GenCode.
-ont_dir = os.path.join(os.path.dirname(os.getcwd()),gencode_config.get_value(section='Directories',key='lookup_dir'))
+ont_dir = os.path.join(os.path.dirname(os.getcwd()), gencode_config.get_value(section='Directories', key='lookup_dir'))
 
 # Obtain output name for the translated annotation file.
-ann_file = gencode_config.get_value(section='AnnotationFile',key='filename')
+ann_file = gencode_config.get_value(section='AnnotationFile', key='filename')
 
 if args.skipbuild:
     # Read previously generated annotation CSV.
@@ -780,6 +784,4 @@ dfAnnotation = dfAnnotation.replace(np.nan, '')
 write_edges_file(df=dfAnnotation, path=owlnets_dir, ont_path=ont_dir)
 write_nodes_file(df=dfAnnotation, path=owlnets_dir)
 write_relations_file(path=owlnets_dir)
-
-
 
