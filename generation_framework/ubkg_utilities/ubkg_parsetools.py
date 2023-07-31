@@ -36,10 +36,10 @@ def getPrefixes()->pd.DataFrame:
 
 def codeReplacements(x:pd.Series, ingestSAB: str):
 
-    # JAS 15 Nov 2022 - Refactor
-
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
     # recognized by the knowledge graph.
+
+    # The standard format is SAB:code.
 
     # Arguments:
     #  x - Pandas Series object containing information on either:
@@ -48,62 +48,90 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     #  ingestSAB: the SAB for a set of assertions.
     #
 
+    # JULY 2023 -
+    # 1. Assume that data from SABs from UMLS have been reformatted so that
+    #    HGNC HGNC:CODE -> HGNC CODE
+    #    GO GO:CODE -> GO CODE
+    #    HPO HP:CODE -> HPO CODE
+    # 2. Establishes the colon as the exclusive delimiter between SAB and code.
+    # -------
+
+    # Because of the variety of formats used for codes in various sources, this standardization is
+    # complicated.
+
     # For the majority of nodes, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML serialization,
-    # the code format is:
-    # <SAB><space><code>
+    # the formatting is straightforward. However, there are a number of special cases, which are handled below.
 
-    # However, there are a number of special cases, which are handled below.
+    # For some SABs, the reformatting is complicated enough to warrant a resource file named prefixes.csv, which
+    # should be in the application folder.
 
-    # This script relies on a resource file named prefixes.csv.
-
-    # ulog.print_and_logger_info('codeReplacements: default conversions')
     # ---------------
     # DEFAULT
     # Convert the code string to the CodeID format.
-    # The colon, underscore, and space characters are reserved as delimters between SAB and code;
-    # The hash and backslash figure are delimiters in URIs.
+    # The colon, underscore, and space characters are reserved as delimters between SAB and code in input sources--e.g.,
+    #   SAB:CODE
+    #   SAB_CODE
+    #   SAB CODE
+    # However, the underscore is also used in code strings in some cases--e.g., RefSeq, with REFSEQ:NR_number.
+
+    # In addition, the hash and backslash figure are delimiters in URIs--e.g., ...#/SAB_CODE
+
+    # Start by reformatting as SAB<space>CODE. The exclusive delimiter (colon) will be added at the end of this
+    # script.
     ret = x.str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
 
-    # ulog.print_and_logger_info('codeReplacements: UMLS SAB conversions')
     # --------------
     # SPECIAL CONVERSIONS: UMLS SABS
-    # For various reasons, some SABs in the UMLS diverge from the format.
-    # A common divergence is the case in which the SAB is included in the code to account for codes with leading zeroes
-    #-- e.g., HGNC, GO, HPO
+    # 1. Standardize SABs--e.g., convert NCBITaxon (from IRIs) to NCBI (in UMLS); MESH to MSH; etc.
+    # 2. For various reasons, some SABs in the UMLS diverge from the standard format.
+    #    A common divergence is the case in which the SAB is included in the code to account
+    #    for codes with leading zeroes
+    #    -- e.g., HGNC, GO, HPO
+
+    # July 2023 - replaced space with colon for delimiter.
+
     # NCI Thesaurus
-    ret = ret.str.replace('NCIT ', 'NCI ', regex=False)
+    ret = ret.str.replace('NCIT ', 'NCI:', regex=False)
     # MESH
-    ret = ret.str.replace('MESH ', 'MSH ', regex=False)
-    # GO
-    ret = ret.str.replace('GO ', 'GO GO:', regex=False)
+    ret = ret.str.replace('MESH ', 'MSH:', regex=False)
+
+    # GO (conversion deprecated July 2023; incoming format is now GO:code)
+    # ret = ret.str.replace('GO ', 'GO GO:', regex=False)
+
     # NCBI Taxonomy
-    ret = ret.str.replace('NCBITaxon ', 'NCBI ', regex=False)
+    ret = ret.str.replace('NCBITaxon ', 'NCBI:', regex=False)
     # UMLS
-    ret = ret.str.replace('.*UMLS.*\s', 'UMLS ', regex=True)
+    ret = ret.str.replace('.*UMLS.*\s', 'UMLS:', regex=True)
     # SNOMED
-    ret = ret.str.replace('.*SNOMED.*\s', 'SNOMEDCT_US ', regex=True)
-    # HPO
-    ret = ret.str.replace('HP ', 'HPO HP:', regex=False)
+    ret = ret.str.replace('.*SNOMED.*\s', 'SNOMEDCT_US:', regex=True)
+
+    # HPO (deprecated July 2023; incoming format is now HPO:CODE)
+    # ret = ret.str.replace('HP ', 'HPO HP:', regex=False)
+
     # FMA
-    ret = ret.str.replace('^fma', 'FMA ', regex=True)
+    ret = ret.str.replace('^fma', 'FMA:', regex=True)
+
     # HGNC
     # Note that non-UMLS sets of assertions may also refer to HGNC codes differently. See below.
-    ret = ret.str.replace('Hugo.owl HGNC ', 'HGNC ', regex=False)
-    ret = ret.str.replace('HGNC ', 'HGNC HGNC:', regex=False)
-    ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
+    ret = ret.str.replace('Hugo.owl HGNC ', 'HGNC:', regex=False)
 
+    # Deprecated July 2023; the incoming format is now HGNC:code.
+    # ret = ret.str.replace('HGNC ', 'HGNC HGNC:', regex=False)
+    # Changed July 2023
+    # ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
+    ret = ret.str.replace('gene symbol report?hgnc id=', 'HGNC:', regex=False)
 
-    # ulog.print_and_logger_info('codeReplacements: non-UMLS SAB conversions')
     # -------------
     # SPECIAL CASES - Non-UMLS sets of assertions
 
     # Ontologies such as HRAVS refer to NCI Thesaurus nodes by IRI.
-    ret = np.where(x.str.contains('Thesaurus.owl'), 'NCI ' + x.str.split('#').str[-1], ret)
+    ret = np.where(x.str.contains('Thesaurus.owl'), 'NCI:' + x.str.split('#').str[-1], ret)
 
     # UNIPROTKB
     # The HGNC codes in the UNIPROTKB ingest files were in the expected format of HGNC HGNC:code.
     # Remove duplications introduced from earlier conversions in this script.
-    ret = np.where(x.str.contains('HGNC HGNC:'), x, ret)
+    # Deprecated July 2023: incoming format is now HGNC:code.
+    # ret = np.where(x.str.contains('HGNC HGNC:'), x, ret)
 
     # EDAM
     # EDAM uses subdomains--e.g, format_3750, which translates to a SAB of "format". Force all
@@ -119,41 +147,53 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # Case 2 (dbxref)
     ret = np.where((x.str.contains('EDAM')), x.str.split(':').str[-1], ret)
     # Case 1 (subject or object node)
-    ret = np.where((x.str.contains('edam')), 'EDAM ' + x.str.replace(' ', '_').str.split('/').str[-1], ret)
+    ret = np.where((x.str.contains('edam')), 'EDAM:' + x.str.replace(' ', '_').str.split('/').str[-1], ret)
 
     # MONDO
     # Two cases to handle:
     # 1. MONDO identifies genes with IRIs in format
     # http://identifiers.org/hgnc/<id>
     # Convert to HGNC HGNC:<id>
+    # Changed July 2023
+    # ret = np.where(x.str.contains('http://identifiers.org/hgnc'),
+                   #'HGNC HGNC:' + x.str.split('/').str[-1], ret)
     ret = np.where(x.str.contains('http://identifiers.org/hgnc'),
-                   'HGNC HGNC:' + x.str.split('/').str[-1], ret)
+                   'HGNC:' + x.str.split('/').str[-1], ret)
     # 2. MONDO uses both OBO-3 compliant IRIs (e.g., "http://purl.obolibrary.org/obo/MONDO_0019052") and
     #    non-compliant ones (e.g., "http://purl.obolibrary.org/obo/mondo#ordo_clinical_subtype")
     ret = np.where(x.str.contains('http://purl.obolibrary.org/obo/mondo#'),
-                   'MONDO ' + x.str.split('#').str[-1], ret)
+                   'MONDO:' + x.str.split('#').str[-1], ret)
 
     # MAY 2023
     # PGO
     # Restore changes made related to GO.
     # PGO nodes are written as http://purl.obolibrary.org/obo/PGO_(code)
-    ret = np.where(x.str.contains('PGO'),
-                   'PGO PGO:' + x.str.split('_').str[-1], ret)
+    # Deprecated July 2023
+    # ret = np.where(x.str.contains('PGO'),
+                   # 'PGO PGO:' + x.str.split('_').str[-1], ret)
 
-    # REFSEQ - keep underscores
-    ret = np.where(x.str.contains('REFSEQ'),
-                   'REFSEQ ' + x.str.split(' ').str[-1], ret)
+    # REFSEQ - restore underscore between NR and number.
+    # JULY 2023 - Refactored for SAB:CODE refactoring
+    # Assumes that code at this point is in format REFSEQ NR X, to be reformatted as REFSEQ:NR_X.
+    ret = np.where(x.str.contains('REFSEQ'),x.str.replace('REFSEQ ','REFSEQ:').str.replace(' ','_'),ret)
+
+    # July 2023
+    # MSIGDB - restore underscores.
+    ret = np.where(x.str.contains('MSIGDB'), x.str.replace('MSIGDB ', 'MSIGDB:').str.replace(' ', '_'), ret)
 
     # MAY 2023
     # HPO
     # If expected format (HPO HP:code) was used, revert to avoid duplication.
-    ret = np.where(x.str.contains('HPO HP:'),
-                   'HPO HP:' + x.str.split(':').str[-1], ret)
+    # Deprecated July 2023: incoming code format now HPO:CODE.
+    # ret = np.where(x.str.contains('HPO HP:'),
+                    #'HPO HP:' + x.str.split(':').str[-1], ret)
+
     # HCOP
     # The HCOP node_ids are formatted to resemble HGNC node_ids.
-    ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
+    # Deprecated July 2023; no longer needed because HGNC is now formatted as HGNC:CODE.
+    # ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
 
-    # ulog.print_and_logger_info('codeReplacements: special non-UMLS SAB IRI prefix conversions')
+
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
     # translated to IRIs that are not formatted as expected. Obtain the original namespace prefixes for
@@ -165,7 +205,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
         if ingestSAB in ['GLYCOCOO','GLYCORDF']:
             #GlyCoCOO (a Turtle) and GlyCoRDF use IRIs that delimit with hash and use underlines.
             #"http://purl.glycoinfo.org/ontology/codao#Compound_disease_association
-            ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
+            # July 2023 - refactored to use colon as SAB:code delimiter
+            ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ':' +
                            x.str.replace(' ', '_').str.replace('/', '_').str.split('#').str[-1],
                            ret)
         # July 2023: other prefixes are only from NPO, NPOSKCAN
@@ -174,7 +215,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
                 # Other SABs format IRIs with a terminal backslash and the code string.
                 # A notable exception is the PantherDB format (in NPOSKCAN), for which the IRI is an API call
                 # (e.g., http://www.pantherdb.org/panther/family.do?clsAccession=PTHR10558).
-                ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ' ' +
+                # July 2023 - refactored to use colon as SAB:code delimiter
+                ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ':' +
                            x.str.replace(' ', '_').str.replace('/','_').str.replace('=','_').str.split('_').str[-1],
                            ret)
 
@@ -182,34 +224,70 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # UNIPROT (not to be confused with UNIPROTKB).
     # UNIPROT IRIs are formatted differently than those in Glygen, but are in the Glygen OWL files, so they need
     # to be translated separately from GlyGen nodes.
-    ret = np.where(x.str.contains('uniprot.org'), 'UNIPROT ' + x.str.split('/').str[-1], ret)
+    # July 2023 - refactored to use colon as SAB:code delimiter
+    ret = np.where(x.str.contains('uniprot.org'), 'UNIPROT:' + x.str.split('/').str[-1], ret)
 
-    #JAS MAY 2023 - For case of HGNC codes added as dbxrefs.
-    ret = np.where(x.str.contains('HGNC HGNC '), x.str.replace('HGNC HGNC ','HGNC HGNC:'), ret)
+    # JAS MAY 2023 - For case of HGNC codes added as dbxrefs.
+    # Deprecated July 2023; incoming codes have format HGNC:CODE.
+    # ret = np.where(x.str.contains('HGNC HGNC '), x.str.replace('HGNC HGNC ','HGNC HGNC:'), ret)
 
     # June 2023 - CCF, which uses underscores in codes
     # (Deprecated after we switched from CCF to HRA)
     # ret = np.where(x.str.contains('http://purl.org/ccf/'),'CCF ' + x.str.split('/').str[-1], ret)
     # HGNCNR was a dependency for CCF, so also deprecated
     # ret = np.where(x.str.contains('http://purl.bioontology.org/ontology/HGNC/'), 'HGNCNR ' + x.str.split('/').str[-1], ret)
+
+    # July 2023 - For Data Distillery use cases, where code formats conformed to the earlier paradigms.
+    # HGNC HGNC:
+    # HPO HP:
+    # HCOP HCOP:
+    ret = np.where(x.str.contains('HGNC HGNC:'), x.str.replace('HGNC HGNC:','HGNC:'), ret)
+    ret = np.where(x.str.contains('HPO HP:'), x.str.replace('HPO HP:', 'HPO:'), ret)
+    ret = np.where(x.str.contains('HCOP HCOP:'), x.str.replace('HCOP HCOP:', 'HCOP:'), ret)
+
+    ret = np.where(x.str.contains('NCBI Gene'), x.str.replace('NCBI Gene', 'ENTREZ:'), ret)
+
+
     # ---------------
     # FINAL PROCESSING
-    # JAS 12 JAN 2023 - Force SAB to uppercase.
-    # Some CodeIds will be in format SAB <space> <other string>, and <other string> can be mixed case.
-    # <other string> can also have spaces.
-    # After the preceding conversions, ret has changed from a Pandas Series to a numpy array.
-    # Split each element; convert the SAB portion to uppercase; and rejoin.
 
-    # ulog.print_and_logger_info('codeReplacements: SAB uppercase conversion')
+    # At this point in the script, the code should be in one of two formats:
+    # 1. SAB CODE, where
+    #    a. SAB may be lowercase
+    #    b. CODE may be mixed case, wiht spaces.
+    # 2. The result of a custom formatting--e.g., HGNC:code.
+
+    # The assumption is that if there are spaces at this point, the first space is the one between the SAB
+    # and the code.
+
+    # Force SAB to uppercase. Force the colon to be the delimiter between SAB and code.
+
+    # After the preceding conversions, ret has changed from a Pandas Series to a numpy array.
+    # 1. Split each element on the initial space, if one exists.
+    # 2. Convert the SAB portion (first element) to uppercase.
+    # JULY 2023
+    # 3. Add the colon between the SAB (first element) and the code.
+
+    # Note: Special cases should already be in the correct code format of SAB:code.
+
     for idx, x in np.ndenumerate(ret):
-        x2 = x.split(sep=' ', maxsplit=1)
-        x2[0] = x2[0].upper()
-        ret[idx] = ' '.join(x2)
+        xsplit = x.split(sep=' ', maxsplit=1)
+        if len(xsplit)>1:
+            sab = xsplit[0].upper()
+            code = ' '.join(xsplit[1:len(xsplit)])
+            ret[idx] = sab+':'+code
+        elif len(x)>0:
+            # JULY 2023
+            # For the case of a CodeID that appears to be a "naked" UMLS CUI, format as UMLS:CUI.
+            if x[0] == 'C' and x[1].isnumeric:
+             ret[idx] = 'UMLS:'+x
+        else:
+            ret[idx] = x
 
     return ret
 
     # -------------
-    # ORIGINAL CODE for historical purposes
+    # ORIGINAL CODE for historical purposes. Life was simpler then.
 
     # return x.str.replace('NCIT ', 'NCI ', regex=False).str.replace('MESH ', 'MSH ', regex=False) \
     # .str.replace('GO ', 'GO GO:', regex=False) \

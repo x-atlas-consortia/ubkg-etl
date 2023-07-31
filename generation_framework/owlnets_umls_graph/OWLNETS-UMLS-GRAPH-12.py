@@ -680,21 +680,25 @@ ulog.print_and_logger_info('-- Preparing cross-references: splitting and formatt
 # For every row with a non-na string in node_dbxrefs, replace colons with spaces--
 # i.e., standardize the SAB-CODE delimiter.
 # e.g., node1 / SAB1:Code1|SAB2:Code2 => node 1 / SAB1 Code1|SAB2 Code2
+
+# JULY 2023 - Deprecated replacement of colons with spaces. *COLON* IS THE SAB-CODE DELIMITER.
 node_metadata.loc[node_metadata['node_dbxrefs'].notna(), 'node_dbxrefs'] = \
-    node_metadata[node_metadata['node_dbxrefs'].notna()]['node_dbxrefs'].astype('str').str.upper().str.replace(':', ' ')
+    node_metadata[node_metadata['node_dbxrefs'].notna()]['node_dbxrefs'].astype('str').str.upper()#.str.replace(':', ' ')
+
+# JULY 2023 - In-line documentation modified to assumption of colon as SAB:code delimiter.
 
 # Convert the dbxref strings to a list, splitting on the CODE-CODE delimiter.
-# e.g., node1 / 1SAB1 Code1|SAB2 Code2 => node1/ [SAB1 Code1, SAB2 Code2]
+# e.g., node1 / SAB1:Code1|SAB2:Code2 => node1/ [SAB1:Code1, SAB2:Code2]
 node_metadata['node_dbxrefs'] = node_metadata['node_dbxrefs'].str.split('|')
 
 # Explode node_metadata to a DataFrame in which each row from node_metadata maps a node to a single cross-reference
 # from the list.
 # e.g., nodeID / node_dbxrefs
-#       node1/ [SAB1 Code1, SAB2 Code2] =>
+#       node1/ [SAB1:Code1, SAB2:Code2] =>
 #
 #       nodeID / node_dbxrefs
-#       node1 / SAB1 Code1
-#       node1 / SAB2 Code2
+#       node1 / SAB1:Code1
+#       node1 / SAB2:Code2
 
 explode_dbxrefs = node_metadata.explode('node_dbxrefs')[['node_id', 'node_dbxrefs']].dropna().astype(
     str).drop_duplicates().reset_index(drop=True)
@@ -704,8 +708,9 @@ explode_dbxrefs['node_dbxrefs'] = uparse.codeReplacements(explode_dbxrefs['node_
 
 # Create SAB and CODE columns from the node_id.
 # JAS 12 JAN 2023 - force uppercase for SAB
-node_metadata['SAB'] = node_metadata['node_id'].str.split(' ').str[0].str.upper()
-node_metadata['CODE'] = node_metadata['node_id'].str.split(' ').str[-1]
+# JULY 2023 - Colon is the SAB:CODE delimiter.
+node_metadata['SAB'] = node_metadata['node_id'].str.split(':').str[0].str.upper()
+node_metadata['CODE'] = node_metadata['node_id'].str.split(':').str[-1]
 
 # del node_metadata['node_namespace']
 # del explode_dbxrefs - not deleted here because we need it later
@@ -724,7 +729,8 @@ node_metadata['CODE'] = node_metadata['node_id'].str.split(' ').str[-1]
 ulog.print_and_logger_info('-- Identifying cross-references that are UMLS CUIs...')
 
 # Separate code/CUI from SAB for each cross-reference.
-explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(' ').str[-1]
+# JULY 2023 - Colon is SAB:Code delimiter
+explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(':').str[-1]
 
 # --------------------------------------------------
 # QC REPORTING, workflow point 2 - after dbxrefs are processed
@@ -739,13 +745,16 @@ ubkg_report.report_dbxref_statistics()
 #explode_dbxrefs_UMLS = \
     #explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS C') == True].groupby('node_id', sort=False, group_keys=False)[
         #'nodeXrefCodes'].apply(list).reset_index(name='nodeCUIs')
+# JUlY 2023 - Colon is the delimiter between SAB:CODE (in this case, SAB:CUI)
 explode_dbxrefs_UMLS = \
-    explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS C') == True].groupby('node_id', sort=False, group_keys=False)[
+    explode_dbxrefs[explode_dbxrefs['node_dbxrefs'].str.contains('UMLS:C') == True].groupby('node_id', sort=False, group_keys=False)[
         'nodeXrefCodes'].progress_apply(list).reset_index(name='nodeCUIs')
 # Associate nodes with cross-references that have UMLS CUIs.
 # In general, this could result in a node having more than one row, if the node was associated with more than one
 # UMLS CUI.
 node_metadata = node_metadata.merge(explode_dbxrefs_UMLS, how='left', on='node_id')
+
+
 del explode_dbxrefs_UMLS
 
 del explode_dbxrefs['nodeXrefCodes']
@@ -824,7 +833,8 @@ del explode_dbxrefs
 # In[16]:
 
 def base64it(x):
-    return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
+
+     return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
 
 
 # The CUI for the node will be the base64-encoded value of the concatenated SAB and code.
@@ -832,8 +842,10 @@ def base64it(x):
 # EXPLANATION: the base64-encoded CUI will be assigned to a node if the node is brand new to the
 # knowledge graph--i.e., if it cannot be associated by either direct reference or cross-reference to another
 # CUI that already exists in the knowledge graph at the time of ingestion.
-ulog.print_and_logger_info('-- Defining base64 CUIs for nodes...')
-node_metadata['base64cui'] = node_metadata['node_id'].apply(base64it)
+
+# July 2023 - CUIs for non-UMLS codes are no longer base64-encoded.
+ulog.print_and_logger_info('-- Defining CUIs for nodes...')
+node_metadata['base64cui'] = node_metadata['node_id']+' - CUI'#.apply(base64it)
 
 # ### Add cuis list and preferred cui to complete the node "atoms" (code, label, syns, xrefs, cuis, CUI)
 
@@ -852,12 +864,17 @@ node_metadata['CUI'] = ''
 # 4. base64cui - the base64 CUI (base64 encoding of the node id) for a node that does not currently
 #                exist in the ontology CSVs
 
+# July 2023 - After disabling base64 encoding of CUIs, it is necessary to convert the value of the base64cui field
+# to a list; otherwise, the subsequent tolist function treats the field as a character list.
+
+node_metadata['base64cui'] = node_metadata[['base64cui']].values.tolist()
 node_metadata['cuis'] = node_metadata[['nodeCUIs', 'CUI_CODEs', 'XrefCUIs', 'base64cui']].values.tolist()
 
 # remove nan, flatten, and remove duplicates - retains order of elements which is key to consistency
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for i in x if i == i])
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for row in x for i in row])
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).apply(list)
+
 
 # JAS 27 MAR 2023
 # Assign the preferred CUI for the node.
@@ -954,6 +971,8 @@ edgelist=edgelist[['subject','CUI1', 'relation_label', 'object', 'inverse', 'evi
 subjnode3 = edgelist[edgelist['CUI1']=='']
 ubkg_report.report_missing_node(nodetype='subject', dfmissing=subjnode3)
 
+# July 2023- remove type 3 nodes.
+edgelist = edgelist.dropna(subset=['CUI1'])
 
 del subjnode
 del subjnode1
@@ -995,6 +1014,8 @@ edgelist = edgelist[['subject','CUI1', 'relation_label', 'object','CUI2', 'inver
 objnode3 = edgelist[edgelist['CUI2']=='']
 ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
 
+# July 2023 - Remove type 3 object nodes.
+edgelist = edgelist.dropna(subset=['CUI2'])
 
 del objnode
 del objnode1
@@ -1029,6 +1050,7 @@ edgelist = edgelist[edgelist['CUI1'] != edgelist['CUI2']]
 # --------------------------------------------------
 # ## Write out files
 ulog.print_and_logger_info('APPENDING TO ONTOLOGY CSVs...')
+# edgelist.to_csv('EDGELIST.csv')
 
 # ### Test existence when appropriate in original csvs and then add data for each csv
 
@@ -1054,6 +1076,7 @@ ulog.print_and_logger_info('---- Appending forward relationships...')
 # forward ones
 # JAS 6 JAN 2023 Add evidence_class. (The SAB column was added after evidence_class above.)
 edgelist.columns = [':START_ID', ':TYPE', ':END_ID', 'inverse', 'evidence_class', 'SAB']
+
 
 if edgelist.shape[0] > TQDM_THRESHOLD:
     uextract.to_csv_with_progress_bar(df=edgelist[[':START_ID', ':END_ID', ':TYPE', 'SAB', 'evidence_class']],
@@ -1093,6 +1116,7 @@ update_columns_to_csv_header(fcsv, new_header_columns)
 
 # JAS 6 JAN 2023 add value, lowerbound, upperbound, unit
 newCODEs = node_metadata[['node_id', 'SAB', 'CODE', 'CUI_CODEs', 'value', 'lowerbound', 'upperbound', 'unit']]
+
 newCODEs = newCODEs[newCODEs['CUI_CODEs'].isnull()]
 newCODEs = newCODEs.drop(columns=['CUI_CODEs'])
 newCODEs = newCODEs.rename({'node_id': 'CodeID:ID'}, axis=1)
@@ -1325,17 +1349,20 @@ if node_metadata_has_labels:
     # 1. MP codes will have a PT term.
     # 2. PATO codes will have terms with the following relationships:
     #    a. PT - from the ingestion of PATO
-    #    b. MP_PT - from the ingestion of MP
+    #    b. PT_MB - from the ingestion of MP
     # 3. UBERON codes will have terms with the following relationships:
     #    a. PT - from the ingestion of UBERON
-    #    b. PATO_PT - from the ingestion of PATO
-    #    c. MP_PT - from the ingestion of MP
+    #    b. PT_PATO - from the ingestion of PATO
+    #    c. PT_MP - from the ingestion of MP
 
     # If terms for codes are different in the different ontologies (e.g. MP, UBERON, and PATO used different terms to
     # describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
     # there would be just one term, but with multiple relationships.
 
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(' ').str[0]), 'PT', OWL_SAB+'_PT')
+    # July 2023 - Delimiter between SAB and Code is colon.
+    # July 2023 - Changed type from SAB_PT to PT_SAB
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT',
+                                    'PT_'+OWL_SAB)
 
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
@@ -1344,6 +1371,42 @@ if node_metadata_has_labels:
                                           indicator=True)
     newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
     newCODE_SUIs.reset_index(drop=True, inplace=True)
+
+    """
+    # July 2023
+    # The logic in this block was developed and tested, but not deployed. 
+    # It is not possible to eliminate the issue of a term having both a PT_SAB and PT relationship with a code
+    # during ingestion, because of interdependent ontologies--two ontologies that make assertions using codes 
+    # from each other. The order of ingestion of ontologies affects the logic.
+    
+    # Logic:
+    # Only add a PT_SAB term if it differs from the PT term, or if there is no PT term.
+    # 1. Find all existing SUIs of type PT and obtain the term string.
+    dfCODE_SUIsPT = CODE_SUIs[CODE_SUIs[':TYPE']=='PT'].drop_duplicates()
+    dfCODE_SUIsPT = dfCODE_SUIsPT.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
+
+    # 2. Left merge new SUIs with existing SUIs of type PT.
+    # Obtain term string for the new terms.
+    newCODE_SUIs = newCODE_SUIs.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
+    newCODE_SUIs = newCODE_SUIs.merge(dfCODE_SUIsPT,how='left',left_on=':START_ID',right_on=':START_ID')
+
+    # 3. Only keep a new term if one of the following is true:
+    #   a. The type (with field name :TYPE_x after the merge) is PT
+    #   b. The term string (with field name name_x after the merge) is different from the term string for
+    #   the associated PT (with field name name_y after the merge).
+    # This logic also accounts for the case in which the CUI for the new term is for a UMLS concept, for which the preferred term
+    # has type PREF_TERM instead of PT.
+
+    # The logic involve multiple steps because pandas does not seem to handle the complex logic required here.
+    # Pandas functions are used because they are faster than looping through each row of the dataframe.
+    newCODE_SUIs['matched_name'] = np.where(newCODE_SUIs['name_x'] == newCODE_SUIs['name_y'],'yes','no')
+    newCODE_SUIs = newCODE_SUIs[(newCODE_SUIs[':TYPE_x'] == 'PT') | (newCODE_SUIs['matched_name'] == 'no')]
+
+    # Restore column headers.
+    newCODE_SUIs=newCODE_SUIs[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
+    newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+
+    """
 
     # write out newCODE_SUIs - comment out during development
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:

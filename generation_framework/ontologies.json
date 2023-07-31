@@ -1,4 +1,8 @@
 {
+  "UMLS": {
+    "comment": "initial preparation of files extracted from UMLS",
+    "execute": "./umls_init/umls_init.py"
+  },
   "CCF": {
     "owl_url": "https://data.bioontology.org/ontologies/CCF/submissions/14/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "comment": "Human Reference Atlas Common Coordinate Framework Ontology",

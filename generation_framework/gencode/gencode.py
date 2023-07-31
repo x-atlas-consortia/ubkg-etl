@@ -493,19 +493,22 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             if str(row['ont']).strip() != '':
                 listPGO = str(row['ont']).split(',')
                 for pgo in listPGO:
+                    # JULY 2023 SAB:code format
                     # Replace colon with underscore for codeReplacements function.
-                    object = f'PGO_{pgo.split(":")[-1]}'
+                    # object = f'PGO_{pgo.split(":")[-1]}'
+                    object = pgo
                     out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
             object = ''
             # Assertion: has refSeq ID
             # The RefSeq nodes will be created as part of the GENCODE ingestion.
+            # JULY 2023 - SAB:code format
             predicate = 'has_refSeq_ID'
             if row['RefSeq_RNA_id'] != '':
-                object = f'REFSEQ  {row["RefSeq_RNA_id"]}'
+                object = f'REFSEQ:{row["RefSeq_RNA_id"]}'
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
             if row['RefSeq_protein_id'] != '':
-                object = f'REFSEQ  {row["RefSeq_protein_id"]}'
+                object = f'REFSEQ:{row["RefSeq_protein_id"]}'
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
 
@@ -558,8 +561,10 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             node_synonyms = ''
 
             dbxreflist = []
+            # JULY 2023 - Format changed from HGNC HGNC:code to HGNC:code
             if row['hgnc_id'] != '':
-                dbxreflist.append('HGNC ' + row['hgnc_id'])
+                # dbxreflist.append('HGNC ' + row['hgnc_id'])
+                dbxreflist.append(row['hgnc_id'])
             #if row['mgi_id'] != '':
                 #dbxreflist.append('MGI:' + row['mgi_id'])
 
@@ -613,7 +618,9 @@ def write_nodes_file(df: pd.DataFrame, path: str):
             lowerbound = str(int(row['genomic_start_location']))
             upperbound = str(int(row['genomic_end_location']))
             unit = ''
-            node_dbxrefs = 'HGNC ' + row['hgnc_id']
+            # July 2023 - Format changed from HGNC HGNC:code to HGNC:code
+            # node_dbxrefs = 'HGNC ' + row['hgnc_id']
+            node_dbxrefs = row['hgnc_id']
             out.write(node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t'
                       + node_synonyms + '\t' + node_dbxrefs + '\t' + value + '\t' + lowerbound + '\t' + upperbound + '\t' + unit + '\n')
 
@@ -623,7 +630,8 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         dfRefSeq = df[df['RefSeq_RNA_id'] != '']
         dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_RNA_id']).reset_index(drop=True)
         for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
-            node_id = f'REFSEQ {row["RefSeq_RNA_id"]}'
+            # JULY 2023 - SAB:code
+            node_id = f'REFSEQ:{row["RefSeq_RNA_id"]}'
             node_namespace = 'GENCODE'
             node_label = row['RefSeq_RNA_id']
             node_definition = ''
@@ -642,7 +650,8 @@ def write_nodes_file(df: pd.DataFrame, path: str):
         dfRefSeq = df[df['RefSeq_RNA_id'] != '']
         dfRefSeq = dfRefSeq.drop_duplicates(subset=['RefSeq_protein_id']).reset_index(drop=True)
         for index, row in tqdm(dfRefSeq.iterrows(), total=dfRefSeq.shape[0]):
-            node_id = f'REFSEQ {row["RefSeq_protein_id"]}'
+            # July 2023 - SAB:code
+            node_id = f'REFSEQ:{row["RefSeq_protein_id"]}'
             node_namespace = 'GENCODE'
             node_label = row['RefSeq_protein_id']
             node_definition = ''
