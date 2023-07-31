@@ -366,10 +366,10 @@ def strippedEnsemblID(ensembl: str) -> str:
     return ensembl.split('.')[0]
 
 
-def getEnsemblVersion(ensembl: str) -> float:
+def getEnsemblVersion(ensembl: str) -> str:
     # July 2023
     # Obtains the version number from an ENSEMBL ID.
-    return float(ensembl.split('.')[1])
+    return ensembl.split('.')[1]
 
 def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
