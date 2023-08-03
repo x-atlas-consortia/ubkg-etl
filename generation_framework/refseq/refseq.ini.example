@@ -1,0 +1,3 @@
+[Directories]
+# Absolute Path in the local repo where the UBKG CSVs are located
+csv_dir=path/to/ubkg/csvs
