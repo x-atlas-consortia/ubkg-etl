@@ -8,6 +8,7 @@ Functions that are common to scripts in the generation framework.
 - ubkg_parsetools.py: Functions related to parsing and standardizing column data
 - ubkg_subprocess.py: Functions related to calling subprocesses.
 - ubkg_reporting.py: A class and functions related to reporting on ingest results.
+- ubkg_apikey.py: Functions related to working with the local text file that contains an API key.
 
 # ubkg_parsetools - codeReplacements function
 

@@ -66,7 +66,7 @@ def getrefseqsummaries(apikey: str) -> pd.DataFrame:
 
     retstart = 0
     retcount = 1
-    retmax = 499
+    retmax = 99
 
     ulog.print_and_logger_info('Obtaining RefSeq summaries for genes from NCBI eUTILs...')
     # List of UIDs to pass to call to esummary. The last list may contain fewer elements than the chunk size retmax.
