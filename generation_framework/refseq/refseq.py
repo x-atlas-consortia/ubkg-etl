@@ -26,6 +26,8 @@ import os
 import requests
 import time
 import base64
+import argparse
+
 
 # UBKG utilities are stored in the subdirectory ..generation_framework/ukbg_utilities.
 
@@ -40,8 +42,28 @@ import ubkg_apikey as uapikey
 import ubkg_logging as ulog
 import ubkg_extract as uextract
 
+class RawTextArgumentDefaultsHelpFormatter(
+    argparse.ArgumentDefaultsHelpFormatter,
+    argparse.RawTextHelpFormatter
+):
+    pass
 
-def getrefseqsummaries(apikey: str) -> pd.DataFrame:
+
+def getargs() -> argparse.Namespace:
+
+    # Parse arguments.
+    parser = argparse.ArgumentParser(
+    description='Extract RefSeq data for OWLNETs.\n'
+                'In general you should not have the change any of the optional arguments.',
+    formatter_class=RawTextArgumentDefaultsHelpFormatter)
+    # positional arguments
+    parser.add_argument("-s", "--skipbuild", action="store_true", help="skip build of OWLNETS files")
+    args = parser.parse_args()
+
+    return args
+
+
+def getrefseqsummaries(apikey: str, outdir: str) -> pd.DataFrame:
 
     # Calls endpoints of the NCBI eUtils to obtain a list of summaries of all human gene Entrez IDs.
 
@@ -54,23 +76,24 @@ def getrefseqsummaries(apikey: str) -> pd.DataFrame:
     listdefs = []
 
     # Parameters used in calls to eUtils endpoints.
-
-    # 1. Human species from the Gene database.
-    query = 'human[orgn]'
+    # 1. Current genes for human from the Gene database
+    query = 'human[orgn]AND+alive[prop]'
     db = 'gene'
     # 2. Common parameters to control output.
     params = f'retmode=json&db={db}&apikey={apikey}'
 
     # Used to chunk through the gene database.
-    # The eUtils API throttles responses and recommends calling eSummary with no more than 5000 UIDs.
+    # The eUtils API throttles responses and recommends calling eSummary with no more than 500 UIDs.
 
     retstart = 0
     retcount = 1
-    retmax = 99
+    retmax = 499
 
     ulog.print_and_logger_info('Obtaining RefSeq summaries for genes from NCBI eUTILs...')
     # List of UIDs to pass to call to esummary. The last list may contain fewer elements than the chunk size retmax.
     listids = []
+
+    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
     # Chunk through Gene database.
     while retstart < retcount:
@@ -79,9 +102,8 @@ def getrefseqsummaries(apikey: str) -> pd.DataFrame:
         # Pause to avoid a 429 error (too many requests) from eUtils.
         time.sleep(1)
 
-        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-
         # Build esearch URL to return a chunk of Entrez UIDs to use in subsequent call to esummary.
+        # The usehistory parameter results in storage of query results on the NCBI History server.
         esearch = f'esearch.fcgi?&{params}&usehistory=y&retmax={retmax}&retstart={retstart}&term={query}'
         urlsearch = f'{baseurl}{esearch}'
 
@@ -93,15 +115,22 @@ def getrefseqsummaries(apikey: str) -> pd.DataFrame:
         # Obtain information from response.
         responsesearchjson = responsesearch.json()
         esearchresult = responsesearchjson.get('esearchresult')
+
         # Total count of UIDs. This is the same for each call.
         retcount = int(esearchresult.get('count'))
         # List of UIDs to pass to the esummary endpoint, which has to be passed without the brackets of a Python
         # list.
-        listids = esearchresult.get('idlist')
-        argids = ','.join(listids)
+        # listids = esearchresult.get('idlist')
+        # argids = ','.join(listids)
+
+        # webenv and querykey used to point to the stored search query in the history server.
+        webenv = esearchresult.get('webenv')
+        querykey = esearchresult.get('querykey')
 
         # Build summary url that returns information for the list of IDs obtained from the esearch call.
-        esummary = f'esummary.fcgi?&{params}&id={argids}'
+        #esummary = f'esummary.fcgi?&{params}&id={argids}'
+        esummary = f'esummary.fcgi?&{params}&WebEnv={webenv}&query_key={querykey}&retstart={retstart}&retmax={retmax}'
+
         urlsummary = f'{baseurl}{esummary}'
         responsesummary = requests.get(urlsummary, headers=headers)
 
@@ -139,15 +168,22 @@ def getrefseqsummaries(apikey: str) -> pd.DataFrame:
     # Build return--dictionary, then DataFrame. Use keys that correspond to the column headers in
     # DEFs.csv and DEFrel.csv
     dictsummary = {'ATUI:ID': listatuis, 'SAB': 'REFSEQ', 'DEF': listdefs, ':END_ID': listatuis, 'CODE': listcodes}
-    df = pd.DataFrame.from_dict(dictsummary)
-    df = df.drop_duplicates()
-    df = df.dropna(subset=['DEF'])
-    df = df[df['DEF'] != '']
-    return df
+    dfout = pd.DataFrame.from_dict(dictsummary)
+    dfout = dfout.drop_duplicates()
+    dfout = dfout.dropna(subset=['DEF'])
+    dfout = dfout[dfout['DEF'] != '']
+
+    # Write to output.
+    os.system(f"mkdir -p {outdir}")
+    fout = os.path.join(outdir,'REFSEQ.csv')
+    uextract.to_csv_with_progress_bar(df=dfout, path=fout)
+
+    return dfout
 
 # -------------------
 # MAIN
 
+refargs = getargs()
 
 # Read from config file.
 cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'refseq/refseq.ini')
@@ -155,12 +191,23 @@ refseq_config = uconfig.ubkgConfigParser(cfgfile)
 
 # Obtain directory that contains the UBKG ontology CSVs, including DEFs.csv and DEFrel.csv.
 csv_dir = refseq_config.get_value(section='Directories', key='csv_dir')
+owlnets_dir = refseq_config.get_value(section='Directories', key='owlnets_dir')
 
 # Get the NCBI API key for use with eUtils.
 eutilapikey = uapikey.getapikey()
 
-# Obtain the set of RefSeq summaries for all human genes in Gene
-dfsummary = getrefseqsummaries(apikey=eutilapikey)
+# Obtain the file of data extracted from RefSeq.
+
+fRefSeq = os.path.join(owlnets_dir,'REFSEQ.csv')
+
+if refargs.skipbuild:
+    # Use existing file.
+    ulog.print_and_logger_info(f'Using existing file: {fRefSeq}')
+    dfsummary = uextract.read_csv_with_progress_bar(path=fRefSeq)
+else:
+    # Generate new file
+    ulog.print_and_logger_info(f'Generating new file: {fRefSeq}')
+    dfsummary = getrefseqsummaries(apikey=eutilapikey, outdir=owlnets_dir)
 
 # Read DEFs.csv.
 ulog.print_and_logger_info('Loading DEFs.csv for comparison...')
