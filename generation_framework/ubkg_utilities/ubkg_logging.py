@@ -11,7 +11,11 @@ import os
 #log_dir, log, log_config = 'builds/logs', 'pkt_build_log.log', glob.glob('**/logging.ini', recursive=True)
 
 fpath = os.path.dirname(os.getcwd())
-builds_dir = os.path.join(fpath,'builds')
+if 'generation_framework' in fpath:
+    builds_dir = os.path.join(fpath,'builds')
+else:
+    builds_dir = os.path.join(fpath,'generation_framework/builds')
+
 log_dir = os.path.join(builds_dir,'logs')
 log = 'ubkg.log'
 logger = logging.getLogger(__name__)
