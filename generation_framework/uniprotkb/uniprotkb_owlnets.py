@@ -14,6 +14,7 @@ import numpy as np
 import os
 import requests
 import argparse
+import re
 from tqdm import tqdm
 
 # Import UBKG utilities which is in a directory that is at the same level as the script directory.
@@ -192,10 +193,34 @@ def write_nodes_file(df: pd.DataFrame,  owlnets_dir: str):
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             node_id = 'UNIPROTKB:' + row['Entry']
             node_namespace = 'UNIPROTKB'
-            node_label = row['Entry Name']
-            node_definition = row['Protein names']
-            node_synonyms = ''
+            # August 2023
+            # The Protein Names field delimits using parenthesis--e.g., Approved name (synonym 1) (synonym 2)
+            # Set the preferred term to be the first entry in the Protein Names field from UniProtKB.
+            # Set all other names to be synonyms.
+            # node_label = row['Entry Name']
+            # node_definition = row['Protein names']
+
+            # Split on the pair of parentheses.
+            protein_names = row['Protein names']
+            protein_names = re.split(r'[()]', protein_names)
+            # Remove extraneous blanks.
+            for n in protein_names:
+                if n.strip() == '':
+                    protein_names.remove(n)
+
+            # The recommended name is the first in the list.
+            node_label = protein_names[0]
+
+            # Synonyms:
+            # Replace the approved name with the UniProtKB Entry Name, so it will the first synonym.
+            protein_names[0]=row['Entry Name']
+            # Delimit.
+            node_synonyms = '|'.join(protein_names)
+
+            node_definition = row['Function [CC]']
+
             node_dbxrefs = ''
+
             out.write(
                 node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t' + node_synonyms + '\t' + node_dbxrefs + '\n')
 
@@ -223,11 +248,13 @@ def write_relations_file(owlnets_dir: str, predicate:str):
         out.write(predicate + '\t' + 'UNIPROTKB' + '\t' + predicate + '\t' + '' + '\n')
     return
 
+
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
     argparse.RawTextHelpFormatter
 ):
     pass
+
 
 def getargs()->argparse.Namespace:
     # Parse command line arguments.

@@ -1,3 +1,5 @@
 [Directories]
 # Absolute Path in the local repo where the UBKG CSVs are located
 csv_dir=path/to/ubkg/csvs
+# Absolute Path in the local repo for storing data downloaded from RefSeq.
+owlnets_dir = path/to/ubkg-etl/generation_framework/owlnets_output/REFSEQ
