@@ -13,6 +13,9 @@
 
 # The result is that every column in a UMLS CSV file that corresponds to a CodeID will be formatted as SAB:CODE.
 
+# AUGUST 2023
+# For relationships (e.g., in CUI-CUIs.csv), replace dot and dash characters with underscores.
+
 # ------
 
 import sys
@@ -85,5 +88,22 @@ for f in dictfile_columns:
         # otherwise, replace the space with a colon.
         dffile[col] = np.where(dffile[col].str.contains('Level'),dffile[col].str.replace(': ','_').str.replace('Level ','Level_'),dffile[col])
         dffile[col] = dffile[col].str.replace(' ',':')
+    ulog.print_and_logger_info(f'Rewriting {csvfile}')
+    uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
+
+# Obtain list of files with relationships that need reformatting.
+dictrel_columns = config.get_section(section='Relationship_column')
+for f in dictrel_columns:
+    filename = f + '.csv'
+    csvfile = csv_path(path=csvdir, file=filename)
+    ulog.print_and_logger_info(f'Reading {csvfile}')
+    dffile = uextract.read_csv_with_progress_bar(path=csvfile)
+
+    # list of columns to reformat
+    convert_columns = list(dictrel_columns[f].split(','))
+    for col in convert_columns:
+        ulog.print_and_logger_info(f'--Reformatting column {col}')
+        dffile[col] = dffile[col].str.replace('.', '_',regex=False)
+        dffile[col] = dffile[col].str.replace('-', '_',regex=False)
     ulog.print_and_logger_info(f'Rewriting {csvfile}')
     uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
