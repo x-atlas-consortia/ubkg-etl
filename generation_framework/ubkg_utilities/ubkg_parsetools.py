@@ -308,6 +308,10 @@ def relationReplacements(x:pd.Series) :
     # Arguments:
     #  x - Pandas Series object containing predicates (edges)
 
+    # AUGUST 2023
+    # Replace . and - with _
+    ret = x.str.replace('.', '_',regex=False).str.replace('.', '_',regex=False)
+
     # For the majority of edges, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML serialization,
     # the format of an edge is one of the following:
     # 1. A IRI in the form http://purl.obolibrary.org/obo/RO_code
@@ -316,5 +320,7 @@ def relationReplacements(x:pd.Series) :
     # 4. a string
 
     ret = np.where(x.str.contains('RO:'),'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1],x)
+
+
 
     return ret
