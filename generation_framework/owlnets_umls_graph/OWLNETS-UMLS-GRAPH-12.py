@@ -851,17 +851,17 @@ node_metadata['base64cui'] = node_metadata['node_id']+' CUI'#.apply(base64it)
 
 # In[17]:
 
-ulog.print_and_logger_info('-- Assigning CUIs to nodes in order of preference (UMLS cross-reference CUI > UMLS direct reference CUI > non-UMLS cross-reference CUI > base64 CUI) ...')
+ulog.print_and_logger_info('-- Ordering CUIs for nodes by preference (UMLS cross-reference CUI > UMLS direct reference CUI > non-UMLS cross-reference CUI > new CUI) ...')
 # create correct length lists
 node_metadata['cuis'] = node_metadata['base64cui']
 node_metadata['CUI'] = ''
 
 # join list across row
 # This arranges CUIs for nodes in order of preference:
-# 1. nodeCUIs - the UMLS CUI for a cross-reference that existed previously in the ontology CSVs
+# 1. nodeCUIs - the UMLS CUIs for cross-references that existed previously in the ontology CSVs
 # 2. CUI_CODEs - the UMLS CUI for the node that existed previously in the ontology CSVs
 # 3. XrefCUIs - the non-UMLS CUIs for a cross-reference that existed previously in the ontology CSVs
-# 4. base64cui - the base64 CUI (base64 encoding of the node id) for a node that does not currently
+# 4. base64cui - the new CUI (formerly base64 encoding of the node id) for a node that does not currently
 #                exist in the ontology CSVs
 
 # July 2023 - After disabling base64 encoding of CUIs, it is necessary to convert the value of the base64cui field
@@ -877,23 +877,55 @@ node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).appl
 
 
 # JAS 27 MAR 2023
+# (Documentation updated in August 2023)
 # Assign the preferred CUI for the node.
-# The list for a node is ordered in terms of preference (see above) by type. In addition, we assume
-# that if XrefCUIs and CUI_CODEs are lists that the elements in the list are arranged in order of preference--
-# e.g., as codes are listed in dbxref. For these reasons, the first element in the cuilist for a node is
+# The 'cuis' list for a node is ordered in terms of preference (see above) by type. In addition, we assume
+# that if XrefCUIs and CUI_CODEs are lists, the elements in the list are arranged in order of preference--
+# e.g., as codes are listed in dbxref. For these reasons, the first element in the cuis list for a node is
 # assumed to have the highest preference.
 
-# It is possible for multiple nodes to be associated with the same CUI. However, this is a
-# requirement for ontologies that have higher resolution than the ontologies to which they cross-reference:
-# e.g., Azimuth cell mappings to CL codes.
+# It is possible for multiple nodes to be associated with the same CUI--e.g., through cross-references. However, this is a
+# requirement for ontologies that have higher resolution than the ontologies to which they cross-reference--e.g., Azimuth cell mappings to CL codes.
+# It is also possible for two codes to be cross-referenced to non-UMLS codes that map to the same UMLS CUI--e.g.,
+# CL codes that cross-reference to FMA codes that are mapped to the same UMLS CUI.
+
 # Because a cross-reference in a nodes file may already have been cross-referenced in a prior ingestion, it
-# is possible that the assignment of a cross-referenced CUI will result in in self-referential mappings--
+# is possible that the assignment of a cross-referenced CUI will result in self-referential mappings--
 # i.e., relationships in format CUI X (relationship) CUI X, where X=X.
 # Self-referential mappings will be removed prior to appending to CUI-CUIs.CSV.
 
-# The following code has been compared with the block that it replaces and has been confirmed to be faster, require fewer resources, and result
-# in more consistent assignments.
+# The default assignment is to the first CUI in the list. This works for the majority of codes.
 node_metadata['CUI'] = node_metadata['cuis'].str[0]
+
+# August 2023
+# Address case in which multiple codes are mapped to the same CUI.
+# Logic:
+# 1. Find duplicate code-CUI assignments--i.e., CUIs with a group of more than one associated code.
+# 2. For each code that is in a group of duplicates, look for the best alternate CUI for the code, selecting from the
+#    ordered set of possible CUIs. Start with the default (first).
+# This logic is similar to the original assignment logic, with the significant difference that it only
+# works with known duplicates instead of looping through the entire node list.
+
+ulog.print_and_logger_info('Resolving duplicate code-CUI assignments...')
+# Find duplicate code-CUI assignments.
+node_metadata_duplicates = node_metadata.groupby(['CUI']).count().reset_index()
+node_metadata_duplicates = node_metadata_duplicates[node_metadata_duplicates['node_id']>1]
+
+# For each CUI with multiple codes assigned to it:
+for cui in node_metadata_duplicates['CUI']:
+    dfduplicatenodes = node_metadata[node_metadata['CUI'] == cui]
+    cui_assigned = []
+    # For each code in the group, find the first CUI that has not already been assigned either to the
+    # code itself or another code in the group.
+    for index, rows in dfduplicatenodes.iterrows():
+        assigned = False
+        for c in rows['cuis']:
+            if not (c in cui_assigned):
+                if assigned == False:
+                    cui_assigned.append(c)
+                    assigned = True
+    # Revise CUI assignments to the codes in the group.
+    node_metadata.loc[node_metadata['CUI'] == cui,'CUI'] = cui_assigned
 
 # -----------------------------------------
 
