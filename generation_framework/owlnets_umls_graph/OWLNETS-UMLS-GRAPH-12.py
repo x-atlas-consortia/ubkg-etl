@@ -924,6 +924,13 @@ for cui in node_metadata_duplicates['CUI']:
                 if assigned == False:
                     cui_assigned.append(c)
                     assigned = True
+        # If no CUI was assigned, map to the new CUI minted for the code. This is to address an edge case first
+        # encountered in MP, in which CL:0000792 is both defined for the first time in the node file and listed
+        # as a dbxref for MP nodes MP:0010169,MP:0008397, and MP:0010168
+        if assigned == False:
+            c = ''.join(rows['base64cui'])
+            cui_assigned.append(c)
+
     # Revise CUI assignments to the codes in the group.
     node_metadata.loc[node_metadata['CUI'] == cui,'CUI'] = cui_assigned
 
