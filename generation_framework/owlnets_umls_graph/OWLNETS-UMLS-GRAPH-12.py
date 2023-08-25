@@ -906,13 +906,15 @@ node_metadata['CUI'] = node_metadata['cuis'].str[0]
 # This logic is similar to the original assignment logic, with the significant difference that it only
 # works with known duplicates instead of looping through the entire node list.
 
-ulog.print_and_logger_info('Resolving duplicate code-CUI assignments...')
+ulog.print_and_logger_info('-- Resolving duplicate code-CUI assignments...')
 # Find duplicate code-CUI assignments.
+ulog.print_and_logger_info('--- Finding duplicate assignments...')
 node_metadata_duplicates = node_metadata.groupby(['CUI']).count().reset_index()
 node_metadata_duplicates = node_metadata_duplicates[node_metadata_duplicates['node_id']>1]
 
+ulog.print_and_logger_info('--- Assigning alternate CUIs for codes mapped to the same CUI...')
 # For each CUI with multiple codes assigned to it:
-for cui in node_metadata_duplicates['CUI']:
+for cui in tqdm(node_metadata_duplicates['CUI']):
     dfduplicatenodes = node_metadata[node_metadata['CUI'] == cui]
     cui_assigned = []
     # For each code in the group, find the first CUI that has not already been assigned either to the
@@ -925,9 +927,11 @@ for cui in node_metadata_duplicates['CUI']:
                     cui_assigned.append(c)
                     assigned = True
         # If no CUI was assigned, map to the new CUI minted for the code. This is to address an edge case first
-        # encountered in MP, in which CL:0000792 is both defined for the first time in the node file and listed
-        # as a dbxref for MP nodes MP:0010169,MP:0008397, and MP:0010168
+        # encountered in MP, in which CL:0000792 is both defined in the node file and listed
+        # as a dbxref for MP nodes MP:0010169,MP:0008397, and MP:0010168.
         if assigned == False:
+            # Assign the new CUI. Because this has been converted to a list for building cuilist,
+            # convert to a string.
             c = ''.join(rows['base64cui'])
             cui_assigned.append(c)
 
@@ -1400,8 +1404,15 @@ if node_metadata_has_labels:
 
     # July 2023 - Delimiter between SAB and Code is colon.
     # July 2023 - Changed type from SAB_PT to PT_SAB
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT',
-                                    'PT_'+OWL_SAB)
+
+    # August 2023 - HGNC does not define its preferred term with PT, but with ACR.
+    if newCODE_SUIs['node_id'].str.upper().str.split(':').str[0] == 'HGNC':
+        typePT = 'ACR'
+    else:
+        typePT = 'PT'
+
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), typePT,
+                                    typePT+'_'+OWL_SAB)
 
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
@@ -1410,6 +1421,8 @@ if node_metadata_has_labels:
                                           indicator=True)
     newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
     newCODE_SUIs.reset_index(drop=True, inplace=True)
+
+
 
     # July 2023
 
@@ -1420,7 +1433,7 @@ if node_metadata_has_labels:
     # Logic:
     # Only add a PT_SAB term if it differs from the PT term, or if there is no PT term.
     # 1. Find all existing SUIs of type PT and obtain the term string.
-    dfCODE_SUIsPT = CODE_SUIs[CODE_SUIs[':TYPE']=='PT'].drop_duplicates()
+    dfCODE_SUIsPT = CODE_SUIs[CODE_SUIs[':TYPE']==typePT].drop_duplicates()
     dfCODE_SUIsPT = dfCODE_SUIsPT.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
 
     # 2. Left merge new SUIs with existing SUIs of type PT.
@@ -1438,7 +1451,7 @@ if node_metadata_has_labels:
     # The logic involve multiple steps because pandas does not seem to handle the complex logic required here.
     # Pandas functions are used because they are faster than looping through each row of the dataframe.
     newCODE_SUIs['matched_name'] = np.where(newCODE_SUIs['name_x'] == newCODE_SUIs['name_y'],'yes','no')
-    newCODE_SUIs = newCODE_SUIs[(newCODE_SUIs[':TYPE_x'] == 'PT') | (newCODE_SUIs['matched_name'] == 'no')]
+    newCODE_SUIs = newCODE_SUIs[(newCODE_SUIs[':TYPE_x'] == typePT) | (newCODE_SUIs['matched_name'] == 'no')]
 
     # Restore column headers.
     newCODE_SUIs=newCODE_SUIs[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
