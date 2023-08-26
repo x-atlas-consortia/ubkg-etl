@@ -1405,14 +1405,12 @@ if node_metadata_has_labels:
     # July 2023 - Delimiter between SAB and Code is colon.
     # July 2023 - Changed type from SAB_PT to PT_SAB
 
-    # August 2023 - HGNC does not define its preferred term with PT, but with ACR.
-    if newCODE_SUIs['node_id'].str.upper().str.split(':').str[0] == 'HGNC':
-        typePT = 'ACR'
-    else:
-        typePT = 'PT'
+    # newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT',
+                                    # 'PT_'+OWL_SAB)
+    # August 2023 - HGNC uses ACR instead of PT. HGNC is part of the UMLS, so OWL_SAB will never be HGNC.
 
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), typePT,
-                                    typePT+'_'+OWL_SAB)
+    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT',
+                                     np.where(newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]=='HGNC','ACR_'+OWL_SAB,'PT_'+OWL_SAB))
 
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
@@ -1423,7 +1421,6 @@ if node_metadata_has_labels:
     newCODE_SUIs.reset_index(drop=True, inplace=True)
 
 
-
     # July 2023
 
     # It is not possible to eliminate completely the issue of a term having both a PT_SAB and PT relationship with a code
@@ -1431,9 +1428,11 @@ if node_metadata_has_labels:
     # from each other. The order of ingestion of ontologies affects the logic.
     
     # Logic:
-    # Only add a PT_SAB term if it differs from the PT term, or if there is no PT term.
+    # Only add a PT_SAB term if it differs from the PT term, or if there is no PT or ACR term.
     # 1. Find all existing SUIs of type PT and obtain the term string.
-    dfCODE_SUIsPT = CODE_SUIs[CODE_SUIs[':TYPE']==typePT].drop_duplicates()
+
+    # August 2023 - HGNC uses ACR instead of PT.
+    dfCODE_SUIsPT = CODE_SUIs[(CODE_SUIs[':TYPE'] =='PT') | ((CODE_SUIs[':TYPE'] =='ACR'))].drop_duplicates()
     dfCODE_SUIsPT = dfCODE_SUIsPT.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
 
     # 2. Left merge new SUIs with existing SUIs of type PT.
@@ -1442,7 +1441,7 @@ if node_metadata_has_labels:
     newCODE_SUIs = newCODE_SUIs.merge(dfCODE_SUIsPT,how='left',left_on=':START_ID',right_on=':START_ID')
 
     # 3. Only keep a new term if one of the following is true:
-    #   a. The type (with field name :TYPE_x after the merge) is PT
+    #   a. The type (with field name :TYPE_x after the merge) is PT (or ACR for HGNC)
     #   b. The term string (with field name name_x after the merge) is different from the term string for
     #   the associated PT (with field name name_y after the merge).
     # This logic also accounts for the case in which the CUI for the new term is for a UMLS concept, for which the preferred term
@@ -1451,7 +1450,8 @@ if node_metadata_has_labels:
     # The logic involve multiple steps because pandas does not seem to handle the complex logic required here.
     # Pandas functions are used because they are faster than looping through each row of the dataframe.
     newCODE_SUIs['matched_name'] = np.where(newCODE_SUIs['name_x'] == newCODE_SUIs['name_y'],'yes','no')
-    newCODE_SUIs = newCODE_SUIs[(newCODE_SUIs[':TYPE_x'] == typePT) | (newCODE_SUIs['matched_name'] == 'no')]
+    # The use of loc suppresses the warning: Boolean Series key will be reindexed to match DataFrame index.
+    newCODE_SUIs = newCODE_SUIs.loc[(CODE_SUIs[':TYPE'] =='PT') | ((CODE_SUIs[':TYPE'] =='ACR')) | (newCODE_SUIs['matched_name'] == 'no')]
 
     # Restore column headers.
     newCODE_SUIs=newCODE_SUIs[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
