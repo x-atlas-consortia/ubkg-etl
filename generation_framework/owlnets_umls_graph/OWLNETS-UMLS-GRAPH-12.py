@@ -1348,114 +1348,134 @@ if node_metadata_has_labels:
 ulog.print_and_logger_info('-- Appending terms to CODE-SUIs.csv...')
 
 CODE_SUIs = pd.read_csv(csv_path("CODE-SUIs.csv"))
-CODE_SUIs = CODE_SUIs[((CODE_SUIs[':TYPE'] == 'PT') | (CODE_SUIs[':TYPE'] == 'SY'))]
+# AUGUST 2023 - Include ACR for HGNC codes.
+CODE_SUIs = CODE_SUIs[((CODE_SUIs[':TYPE'] == 'PT') | (CODE_SUIs[':TYPE'] == 'SY') | (CODE_SUIs[':TYPE'] == 'ACR'))]
 CODE_SUIs = CODE_SUIs.dropna().drop_duplicates().reset_index(drop=True)
 
 # #### Write CODE-SUIs (:END_ID,:START_ID,:TYPE,CUI) part 1, from label - with existence check
 
-# In[27]:
+def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsuis: pd.DataFrame, dfcodesuis: pd.DataFrame) -> pd.DataFrame:
 
+    # August 2023
+    # Obtain terms of a specified type for new codes.
 
-# JAS MARCH 2023 - change to address issue #42.
+    # The specified types of interest are:
+    # PT - for all ontologies except for HGNC.
+    # ACR - for HGNC. HGNC uses terms of type PT for the approved name and ACR for the approved symbol;
+    #       however, ontologies that refer to HGNC will usually use the approved symbol for the node_label.
 
-# JCS original comment (for archival; issue has been addressed)
-# This does NOT (yet) address two different owl files asserting two different SUIs as PT with the same CUI,CodeID
-# by choosing the first one in the build process (by comparing only three columns in the existence check)
-# - a Code/CUI would thus have only one PT relationship (to only one SUI) so that is not guaranteed right now
-# (its good practice in query to deduplicate anyway results - because for example even fully addressed
-# two PT relationships could exist between a CODE and SUI if they are asserted on different CUIs) -
-# to assert a vocabulary-specific relationship type as vocabulary-specific preferred term (an ingest parameter perhaps)
-# one would create a PT (if it doesn't have one) and a SAB_PT - that is the solution for an SAB that wants
-# to assert PT on someone else's Code (CCF may want this so there could be CCF_PT Terms on UBERON codes) -
-# note that for SY later, this is not an issue because SY are expected to be multiple and so we use all
-# four columns in the existence check there too but intend to keep that one that way.
+    # Note: other ontologies from UMLS (e.g., OMIM) also use terms of type ACR. These terms will not be
+    # tested for duplication if ingested.
 
-# JAS March 2023
-# Assign terms for codes of nodes indicated in the nodes file:
-#   If the SAB for the assertion set/ontology is the same as the SAB for the code, then PT
-#   else <SAB>_PT
-# get the SUIs matches for SUIs
+    # Because an ingested ontology can refer to nodes from other ontologies, it is possible that the
+    # ingested ontology uses a preferred term that is different from that defined by the term's ontology.
+    # We have defined a business rule that only a node's ontology should define the preferred term.
+    #
+    # The script distinguish between specified terms from the "owning ontology" from
+    # those from an ingesting ontology. Terms from the ingesting ontology have a "SAB" suffix by default.
+
+    # In the most common use case, the preferred term for a node is the same in both the owning and
+    # ingesting ontology. To eliminate unncessary duplication, the script only adds a "_SAB" term
+    # if either it differs from that of the owning ontology or no corresponding term is in the UBKG.
+
+    # For example, suppose the following:
+    # 1. The following order of ingestion occurs: PATO, MP, UBERON
+    # 2. The MP ontology uses codes from PATO, UBERON, and MP.
+
+    # 1. MP codes from the MP ingestion will have a PT term.
+    # 2. PATO codes can have terms with the following relationships:
+    #    a. PT - from the ingestion of PATO
+    #    b. PT_MB - from the ingestion of MP, if the PT for the code from the PATO ingestion is different from
+    #              the PT for the code from the MP ingestion, or if the PATO ingestion refers to a MP code
+    #              that was not ingested by MP.
+    # 3. UBERON codes can have terms with the following relationships:
+    #    a. PT - from the ingestion of UBERON
+    #    b. PT_PATO - from the ingestion of PATO, subject to the conditions shown for PATO, case b
+    #    c. PT_MP - from the ingestion of MP, subject to PATO, case b
+
+    ulog.print_and_logger_info(f'Checking for new or differing terms of type {termtype}...')
+    # Find all new terms by merging the new codes against the terms list. The terms list was
+    # populated with net new terms prior to this function.
+    dfnewcodesuis = dfnode.merge(dfsuis, how='left', left_on='node_label', right_on='name')[
+        ['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
+
+    # Apply the default filter based on specified type.
+    # If the SAB for the code is not the same as the ingesting ontology, append the SAB to the term type.
+    if termtype == 'PT':
+        dfnewcodesuis[':TYPE'] = np.where((owlsab == dfnewcodesuis['node_id'].str.upper().str.split(':').str[0]),
+                                     'PT', 'PT_' + owlsab)
+        # HGNC uses the ACR logic. Drop HGNC PTs.
+        dfnewcodesuis = dfnewcodesuis[dfnewcodesuis['node_id'].str.upper().str.split(':').str[0] != 'HGNC']
+    elif termtype == 'ACR':
+        # HGNC ACRs
+        dfnewcodesuis[':TYPE'] = np.where((owlsab == dfnewcodesuis['node_id'].str.upper().str.split(':').str[0]),
+                                          'ACR', 'ACR_' + owlsab)
+        # Filter to HGNC.
+        dfnewcodesuis = dfnewcodesuis[dfnewcodesuis['node_id'].str.upper().str.split(':').str[0] == 'HGNC']
+    else:
+        ulog.print_and_logger_info(f'Invalid type for getnewsuisfortermtype: {termtype}')
+        exit(1)
+
+    # Reduce columns.
+    dfnewcodesuis.columns = [':END_ID', ':START_ID', 'CUI',':TYPE']
+
+    # Filter to only the rows not already matching in existing files.
+    df = dfnewcodesuis.drop_duplicates().merge(dfcodesuis.drop_duplicates(), on=dfcodesuis.columns.to_list(), how='left',
+                                              indicator=True)
+    # Original method that still works.
+    dfnewcodesuis = df.loc[df._merge == 'left_only', df.columns != '_merge']
+    dfnewcodesuis.reset_index(drop=True, inplace=True)
+
+    # It is not possible to eliminate completely the issue of a term having both a termtype_SAB and termtype
+    # relationship with a code during ingestion, because of interdependent ontologies--i.e., two
+    # ontologies that make assertions using codes from each other.
+    # The order of ingestion of ontologies affects the logic.
+
+    # Logic:
+    # Only add a termtype_SAB term if it differs from the termtype term, or if there is no termtype term already.
+    # For example, if SAB Y refers to a code from SAB X, add a PT_Y if it differs from PT or there is no PT.
+
+    # 1. Find all existing SUIs of the specified term type and obtain the term string.
+    dftermtype = dfcodesuis[(dfcodesuis[':TYPE'] == termtype)].drop_duplicates()
+    dftermtype = dftermtype.merge(dfsuis, how='inner', left_on=':END_ID', right_on='SUI:ID')
+
+    # 2. Left merge new SUIs with existing SUIs of the specified term type.
+    # Obtain term string for the new terms.
+    dfnewcodesuis = dfnewcodesuis.merge(dfsuis, how='inner', left_on=':END_ID', right_on='SUI:ID')
+    dfnewcodesuis = dfnewcodesuis.merge(dftermtype, how='left', left_on=':START_ID', right_on=':START_ID')
+
+    # 3. Only keep a new term if one of the following is true:
+    #   a. The type (with field name :TYPE_x after the merge) is the specified term type.
+    #   b. The term string (with field name name_x after the merge) is different from the term string for
+    #   the associated X (with field name name_y after the merge).
+    # For the case of PT, this logic also accounts for the case in which the
+    # CUI for the new term is for a UMLS concept, for which the preferred term has type PREF_TERM instead of PT.
+
+    # The logic involves multiple steps because pandas does not seem to handle the complex logic required here.
+    # Pandas functions are used because they are faster than looping through each row of the dataframe.
+    dfnewcodesuis['matched_name'] = np.where(dfnewcodesuis['name_x'] == dfnewcodesuis['name_y'], 'yes', 'no')
+    # The use of loc suppresses the warning: Boolean Series key will be reindexed to match DataFrame index.
+    dfnewcodesuis = dfnewcodesuis.loc[(dfnewcodesuis[':TYPE_x'] == termtype) | (dfnewcodesuis['matched_name'] == 'no')]
+
+    # Restore column headers.
+    dfnewcodesuis = dfnewcodesuis[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
+
+    dfnewcodesuis.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+
+    return dfnewcodesuis
 
 # JAS APR 2023:
 # Only check for SUIs if there is a value for node_label.
+
 if node_metadata_has_labels:
-    newCODE_SUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
-
-    newCODE_SUIs.insert(2, ':TYPE', 'PT')
-
-    # Change: if a term is being associated with a code by an ontology/set of assertions, it should be a PT only
-    # if the code belongs to the ontology; otherwise, the term should be a "SAB PT".
-    # For example, suppose that the following order of ingestion occurs:
-    # PATO, MP, UBERON
-    # The MP ontology uses codes from PATO, UBERON, and MP.
-
-    # 1. MP codes will have a PT term.
-    # 2. PATO codes will have terms with the following relationships:
-    #    a. PT - from the ingestion of PATO
-    #    b. PT_MB - from the ingestion of MP
-    # 3. UBERON codes will have terms with the following relationships:
-    #    a. PT - from the ingestion of UBERON
-    #    b. PT_PATO - from the ingestion of PATO
-    #    c. PT_MP - from the ingestion of MP
-
-    # If terms for codes are different in the different ontologies (e.g. MP, UBERON, and PATO used different terms to
-    # describe the same UBERON code, then there would be multiple terms. If, however, all ontologies use the same term,
-    # there would be just one term, but with multiple relationships.
-
-    # July 2023 - Delimiter between SAB and Code is colon.
-    # July 2023 - Changed type from SAB_PT to PT_SAB
-
-    # newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT',
-                                    # 'PT_'+OWL_SAB)
-    # August 2023 - HGNC uses ACR instead of PT. HGNC is part of the UMLS, so OWL_SAB will never be HGNC.
-
-    newCODE_SUIs[':TYPE'] = np.where((OWL_SAB == newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]), 'PT',
-                                     np.where(newCODE_SUIs['node_id'].str.upper().str.split(':').str[0]=='HGNC','ACR_'+OWL_SAB,'PT_'+OWL_SAB))
-
-    newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
-
-    # Here we isolate only the rows not already matching in existing files
-    df = newCODE_SUIs.drop_duplicates().merge(CODE_SUIs.drop_duplicates(), on=CODE_SUIs.columns.to_list(), how='left',
-                                          indicator=True)
-    newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
-    newCODE_SUIs.reset_index(drop=True, inplace=True)
-
-
-    # July 2023
-
-    # It is not possible to eliminate completely the issue of a term having both a PT_SAB and PT relationship with a code
-    # during ingestion, because of interdependent ontologies--two ontologies that make assertions using codes 
-    # from each other. The order of ingestion of ontologies affects the logic.
-    
-    # Logic:
-    # Only add a PT_SAB term if it differs from the PT term, or if there is no PT or ACR term.
-    # 1. Find all existing SUIs of type PT and obtain the term string.
-
-    # August 2023 - HGNC uses ACR instead of PT.
-    dfCODE_SUIsPT = CODE_SUIs[(CODE_SUIs[':TYPE'] =='PT') | ((CODE_SUIs[':TYPE'] =='ACR'))].drop_duplicates()
-    dfCODE_SUIsPT = dfCODE_SUIsPT.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
-
-    # 2. Left merge new SUIs with existing SUIs of type PT.
-    # Obtain term string for the new terms.
-    newCODE_SUIs = newCODE_SUIs.merge(SUIs, how='inner', left_on=':END_ID',right_on='SUI:ID')
-    newCODE_SUIs = newCODE_SUIs.merge(dfCODE_SUIsPT,how='left',left_on=':START_ID',right_on=':START_ID')
-
-    # 3. Only keep a new term if one of the following is true:
-    #   a. The type (with field name :TYPE_x after the merge) is PT (or ACR for HGNC)
-    #   b. The term string (with field name name_x after the merge) is different from the term string for
-    #   the associated PT (with field name name_y after the merge).
-    # This logic also accounts for the case in which the CUI for the new term is for a UMLS concept, for which the preferred term
-    # has type PREF_TERM instead of PT.
-
-    # The logic involve multiple steps because pandas does not seem to handle the complex logic required here.
-    # Pandas functions are used because they are faster than looping through each row of the dataframe.
-    newCODE_SUIs['matched_name'] = np.where(newCODE_SUIs['name_x'] == newCODE_SUIs['name_y'],'yes','no')
-    # The use of loc suppresses the warning: Boolean Series key will be reindexed to match DataFrame index.
-    newCODE_SUIs = newCODE_SUIs.loc[(CODE_SUIs[':TYPE'] =='PT') | ((CODE_SUIs[':TYPE'] =='ACR')) | (newCODE_SUIs['matched_name'] == 'no')]
-
-    # Restore column headers.
-    newCODE_SUIs=newCODE_SUIs[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
-    newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+    # Obtain code terms for new codes for which existing terms of type PT do not exist.
+    newCODE_SUIs = getnewsuisfortermtype(termtype='PT', owlsab=OWL_SAB, dfnode=node_metadata, dfsuis=SUIs,
+                                         dfcodesuis=CODE_SUIs)
+    # Obtain code terms for new HGNC codes for which existing terms of type ACR do not exist.
+    newCODE_SUIsACR = getnewsuisfortermtype(termtype='ACR', owlsab=OWL_SAB, dfnode=node_metadata, dfsuis=SUIs,
+                                         dfcodesuis=CODE_SUIs)
+    # Concatenate PT and ACR results.
+    newCODE_SUIs = pd.concat([newCODE_SUIs,newCODE_SUIsACR])
 
     # write out newCODE_SUIs - comment out during development
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
@@ -1463,13 +1483,8 @@ if node_metadata_has_labels:
     else:
         newCODE_SUIs.to_csv(csv_path('CODE-SUIs.csv'), mode='a', header=False, index=False)
 
-# del newCODE_SUIs - will use this variable again later (though its overwrite)
-
 
 # #### Write SUIs (SUI:ID,name) part 2, from synonyms - with existence check
-
-# In[28]:
-
 
 # explode and merge the synonyms
 ulog.print_and_logger_info('-- Appending synonyms to SUIs.csv...')
@@ -1503,8 +1518,6 @@ if node_metadata_has_synonyms:
         newSUIs.to_csv(csv_path('SUIs.csv'), mode='a', header=False, index=False)
 
     del newSUIs
-# del explode_syns
-
 
 # #### Write CODE-SUIs (:END_ID,:START_ID,:TYPE,CUI) part 2, from synonyms - with existence check
 
