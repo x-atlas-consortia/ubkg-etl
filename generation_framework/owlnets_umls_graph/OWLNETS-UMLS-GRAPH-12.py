@@ -38,7 +38,6 @@ import numpy as np
 import base64
 import json
 import os
-import fileinput
 from tqdm import tqdm
 # from tqdm.auto import tqdm # for notebooks
 
@@ -84,32 +83,6 @@ def identify_source_file(file_names: list) -> str:
     # Error case: no file found with name in argument list.
     lfile = ','.join(str(f) for f in file_names)
     raise FileNotFoundError('No file found with name in list: ' + lfile)
-
-
-def update_columns_to_csv_header(file: str, new_columns: list):
-    # JAS 6 January 2023
-    # Updates the header of an ontology CSV file, adding new column names from the list argument.
-    # This allows the addition of columns for custom properties or relationships.
-
-    # Set up tqdm progress bar.
-    file_size = os.path.getsize(file)
-    pbar = tqdm(total=file_size, unit='MB')
-
-    for line in fileinput.input(file, inplace=True):
-        if fileinput.isfirstline():
-            # Replace the header with the columns from the argument list.
-            newline = ','.join(new_columns)
-        else:
-            # Strip the newline from the end of the current row and then reprint it.
-            newline = line.rstrip('\n')
-        print(newline)
-
-        # Update progress bar.
-        pbar.update(sys.getsizeof(line)-sys.getsizeof('\n'))
-
-    pbar.close()
-
-    return
 
 
 def getROrelationshiptriples() -> pd.DataFrame:
@@ -168,24 +141,24 @@ def getROrelationshiptriples() -> pd.DataFrame:
 
     # Get subject node, edge
     # MAY 2023 replace inner join with left
-    dfrelationtriples = dfnodes.merge(dfedges, how='left', left_on='id', right_on='sub')
+    dfrt = dfnodes.merge(dfedges, how='left', left_on='id', right_on='sub')
     # Get object node
-    dfrelationtriples = dfrelationtriples.merge(dfnodes, how='left', left_on='obj', right_on='id')
+    dfrt = dfrt.merge(dfnodes, how='left', left_on='obj', right_on='id')
 
     # May 2023
     # Set a default predicate to capture nodes without predicates.
-    dfrelationtriples = dfrelationtriples.fillna(value={'pred': 'no predicate'})
+    dfrt = dfrt.fillna(value={'pred': 'no predicate'})
 
     # ---------------------------------
     # Identify relationship properties that do not have inverses.
     # 1. Group relationship properties by predicate, using count.
     #    ('pred' here describes the relationship between relationship properties.)
-    dfpred = dfrelationtriples.groupby(['id_x', 'pred']).count().reset_index()
+    dfpred = dfrt.groupby(['id_x', 'pred']).count().reset_index()
 
     # 2. Identify the relationships for which the set of predicates does not include "inverseOf".
     listinv = dfpred[dfpred['pred'] == 'inverseOf']['id_x'].to_list()
     listnoinv = dfpred[~dfpred['id_x'].isin(listinv)]['id_x'].to_list()
-    dfnoinv = dfrelationtriples.copy()
+    dfnoinv = dfrt.copy()
     dfnoinv = dfnoinv[dfnoinv['id_x'].isin(listnoinv)]
 
     # 3. Rename column names to match the relationtriples frame. (Column names are described
@@ -215,7 +188,7 @@ def getROrelationshiptriples() -> pd.DataFrame:
     # ---------------------------------
     # Filter the base triples frame to just those relationship properties that have inverses.
     # This step eliminates relationship properties related by relationships such as "subPropertyOf".
-    dfrelationtriples = dfrelationtriples[dfrelationtriples['pred'] == 'inverseOf']
+    dfrt = dfrt[dfrt['pred'] == 'inverseOf']
 
     # Rename column names.
     # Column names will be:
@@ -223,20 +196,20 @@ def getROrelationshiptriples() -> pd.DataFrame:
     # relation_label_RO - the label for the relationship property
     # inverse_RO - the label of the inverse relationship property
     # inverse_IRI - IRI for the inverse relationship (This will be dropped.)
-    dfrelationtriples = dfrelationtriples[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
+    dfrt = dfrt[['id_x', 'lbl_x', 'id_y', 'lbl_y']].rename(
         columns={'id_x': 'IRI', 'lbl_x': 'relation_label_RO', 'id_y': 'inverse_IRI', 'lbl_y': 'inverse_RO'})
 
     # Add triples for problematic relationship properties--i.e., without inverses or from incomplete pairs.
-    dfrelationtriples = pd.concat([dfrelationtriples, dfnoinv], ignore_index=True).drop_duplicates(subset=['IRI'])
+    dfrt = pd.concat([dfrt, dfnoinv], ignore_index=True).drop_duplicates(subset=['IRI'])
 
     # Convert stings for labels for relationships to expected delimiting.
-    dfrelationtriples['relation_label_RO'] = \
-        dfrelationtriples['relation_label_RO'].str.replace(' ', '_').str.split('/').str[-1]
-    dfrelationtriples['inverse_RO'] = dfrelationtriples['inverse_RO'].str.replace(' ', '_').str.split('/').str[-1]
+    dfrt['relation_label_RO'] = \
+        dfrt['relation_label_RO'].str.replace(' ', '_').str.split('/').str[-1]
+    dfrt['inverse_RO'] = dfrt['inverse_RO'].str.replace(' ', '_').str.split('/').str[-1]
 
-    dfrelationtriples = dfrelationtriples.drop(columns='inverse_IRI')
+    dfrt = dfrt.drop(columns='inverse_IRI')
 
-    return dfrelationtriples
+    return dfrt
 
 
 # -----------------------------------------------------
@@ -306,7 +279,10 @@ node_metadata = node_metadata[['node_id', 'node_label', 'node_definition', 'node
 
 ulog.print_and_logger_info('---- Dropping duplicate nodes...')
 # Replace 'None' with nan
-node_metadata = node_metadata.replace({'None': np.nan})
+# August 2023 - Set blank values of value, etc. to blank instead of NAN for consistent row length.
+# node_metadata = node_metadata.replace({'None': np.nan})
+node_metadata = node_metadata.replace({'None': ''})
+
 # Drop nodes for which node_id is nan.
 # Drop duplicate nodes.
 # The subset is necessary because the node file may contain optional columns with cells with no data.
@@ -385,7 +361,9 @@ edgelist = uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_b
 
 # edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
-    edgelist['evidence_class'] = np.nan
+    # August 2023 - set to blank instead of NAN for consistent row content.
+    # edgelist['evidence_class'] = np.nan
+    edgelist['evidence_class'] = ''
 edgelist = edgelist[['subject', 'predicate', 'object', 'evidence_class']]
 
 # JAS 6 JAN 2023 - Add subset to dropna because evidence_class is optional.
@@ -789,7 +767,7 @@ CUI_CODEs = CUI_CODEs.dropna().drop_duplicates().reset_index(drop=True)
 # In[14]:
 
 ulog.print_and_logger_info('-- Flattening data from CUI_CODEs...')
-#CODE_CUIs = CUI_CODEs.groupby(':END_ID', sort=False)[':START_ID'].apply(list).reset_index(name='CUI_CODEs')
+
 CODE_CUIs = CUI_CODEs.groupby(':END_ID', sort=False)[':START_ID'].progress_apply(list).reset_index(name='CUI_CODEs')
 
 # JAS the call to upper is new.
@@ -821,7 +799,6 @@ ulog.print_and_logger_info('-- Identifying non-UMLS cross-references from CUI-CO
 node_xref_cui = explode_dbxrefs.merge(CUI_CODEs, how='inner', left_on='node_dbxrefs',
                                       right_on=CUI_CODEs[':END_ID'].str.upper())
 # JAS FEB 2023 Adding group_keys=False to silence the FutureWarning.
-#node_xref_cui = node_xref_cui.groupby('node_id', sort=False, group_keys=False)[':START_ID'].apply(list).reset_index(name='XrefCUIs')
 node_xref_cui = node_xref_cui.groupby('node_id', sort=False, group_keys=False)[':START_ID'].progress_apply(list).reset_index(name='XrefCUIs')
 node_xref_cui['XrefCUIs'] = node_xref_cui['XrefCUIs'].apply(lambda x: pd.unique(x)).apply(list)
 node_metadata = node_metadata.merge(node_xref_cui, how='left', on='node_id')
@@ -832,9 +809,10 @@ del explode_dbxrefs
 
 # In[16]:
 
+
 def base64it(x):
 
-     return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
+    return [base64.urlsafe_b64encode(str(x).encode('UTF-8')).decode('ascii')]
 
 
 # The CUI for the node will be the base64-encoded value of the concatenated SAB and code.
@@ -910,7 +888,7 @@ ulog.print_and_logger_info('-- Resolving duplicate code-CUI assignments...')
 # Find duplicate code-CUI assignments.
 ulog.print_and_logger_info('--- Finding duplicate assignments...')
 node_metadata_duplicates = node_metadata.groupby(['CUI']).count().reset_index()
-node_metadata_duplicates = node_metadata_duplicates[node_metadata_duplicates['node_id']>1]
+node_metadata_duplicates = node_metadata_duplicates[node_metadata_duplicates['node_id'] > 1]
 
 ulog.print_and_logger_info('--- Assigning alternate CUIs for codes mapped to the same CUI...')
 # For each CUI with multiple codes assigned to it:
@@ -923,20 +901,20 @@ for cui in tqdm(node_metadata_duplicates['CUI']):
         assigned = False
         for c in rows['cuis']:
             if not (c in cui_assigned):
-                if assigned == False:
+                if not assigned:
                     cui_assigned.append(c)
                     assigned = True
         # If no CUI was assigned, map to the new CUI minted for the code. This is to address an edge case first
         # encountered in MP, in which CL:0000792 is both defined in the node file and listed
         # as a dbxref for MP nodes MP:0010169,MP:0008397, and MP:0010168.
-        if assigned == False:
+        if not assigned:
             # Assign the new CUI. Because this has been converted to a list for building cuilist,
             # convert to a string.
             c = ''.join(rows['base64cui'])
             cui_assigned.append(c)
 
     # Revise CUI assignments to the codes in the group.
-    node_metadata.loc[node_metadata['CUI'] == cui,'CUI'] = cui_assigned
+    node_metadata.loc[node_metadata['CUI'] == cui, 'CUI'] = cui_assigned
 
 # -----------------------------------------
 
@@ -1008,10 +986,10 @@ subjnode = subjnode[['subject', 'CUI', ':START_ID']]
 subjnode['CUI1'] = subjnode[':START_ID'].where(subjnode['CUI'].isna(), subjnode['CUI'])
 
 edgelist = edgelist.merge(subjnode, how='left', left_on='subject', right_on='subject')
-edgelist=edgelist[['subject','CUI1', 'relation_label', 'object', 'inverse', 'evidence_class']]
+edgelist = edgelist[['subject', 'CUI1', 'relation_label', 'object', 'inverse', 'evidence_class']]
 
 # Report on subject nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
-subjnode3 = edgelist[edgelist['CUI1']=='']
+subjnode3 = edgelist[edgelist['CUI1'] == '']
 ubkg_report.report_missing_node(nodetype='subject', dfmissing=subjnode3)
 
 # July 2023- remove type 3 nodes.
@@ -1051,10 +1029,10 @@ objnode = pd.concat([objnode1, objnode2]).drop_duplicates()
 objnode['CUI2'] = objnode[':START_ID'].where(objnode['CUI'].isna(), objnode['CUI'])
 
 edgelist = edgelist.merge(objnode, how='left', left_on='object', right_on='object')
-edgelist = edgelist[['subject','CUI1', 'relation_label', 'object','CUI2', 'inverse', 'evidence_class']]
+edgelist = edgelist[['subject', 'CUI1', 'relation_label', 'object', 'CUI2', 'inverse', 'evidence_class']]
 
 # Report on object nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
-objnode3 = edgelist[edgelist['CUI2']=='']
+objnode3 = edgelist[edgelist['CUI2'] == '']
 ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
 
 # July 2023 - Remove type 3 object nodes.
@@ -1079,7 +1057,7 @@ del objnode3
 edgelist = edgelist[['CUI1', 'relation_label', 'CUI2', 'inverse', 'evidence_class']]
 edgelist['SAB'] = OWL_SAB
 
-edgelist = edgelist.drop_duplicates(subset=['CUI1','relation_label','CUI2'])
+edgelist = edgelist.drop_duplicates(subset=['CUI1', 'relation_label', 'CUI2'])
 
 # -------------------------------------------------
 # JAS 27 MAR 2023
@@ -1109,11 +1087,11 @@ ulog.print_and_logger_info('-- Appending to CUI-CUIs.csv...')
 # TWO WRITES comment out during development
 
 # JAS 6 JAN 2023 Add evidence_class column to file.
-ulog.print_and_logger_info('---- Adding evidence_class column to CUI-CUIs.csv...')
+# ulog.print_and_logger_info('---- Adding evidence_class column to CUI-CUIs.csv...')
 fcsv = csv_path('CUI-CUIs.csv')
 # evidence_class should be a string.
 new_header_columns = [':START_ID', ':END_ID', ':TYPE,SAB', 'evidence_class:string']
-update_columns_to_csv_header(fcsv, new_header_columns)
+uextract.update_columns_to_csv_header(file=fcsv, new_columns=new_header_columns, fill=True)
 
 ulog.print_and_logger_info('---- Appending forward relationships...')
 # forward ones
@@ -1151,11 +1129,11 @@ del edgelist
 ulog.print_and_logger_info('-- Appending to CODEs.csv...')
 
 # JAS 6 JAN 2023 Add value, lowerbound, upperbound, unit column to file.
-ulog.print_and_logger_info('---- Adding value, lowerbound, upperbound, unit columns to CODES.csv...')
+# ulog.print_and_logger_info('---- Adding value, lowerbound, upperbound, unit columns to CODES.csv...')
 fcsv = csv_path('CODEs.csv')
 # value, lowerbound, and upperbound should be numbers.
 new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit']
-update_columns_to_csv_header(fcsv, new_header_columns)
+uextract.update_columns_to_csv_header(file=fcsv, new_columns=new_header_columns, fill=True)
 
 # JAS 6 JAN 2023 add value, lowerbound, upperbound, unit
 newCODEs = node_metadata[['node_id', 'SAB', 'CODE', 'CUI_CODEs', 'value', 'lowerbound', 'upperbound', 'unit']]
@@ -1354,6 +1332,7 @@ CODE_SUIs = CODE_SUIs.dropna().drop_duplicates().reset_index(drop=True)
 
 # #### Write CODE-SUIs (:END_ID,:START_ID,:TYPE,CUI) part 1, from label - with existence check
 
+
 def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsuis: pd.DataFrame, dfcodesuis: pd.DataFrame) -> pd.DataFrame:
 
     # August 2023
@@ -1417,13 +1396,13 @@ def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsu
         exit(1)
 
     # Reduce columns.
-    dfnewcodesuis.columns = [':END_ID', ':START_ID', 'CUI',':TYPE']
+    dfnewcodesuis.columns = [':END_ID', ':START_ID', 'CUI', ':TYPE']
 
     # Filter to only the rows not already matching in existing files.
-    df = dfnewcodesuis.drop_duplicates().merge(dfcodesuis.drop_duplicates(), on=dfcodesuis.columns.to_list(), how='left',
+    dfnew = dfnewcodesuis.drop_duplicates().merge(dfcodesuis.drop_duplicates(), on=dfcodesuis.columns.to_list(), how='left',
                                               indicator=True)
     # Original method that still works.
-    dfnewcodesuis = df.loc[df._merge == 'left_only', df.columns != '_merge']
+    dfnewcodesuis = dfnew.loc[dfnew._merge == 'left_only', df.columns != '_merge']
     dfnewcodesuis.reset_index(drop=True, inplace=True)
 
     # It is not possible to eliminate completely the issue of a term having both a termtype_SAB and termtype
@@ -1467,6 +1446,7 @@ def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsu
 # JAS APR 2023:
 # Only check for SUIs if there is a value for node_label.
 
+
 if node_metadata_has_labels:
     # Obtain code terms for new codes for which existing terms of type PT do not exist.
     newCODE_SUIs = getnewsuisfortermtype(termtype='PT', owlsab=OWL_SAB, dfnode=node_metadata, dfsuis=SUIs,
@@ -1475,7 +1455,7 @@ if node_metadata_has_labels:
     newCODE_SUIsACR = getnewsuisfortermtype(termtype='ACR', owlsab=OWL_SAB, dfnode=node_metadata, dfsuis=SUIs,
                                          dfcodesuis=CODE_SUIs)
     # Concatenate PT and ACR results.
-    newCODE_SUIs = pd.concat([newCODE_SUIs,newCODE_SUIsACR])
+    newCODE_SUIs = pd.concat([newCODE_SUIs, newCODE_SUIsACR])
 
     # write out newCODE_SUIs - comment out during development
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
@@ -1587,8 +1567,7 @@ if node_metadata_has_definitions:
             df=newDEF_REL[['ATUI:ID', 'CUI']].rename(columns={'ATUI:ID': ':END_ID', 'CUI': ':START_ID'}),
             path=csv_path('DEFrel.csv'), mode='a', header=False, index=False)
     else:
-        newDEF_REL[['ATUI:ID', 'CUI']].rename(columns={'ATUI:ID': ':END_ID', 'CUI': ':START_ID'}).to_csv(
-        csv_path('DEFrel.csv'), mode='a', header=False, index=False)
+        newDEF_REL[['ATUI:ID', 'CUI']].rename(columns={'ATUI:ID': ':END_ID', 'CUI': ':START_ID'}).to_csv(csv_path('DEFrel.csv'), mode='a', header=False, index=False)
 
     del DEFs
     del DEFrel

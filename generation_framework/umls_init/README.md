@@ -1,12 +1,15 @@
-# UMLS CSV CodeID Formatter
+# UMLS CSV Reformatter
 
-Standardizes the format of code IDs in CSVs obtained from
+Reformats fields in CSVs obtained from
 an extraction of UMLS data from the DBMI Neptune data warehouse.
 
 # Background
 The UMLS data in Neptune adheres closely to the original content from the UMLS--i.e., files in Rich Release Format (RRF),
 such as MRCONSO.RRF.
 
+## Issues
+
+### CodeID
 The UBKG source framework script creates a "CodeID" property field for each code by concatenating the code's 
 _Source Abbreviation_ (SAB)--the idenfifier of the code's vocabulary--and the code.
 The source framework uses the space character as a delimiter.
@@ -20,7 +23,7 @@ Neptune, standardizing UMLS codes before ingesting the other SABs offers benefit
 1. We keep a copy of the codes as originally formatted in UMLS.
 2. We have more control over formatting logic.
 
-# Reformatting
+#### Reformatting
 The standardized formats for CODE and CodeID are:
 1. The CODE does not include the SAB.
 2. The CodeID format is _SAB_:_CODE_--i.e., the colon is the delimiter.
@@ -34,6 +37,28 @@ Reformatting specific to SABs:
 | HPO               | HPO HP:CODE                | HPO:CODE                  | Set SAB to HPO; remove SAB from code           |
 | HCPCS Level codes | HCPCS Level n: Exxxx-Exxxx | HCPCS:Level_n_Exxxx-Exxxx | Removed colon; replaced spaces with underscore |
 
+## Relationship format
+Some UMLS SABs format relationship strings with either dots or dashes. These
+are reserved characters in either the generation script or in neo4j.
+This script replaces the dot and dash with an underscore.
+
+## Removing SUI
+This script removes the SUI identifier for terms 
+from:
+- CODE-SUIs.csv
+- CUI-SUIs.csv
+- SUIs.csv
+
+## Adding columns and blank values
+This script adds columns to the header rows of CSVs as follows:
+- CODEs.csv 
+   - value
+   - lowerbound
+   - upperbound 
+   - unit
+- CUI-CUIs.csv
+   - evidence_class
+The script also appends commas to non-header rows.
 
 # Content
 - **umls_init.py** - Does the following:

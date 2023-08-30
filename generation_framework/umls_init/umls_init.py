@@ -16,6 +16,9 @@
 # AUGUST 2023
 # 3. For relationships (e.g., in CUI-CUIs.csv), replace dot and dash characters with underscores.
 # 4. Replaces SUIs with terms.
+# 5. Add columns with blank values:
+#    a. CODES.csv -value:float,lowerbound:float,upperbound:float,unit
+#    b. CUI-CUIs.csv - evidence_class:string
 
 
 # ------
@@ -46,12 +49,24 @@ def csv_path(path: str, file: str) -> str:
 # ------------------
 
 # START
+
 # Read from config file.
 cfgfile = os.path.join(os.path.dirname(os.getcwd()), 'generation_framework/umls_init/umls_init.ini')
 config = uconfig.ubkgConfigParser(path=cfgfile, case_sensitive=True)
 
 # Obtain the CSV directory path.
 csvdir = config.get_value(section='Directory', key='csvdir')
+
+#--- ADDING columns
+fcsv = csv_path(path=csvdir, file='CODEs.csv')
+# value, lowerbound, and upperbound should be numbers.
+new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit']
+uextract.update_columns_to_csv_header(fcsv, new_header_columns, fill=True)
+
+fcsv = csv_path(path=csvdir, file='CUI-CUIs.csv')
+# evidence_class should be a string.
+new_header_columns = [':START_ID', ':END_ID', ':TYPE,SAB', 'evidence_class:string']
+uextract.update_columns_to_csv_header(fcsv, new_header_columns, fill=True)
 
 # Obtain list of files and columns to convert.
 dictfile_columns = config.get_section(section='File_column')
@@ -90,8 +105,7 @@ for f in dictfile_columns:
         dffile[col] = np.where(dffile[col].str.contains('Level'), dffile[col].str.replace(': ', '_').str.replace('Level ', 'Level_'), dffile[col])
         dffile[col] = dffile[col].str.replace(' ', ':')
     ulog.print_and_logger_info(f'Rewriting {csvfile}')
-    print('DEBUG: not rewriting')
-    # uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
+    uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
 
 # Obtain list of files with relationships that need reformatting.
 dictrel_columns = config.get_section(section='Relationship_column')
@@ -108,8 +122,7 @@ for f in dictrel_columns:
         dffile[col] = dffile[col].str.replace('.', '_', regex=False)
         dffile[col] = dffile[col].str.replace('-', '_', regex=False)
     ulog.print_and_logger_info(f'Rewriting {csvfile}')
-    print('DEBUG: not rewriting')
-    # uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
+    uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
 
 # REPLACE SUIs WITH TERMS.
 # Logic:
@@ -121,6 +134,7 @@ for f in dictrel_columns:
 # 3. Merge CODE-SUIs with SUIs and replace :END_ID in CODE_SUIs with name from SUIs
 # 4. Drop SUI:ID from SUIs
 
+ulog.print_and_logger_info('Replacing SUI with name....')
 # Read files
 fSUIs = 'SUIs.csv'
 csvSUIs = csv_path(path=csvdir, file=fSUIs)
@@ -137,20 +151,22 @@ csvCODESUIs = csv_path(path=csvdir, file=fCODESUIs)
 ulog.print_and_logger_info(f'Reading {csvCODESUIs}')
 dfCODESUIs = uextract.read_csv_with_progress_bar(path=csvCODESUIs)
 
-# Merge and replace.
-dfCUISUIs = dfCUISUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on=':SUI_ID')
-dfCUISUIs = dfCUISUIs[['CUI', 'name']]
-print('DEBUG: Not writing')
-ulog.print_and_logger_info(f'Rewriting {csvCUISUIs}')
-# uextract.to_csv_with_progress_bar(df=dfCUISUIs, path=csvCUISUIs, index=False)
+# Merge and replace SUI:ID with name in CUI-SUIs.csv
+dfCUISUIs = dfCUISUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on='SUI:ID')
+dfCUISUIs = dfCUISUIs[[':START_ID', 'name']]
 
-dfCODESUIs = dfCODESUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on=':SUI_ID')
-dfCODESUIs = dfCUISUIs[['name', ':START_ID', ':TYPE', 'CUI']]
-print('DEBUG: Not writing')
 ulog.print_and_logger_info(f'Rewriting {csvCUISUIs}')
-# uextract.to_csv_with_progress_bar(df=dfCUISUIs, path=csvCUISUIs, index=False)
+uextract.to_csv_with_progress_bar(df=dfCUISUIs, path=csvCUISUIs, index=False)
 
+# Merge and replace :END_ID with name in CODE-SUIs.csv.
+dfCODESUIs = dfCODESUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on='SUI:ID')
+dfCODESUIs = dfCODESUIs[['name', ':START_ID', ':TYPE', 'CUI']]
+
+ulog.print_and_logger_info(f'Rewriting {csvCODESUIs}')
+uextract.to_csv_with_progress_bar(df=dfCODESUIs, path=csvCODESUIs, index=False)
+
+# Remove SUI from SUIs.csv.
 dfSUIs = dfSUIs['name']
-print('DEBUG: Not writing')
 ulog.print_and_logger_info(f'Rewriting {csvSUIs}')
-# uextract.to_csv_with_progress_bar(df=dfSUIs, path=csvSUIs, index=False)
+uextract.to_csv_with_progress_bar(df=dfSUIs, path=csvSUIs, index=False)
+
