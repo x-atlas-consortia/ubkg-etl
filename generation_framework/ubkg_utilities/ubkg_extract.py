@@ -198,6 +198,15 @@ def read_csv_with_progress_bar(path: str, rows_to_read: int = 0, comment: str = 
 
     return pd.concat(listdf, axis=0, ignore_index=True)
 
+def header_needs_update(filetest: str, new_header: list) -> bool:
+    # Check whether an update to the header is needed.
+    for line in fileinput.input(filetest):
+        if fileinput.isfirstline():
+            header = line.rstrip('\n')
+            header = header.split(',')
+            break
+    fileinput.close()
+    return not (header == new_header)
 
 def update_columns_to_csv_header(file: str, new_columns: list, fill: bool = False):
 
@@ -206,6 +215,10 @@ def update_columns_to_csv_header(file: str, new_columns: list, fill: bool = Fals
     # This allows the addition of columns for custom properties or relationships.
 
     ulog.print_and_logger_info(f'Setting headers for {file} to {new_columns}...')
+
+    if not header_needs_update(filetest=file, new_header=new_columns):
+        ulog.print_and_logger_info(f'Header for {file} does not need updating.')
+        return
 
     # Set up tqdm progress bar.
     file_size = os.path.getsize(file)
@@ -219,9 +232,6 @@ def update_columns_to_csv_header(file: str, new_columns: list, fill: bool = Fals
         if fileinput.isfirstline():
             # Replace the header with the columns from the argument list.
             newline = ','.join(new_columns)
-            if newline == linestrip:
-                # No need to rewrite the file.
-                rewrite = False
         else:
             # Write the line without the newline character, but after adding blank values for new columns.
             newline = linestrip
@@ -230,14 +240,12 @@ def update_columns_to_csv_header(file: str, new_columns: list, fill: bool = Fals
                 fillcols = len(new_columns) - len(linestrip)
                 for fillcols in range(fillcols):
                     newline = newline + ','
-        if not rewrite:
-            break
 
         print(newline)
-
         # Update progress bar.
         pbar.update(sys.getsizeof(line)-sys.getsizeof('\n'))
 
     pbar.close()
+    fileinput.close()
 
     return
