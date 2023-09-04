@@ -1258,7 +1258,7 @@ if node_metadata_has_labels:
 
     # SEPT 2023 - SUI:ID removed.
     # newSUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['node_id', 'node_label', 'CUI', 'SUI:ID', 'name']]
-    newSUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name')[['node_id', 'node_label', 'CUI', 'name']]
+    newSUIs = node_metadata.merge(SUIs, how='left', left_on='node_label', right_on='name:ID')[['node_id', 'node_label', 'CUI', 'name:ID']]
 
     # June 2023
     # Drop duplicates. This became an issue with the Data Distillery ingests.
@@ -1271,14 +1271,14 @@ if node_metadata_has_labels:
         # newSUIs[newSUIs['name'] != newSUIs['node_label']]['node_label'].apply(base64it).str[0]
 
     # change field names and isolate non-matched ones (don't exist in SUIs file)
-    # SEPT 2023 - SUI:ID removed
+    # SEPT 2023 - SUI:ID removed; name now name:ID
     # newSUIs.columns = ['node_id', 'name', 'CUI', 'SUI:ID', 'OLDname']
-    newSUIs.columns = ['node_id', 'name', 'CUI', 'OLDname']
+    newSUIs.columns = ['node_id', 'name:ID', 'CUI', 'OLDname']
     # newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI', 'SUI:ID']]
-    newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI']]
+    newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name:ID', 'CUI']]
     newSUIs = newSUIs.dropna().drop_duplicates().reset_index(drop=True)
     # newSUIs = newSUIs[['SUI:ID', 'name']]
-    newSUIs = newSUIs[['name']]
+    newSUIs = newSUIs[['name:ID']]
 
     # update the SUIs dataframe to total those that will be in SUIs.csv
     SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
@@ -1312,8 +1312,8 @@ if node_metadata_has_labels:
     # SEPT 2023 - SUI:ID replaced with name.
     # newCUI_SUIs = newCUI_SUIs.merge(SUIs, how='left', left_on='node_label', right_on='name')[
     # ['CUI', 'SUI:ID']].dropna().drop_duplicates().reset_index(drop=True)
-    newCUI_SUIs = newCUI_SUIs.merge(SUIs, how='left', left_on='node_label', right_on='name')[
-        ['CUI', 'name']].dropna().drop_duplicates().reset_index(drop=True)
+    newCUI_SUIs = newCUI_SUIs.merge(SUIs, how='left', left_on='node_label', right_on='name:ID')[
+        ['CUI', 'name:ID']].dropna().drop_duplicates().reset_index(drop=True)
     newCUI_SUIs.columns = [':START:ID', ':END_ID']
 
     # write/append - comment out during development
@@ -1361,6 +1361,12 @@ def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsu
     # ACR (acronym) - for HGNC. HGNC uses terms of type PT for the approved name and ACR for the approved symbol;
     #       however, ingested ontologies that refer to HGNC will usually use the approved symbol for the node_label.
 
+    # CORRECTION:
+    # Some SABs, including UBERON, correctly use node_label for HGNC approved names, which
+    # results in this script erroneously assigning ACR_SAB labels. Because it is not possible
+    # to distinguish definitively between correct and incorrect use of the PT, we will choose the lesser
+    # evil of extraneous PT_SABs instead of erroneous ACR_SABs.
+
     # In the most common use case, the term of specified type for a node is the same in both the owning and
     # ingesting ontology. To eliminate unncessary duplication, the script only adds a "_SAB" term
     # if either it differs from that of the owning ontology or no corresponding term is in the UBKG.
@@ -1398,15 +1404,15 @@ def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsu
     #    tested with this logic.
     # ---------
 
-    ulog.print_and_logger_info(f'Checking for new or differing terms of type {termtype}...')
+    ulog.print_and_logger_info(f'---- Checking for new or differing terms of type {termtype}...')
 
     # Find all new terms by merging the new codes against the terms list. The terms list was
     # populated with net new terms prior to this function.
     # SEPT 2023 - SUI:ID replaced with name
     # dfnewcodesuis = dfnode.merge(dfsuis, how='left', left_on='node_label', right_on='name')[
        # ['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
-    dfnewcodesuis = dfnode.merge(dfsuis, how='left', left_on='node_label', right_on='name')[
-        ['name', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
+    dfnewcodesuis = dfnode.merge(dfsuis, how='left', left_on='node_label', right_on='name:ID')[
+        ['name:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
     # Apply the default filter based on specified type.
     # If the SAB for the code is not the same as the ingesting ontology, append the SAB to the term type.
@@ -1414,19 +1420,24 @@ def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsu
         dfnewcodesuis[':TYPE'] = np.where((owlsab == dfnewcodesuis['node_id'].str.upper().str.split(':').str[0]),
                                      'PT', 'PT_' + owlsab)
         # HGNC uses PT for approved name, not approved symbol. Drop HGNC PTs.
-        dfnewcodesuis = dfnewcodesuis[dfnewcodesuis['node_id'].str.upper().str.split(':').str[0] != 'HGNC']
-    elif termtype == 'ACR':
+
+        # SEPT 4 2023 - Filtering dropped. SEE 'CORRECTION' COMMENT ABOVE.
+        # dfnewcodesuis = dfnewcodesuis[dfnewcodesuis['node_id'].str.upper().str.split(':').str[0] != 'HGNC']
+    # elif termtype == 'ACR':
+        # SEPT 4 2023 - SEE 'CORRECTION' COMMENT ABOVE
         # Filter to HGNC ACRs.
-        dfnewcodesuis[':TYPE'] = np.where((owlsab == dfnewcodesuis['node_id'].str.upper().str.split(':').str[0]),
-                                          'ACR', 'ACR_' + owlsab)
-        dfnewcodesuis = dfnewcodesuis[dfnewcodesuis['node_id'].str.upper().str.split(':').str[0] == 'HGNC']
+        #dfnewcodesuis[':TYPE'] = np.where((owlsab == dfnewcodesuis['node_id'].str.upper().str.split(':').str[0]),
+                                          # 'ACR', 'ACR_' + owlsab)
+        #vdfnewcodesuis = dfnewcodesuis[dfnewcodesuis['node_id'].str.upper().str.split(':').str[0] == 'HGNC']
     else:
         ulog.print_and_logger_info(f'Invalid type for getnewsuisfortermtype: {termtype}')
         exit(1)
 
+
     # SEPT 2023 - SUI:ID replaced with name
     # dfnewcodesuis.columns = [':END_ID', ':START_ID', 'CUI', ':TYPE']
-    dfnewcodesuis.columns = ['name', ':START_ID', 'CUI',':TYPE']
+    # neo4j-admin import looks for columns named :START_ID and :END_ID for relationship imports.
+    dfnewcodesuis.columns = [':END_ID', ':START_ID', 'CUI',':TYPE']
 
     # Filter to only the rows not already matching in existing files--
     # i.e., those for which all columns have identical values.
@@ -1450,7 +1461,7 @@ def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsu
     # dfnewcodesuis = dfnewcodesuis.merge(dfsuis, how='inner', left_on=':END_ID', right_on='SUI:ID')
     # dfnewcodesuis = dfnewcodesuis.merge(dfsuis, how='inner', left_on=':END_ID', right_on='name')
 
-    dfnewcodesuis = dfnewcodesuis.merge(dftermtype, how='left', on=['name',':START_ID'])
+    dfnewcodesuis = dfnewcodesuis.merge(dftermtype, how='left', on=[':END_ID',':START_ID'])
 
     # At this point, the dfnewcodesuis DataFrame has columns
     # name	:START_ID	CUI_x	:TYPE_x	:TYPE_y	CUI_y
@@ -1463,9 +1474,9 @@ def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsu
 
     # Restore column headers.
     # SEPT 2023 :END_ID (SUI) replaced with name
-    # dfnewcodesuis = dfnewcodesuis[[':END_ID_x', ':START_ID', ':TYPE_x', 'CUI_x']]
-    dfnewcodesuis = dfnewcodesuis[['name',':START_ID',':TYPE_x','CUI_x']]
-    dfnewcodesuis.columns = ['name', ':START_ID', ':TYPE','CUI']
+    dfnewcodesuis = dfnewcodesuis[[':END_ID',':START_ID',':TYPE_x','CUI_x']]
+    # neo4j-admin import looks for columns named :START_ID and :END_ID for relationship imports.
+    dfnewcodesuis.columns = [':END_ID', ':START_ID', ':TYPE','CUI']
 
     return dfnewcodesuis
 
@@ -1476,11 +1487,17 @@ if node_metadata_has_labels:
     # Obtain code terms for new codes for which existing terms of type PT do not exist.
     newCODE_SUIs = getnewsuisfortermtype(termtype='PT', owlsab=OWL_SAB, dfnode=node_metadata, dfsuis=SUIs,
                                          dfcodesuis=CODE_SUIs)
+
+    # Some SABs, including UBERON, correctly use node_label for HGNC approved names, which
+    # results in this script erroneously assigning ACR_SAB labels. Because it is not possible
+    # to distinguish definitively between correct and incorrect use of the PT, we will choose the lesser
+    # evil of extraneous PT_SABs instead of erroneous ACR_SABs.
+
     # Obtain code terms for new HGNC codes for which existing terms of type ACR do not exist.
-    newCODE_SUIsACR = getnewsuisfortermtype(termtype='ACR', owlsab=OWL_SAB, dfnode=node_metadata, dfsuis=SUIs,
-                                         dfcodesuis=CODE_SUIs)
+    # newCODE_SUIsACR = getnewsuisfortermtype(termtype='ACR', owlsab=OWL_SAB, dfnode=node_metadata, dfsuis=SUIs,
+                                         # dfcodesuis=CODE_SUIs)
     # Concatenate PT and ACR results.
-    newCODE_SUIs = pd.concat([newCODE_SUIs, newCODE_SUIsACR])
+    # newCODE_SUIs = pd.concat([newCODE_SUIs, newCODE_SUIsACR])
 
     # write out newCODE_SUIs
     if newCODE_SUIs.shape[0] > TQDM_THRESHOLD:
@@ -1503,8 +1520,8 @@ if node_metadata_has_synonyms:
     # SEPT 2023 - SUI:ID removed.
     # newSUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
     # ['node_id', 'node_synonyms', 'CUI', 'SUI:ID', 'name']]
-    newSUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
-        ['node_id', 'node_synonyms', 'CUI', 'name']]
+    newSUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name:ID')[
+        ['node_id', 'node_synonyms', 'CUI', 'name:ID']]
 
     # for Term.name that don't join with node_synonyms update the SUI:ID with base64 of node_synonyms
     # SEPT 2023 - SUI:ID removed
@@ -1515,11 +1532,11 @@ if node_metadata_has_synonyms:
     # SEPT 2023 - SUI:ID removed.
     # newSUIs.columns = ['node_id', 'name', 'CUI', 'SUI:ID', 'OLDname']
     # newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI', 'SUI:ID']]
-    newSUIs.columns = ['node_id', 'name', 'CUI', 'OLDname']
-    newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name', 'CUI']]
+    newSUIs.columns = ['node_id', 'name:ID', 'CUI', 'OLDname']
+    newSUIs = newSUIs[newSUIs['OLDname'].isnull()][['node_id', 'name:ID', 'CUI']]
     newSUIs = newSUIs.dropna().drop_duplicates().reset_index(drop=True)
     # newSUIs = newSUIs[['SUI:ID', 'name']]
-    newSUIs = newSUIs[['name']]
+    newSUIs = newSUIs[['name:ID']]
 
     # update the SUIs dataframe to total those that will be in SUIs.csv
     SUIs = pd.concat([SUIs, newSUIs], axis=0).reset_index(drop=True)
@@ -1543,16 +1560,20 @@ if node_metadata_has_synonyms:
     # SEPT 2023 - replace SUI:ID with name
     # newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
     # ['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
-    newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
-        ['name', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
+    newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name:ID')[
+        ['name:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
     newCODE_SUIs.insert(2, ':TYPE', 'SY')
-    # newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
-    newCODE_SUIs.columns = ['name', ':START_ID', ':TYPE', 'CUI']
+    # neo4j-admin import looks for columns named :START_ID and :END_ID.
+    newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+
 
     # Compare the new and old retaining only new
     df = newCODE_SUIs.drop_duplicates().merge(CODE_SUIs.drop_duplicates(), on=CODE_SUIs.columns.to_list(), how='left',
                                           indicator=True)
     newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']
+    # SEPT 2023 - Drop empty synonyms.
+    newCODE_SUIs = newCODE_SUIs.replace({'': np.nan})
+    newCODE_SUIs = newCODE_SUIs.dropna(subset=[':END_ID'])
     newCODE_SUIs.reset_index(drop=True, inplace=True)
 
     # write out newCODE_SUIs - comment out during development

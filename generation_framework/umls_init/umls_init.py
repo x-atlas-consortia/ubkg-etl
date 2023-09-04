@@ -141,6 +141,7 @@ csvSUIs = csv_path(path=csvdir, file=fSUIs)
 ulog.print_and_logger_info(f'Reading {csvSUIs}')
 dfSUIs = uextract.read_csv_with_progress_bar(path=csvSUIs)
 
+
 fCUISUIs = 'CUI-SUIs.csv'
 csvCUISUIs = csv_path(path=csvdir, file=fCUISUIs)
 ulog.print_and_logger_info(f'Reading {csvCUISUIs}')
@@ -151,22 +152,35 @@ csvCODESUIs = csv_path(path=csvdir, file=fCODESUIs)
 ulog.print_and_logger_info(f'Reading {csvCODESUIs}')
 dfCODESUIs = uextract.read_csv_with_progress_bar(path=csvCODESUIs)
 
+# ISSUE - Codes in UMLS can have term types of "name alias". The term type abbreviation of NA is reserved
+# in Pandas/Numpy; Pandas converts the string of 'NA' in :TYPE to np.na, which results in import failure later.
+# Change the term type to NAME_ALIAS.
+dfCODESUIs[[':TYPE']] = dfCODESUIs[[':TYPE']].fillna(value='NA_UBKG')
+
 # Merge and replace SUI:ID with name in CUI-SUIs.csv
 dfCUISUIs = dfCUISUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on='SUI:ID')
-dfCUISUIs = dfCUISUIs[[':START_ID', 'name']]
+# neo4j-admin import looks for columns named :START_ID and :END_ID for relationship imports.
+dfCUISUIs = dfCUISUIs[[':START_ID', ':END_ID']]
 
 ulog.print_and_logger_info(f'Rewriting {csvCUISUIs}')
 uextract.to_csv_with_progress_bar(df=dfCUISUIs, path=csvCUISUIs, index=False)
 
-# Merge and replace :END_ID with name in CODE-SUIs.csv.
+# Merge and replace SUI with name :END_ID with name in CODE-SUIs.csv.
+# The UMLS version of SUIs.csv has name as a column.
+
 dfCODESUIs = dfCODESUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on='SUI:ID')
 dfCODESUIs = dfCODESUIs[['name', ':START_ID', ':TYPE', 'CUI']]
+# neo4j-admin import looks for columns named :START_ID and :END_ID for relationship imports.
+dfCODESUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
+
 
 ulog.print_and_logger_info(f'Rewriting {csvCODESUIs}')
 uextract.to_csv_with_progress_bar(df=dfCODESUIs, path=csvCODESUIs, index=False)
 
-# Remove SUI from SUIs.csv.
-dfSUIs = dfSUIs['name']
+# Replace SUI with name in SUIs.csv.
+dfSUIs = dfSUIs[['name']]
+# Format name as ID type.
+dfSUIs.columns = ['name:ID']
 ulog.print_and_logger_info(f'Rewriting {csvSUIs}')
 uextract.to_csv_with_progress_bar(df=dfSUIs, path=csvSUIs, index=False)
 
