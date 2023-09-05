@@ -1236,6 +1236,12 @@ del newCUI_CODEs
 
 # #### Load SUIs from csv
 
+# SEPTEMBER 2023
+# The SUIs.csv file has one column, containing a unique set of term strings. The column header is 'name:ID';
+# the :ID indicates to the neo4j-admin import that name is the ID field for Term nodes.
+# Prior to September 2023, the SUIs.CSV used a SUI:ID and name columns. The SUI property was removed.
+#
+
 # JAS March 2023 - explanation: SUIs correspond to term values.
 
 # In[23]:
@@ -1296,6 +1302,12 @@ if node_metadata_has_labels:
 # JAS MARCH 2023
 # EXPLANATION: CUI-SUIs links terms for concepts--i.e., Terms with relationship PREF_TERM.
 
+# SEPT 2023 CUI-SUIs is used in the neo4j-admin import to establish terms of type PREF_TERM for Concept nodes--
+# i.e., Term nodes that have a relationship of type PREF_TERM. The neo4j-admin import expects two fields named
+# :START_ID and :END_ID in CSVs used to import relationships. In CUI-SUIs, :START_ID is the CUI of the Concept
+# node and :END_ID is the name (ID) of the Term node that will have a rleationship of type PREF_TERM.
+# Prior to September 2023, :END_ID corresponded to the SUI for the Term node.
+
 ulog.print_and_logger_info('-- Appending terms to CUI-SUIs.csv...')
 # In[25]:
 
@@ -1331,17 +1343,27 @@ if node_metadata_has_labels:
 # JAS MARCH 2023
 # EXPLANATION: CODE-SUIs.csv links terms for codes--i.e., terms with relationships that are either PT or SY.
 
+# SEPTEMBER 2023
+# The CODE-SUIs.csv file is used by the neo4j-admin import to establish relationships between Code nodes and
+# Term nodes. A number of relationship types are possible--e.g., PT, SY.
+# The import function expects a :START_ID and an :END_ID column for CSVs that are used to define relationships.
+# For CODE-SUIs.csv, :START_ID corresponds to the CodeID property of the Code and :END_ID corresponds to the
+# name:ID property of the Term.
+# Prior to September 2023, :END_ID corresponded to the SUI:ID of the term.
+
 # In[26]:
 
 ulog.print_and_logger_info('-- Appending terms to CODE-SUIs.csv...')
 
 CODE_SUIs = pd.read_csv(csv_path("CODE-SUIs.csv"))
 # AUGUST 2023 - Include ACR for HGNC codes.
-CODE_SUIs = CODE_SUIs[((CODE_SUIs[':TYPE'] == 'PT') | (CODE_SUIs[':TYPE'] == 'SY') | (CODE_SUIs[':TYPE'] == 'ACR'))]
+# SEPT 2023 - ACR processing is no longer done.
+# CODE_SUIs = CODE_SUIs[((CODE_SUIs[':TYPE'] == 'PT') | (CODE_SUIs[':TYPE'] == 'SY') | (CODE_SUIs[':TYPE'] == 'ACR'))]
+CODE_SUIs = CODE_SUIs[((CODE_SUIs[':TYPE'] == 'PT') | (CODE_SUIs[':TYPE'] == 'SY'))]
 CODE_SUIs = CODE_SUIs.dropna().drop_duplicates().reset_index(drop=True)
 
 # #### Write CODE-SUIs (:END_ID,:START_ID,:TYPE,CUI) part 1, from label - with existence check
-
+# This establishes term types of type PT.
 
 def getnewsuisfortermtype(termtype: str, owlsab: str, dfnode: pd.DataFrame, dfsuis: pd.DataFrame, dfcodesuis: pd.DataFrame) -> pd.DataFrame:
 
@@ -1508,18 +1530,20 @@ if node_metadata_has_labels:
 
 # #### Write SUIs (SUI:ID,name) part 2, from synonyms - with existence check
 
-# explode and merge the synonyms
+# Explode and merge the synonyms, which are in a pipe-delimited list in node_synonyms.
 ulog.print_and_logger_info('-- Appending synonyms to SUIs.csv...')
 explode_syns = node_metadata.explode('node_synonyms')[
     ['node_id', 'node_synonyms', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
-# SEPT 2023 - Drop empty synonyms.
+# SEPT 2023 - Drop empty synonyms. These can occur for cases in which the string in node_synonyms
+# is an explicit "None", which is a reserved type in Python that Pandas translates to an empty string.
+
 explode_syns = explode_syns.replace({'': np.nan})
 explode_syns = explode_syns.dropna(subset=['node_synonyms'])
 explode_syns.reset_index(drop=True, inplace=True)
 
 # JAS APR/June 2023 only check SUIs if there are values for node_synonyms.
-# SEPT 2023 - check exploded synonyms.
+# SEPT 2023 - check exploded synonyms from which empty values have been excluded.
 node_metadata_has_synonyms = len(explode_syns['node_synonyms'].value_counts()) > 0
 
 if node_metadata_has_synonyms:
