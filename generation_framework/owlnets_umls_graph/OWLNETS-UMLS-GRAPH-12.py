@@ -1513,8 +1513,14 @@ ulog.print_and_logger_info('-- Appending synonyms to SUIs.csv...')
 explode_syns = node_metadata.explode('node_synonyms')[
     ['node_id', 'node_synonyms', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
 
+# SEPT 2023 - Drop empty synonyms.
+explode_syns = explode_syns.replace({'': np.nan})
+explode_syns = explode_syns.dropna(subset=['node_synonyms'])
+explode_syns.reset_index(drop=True, inplace=True)
+
 # JAS APR/June 2023 only check SUIs if there are values for node_synonyms.
-node_metadata_has_synonyms = len(node_metadata['node_synonyms'].value_counts()) > 0
+# SEPT 2023 - check exploded synonyms.
+node_metadata_has_synonyms = len(explode_syns['node_synonyms'].value_counts()) > 0
 
 if node_metadata_has_synonyms:
     # SEPT 2023 - SUI:ID removed.
@@ -1560,14 +1566,16 @@ if node_metadata_has_synonyms:
     # SEPT 2023 - replace SUI:ID with name
     # newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name')[
     # ['SUI:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
+
     newCODE_SUIs = explode_syns.merge(SUIs, how='left', left_on='node_synonyms', right_on='name:ID')[
         ['name:ID', 'node_id', 'CUI']].dropna().drop_duplicates().reset_index(drop=True)
+
     newCODE_SUIs.insert(2, ':TYPE', 'SY')
     # neo4j-admin import looks for columns named :START_ID and :END_ID.
     newCODE_SUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
 
-
-    # Compare the new and old retaining only new
+    # Compare the new and old retaining only new--i.e., drop rows that have the exact same values in both new and existing
+    # frames.
     df = newCODE_SUIs.drop_duplicates().merge(CODE_SUIs.drop_duplicates(), on=CODE_SUIs.columns.to_list(), how='left',
                                           indicator=True)
     newCODE_SUIs = df.loc[df._merge == 'left_only', df.columns != '_merge']

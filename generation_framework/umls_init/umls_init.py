@@ -158,9 +158,11 @@ dfCODESUIs = uextract.read_csv_with_progress_bar(path=csvCODESUIs)
 dfCODESUIs[[':TYPE']] = dfCODESUIs[[':TYPE']].fillna(value='NA_UBKG')
 
 # Merge and replace SUI:ID with name in CUI-SUIs.csv
+# The UMLS version of SUIs.csv has name as a column.
 dfCUISUIs = dfCUISUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on='SUI:ID')
 # neo4j-admin import looks for columns named :START_ID and :END_ID for relationship imports.
-dfCUISUIs = dfCUISUIs[[':START_ID', ':END_ID']]
+dfCUISUIs = dfCUISUIs[[':START_ID','name']]
+dfCUISUIs.columns =[':START_ID', ':END_ID']
 
 ulog.print_and_logger_info(f'Rewriting {csvCUISUIs}')
 uextract.to_csv_with_progress_bar(df=dfCUISUIs, path=csvCUISUIs, index=False)
@@ -172,7 +174,6 @@ dfCODESUIs = dfCODESUIs.merge(dfSUIs, how='inner', left_on=':END_ID', right_on='
 dfCODESUIs = dfCODESUIs[['name', ':START_ID', ':TYPE', 'CUI']]
 # neo4j-admin import looks for columns named :START_ID and :END_ID for relationship imports.
 dfCODESUIs.columns = [':END_ID', ':START_ID', ':TYPE', 'CUI']
-
 
 ulog.print_and_logger_info(f'Rewriting {csvCODESUIs}')
 uextract.to_csv_with_progress_bar(df=dfCODESUIs, path=csvCODESUIs, index=False)
