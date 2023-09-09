@@ -11,21 +11,25 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 import gdown
+import fileinput
+import sys
 
 
 # UBKG logging utility
 import ubkg_logging as ulog
 
-def download_file_from_google_drive(share_url:str,download_full_path: str):
+
+def download_file_from_google_drive(share_url: str, download_full_path: str):
 
     # Downloads a file from Google Drive.
     # Arguments:
     # share_url: the shared link obtained in Google Drive by copying the "Share" link.
     ulog.print_and_logger_info(f'Downloading to {download_full_path}')
-    gdown.download(share_url,output=download_full_path,fuzzy=True)
+    gdown.download(share_url, output=download_full_path, fuzzy=True)
     return
 
-def download_file(url: str, download_full_path: str, encoding: str='UTF-8', contentType: str='',chunk_size: int=1024):
+
+def download_file(url: str, download_full_path: str, encoding: str = 'UTF-8', contentType: str = '', chunk_size: int = 1024):
 
     # Downloads a file, displaying a TQDM progress bar.
 
@@ -43,10 +47,10 @@ def download_file(url: str, download_full_path: str, encoding: str='UTF-8', cont
     # header functionality may work.
 
     # Passing gzip encoding will trigger automatic gzip decompression.
-    headers ={}
-    if encoding !='':
-        #headers = {'Accept-encoding': encoding}
-        headers['Accept-encoding']=encoding
+    headers = {}
+    if encoding != '':
+        # headers = {'Accept-encoding': encoding}
+        headers['Accept-encoding'] = encoding
 
     """
     if contentType == 'xlsx':
@@ -65,7 +69,7 @@ def download_file(url: str, download_full_path: str, encoding: str='UTF-8', cont
         headers['content-type'] = contentType
     """
 
-    response = requests.get(url, stream=True,headers=headers)
+    response = requests.get(url, stream=True, headers=headers)
     if response.status_code != 200:
         response.raise_for_status()
 
@@ -87,6 +91,7 @@ def download_file(url: str, download_full_path: str, encoding: str='UTF-8', cont
 
     return
 
+
 def extract_from_gzip(zipfilename: str, outputpath: str, outfilename: str) -> str:
 
     # Extracts a file from the GZIP archive with file name zipfilename to outputpath.
@@ -98,8 +103,8 @@ def extract_from_gzip(zipfilename: str, outputpath: str, outfilename: str) -> st
     # 3. The GZIP file is binary.
     # 4. The file is UTF-8 encoded.
 
-    #Decompress
-    with open(zipfilename,'rb') as fzip:
+    # Decompress
+    with open(zipfilename, 'rb') as fzip:
         file_content = gzip.decompress(fzip.read()).decode('utf-8')
 
     if outfilename == '':
@@ -118,7 +123,8 @@ def extract_from_gzip(zipfilename: str, outputpath: str, outfilename: str) -> st
 
     return extract_path
 
-def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str, zipfilename:str='download.gz',outfilename:str='') -> str:
+
+def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str, zipfilename: str = 'download.gz', outfilename: str = '') -> str:
 
     # Downloads a GZIP archive to the specified folder and extracts the contents to the specified path.
     # Returns the full path to the extracted file.
@@ -136,12 +142,13 @@ def get_gzipped_file(gzip_url: str, zip_path: str, extract_path: str, zipfilenam
     zip_full_path = os.path.join(zip_path, zipfilename)
 
     # Download GZIP file.
-    download_file(url=gzip_url,download_full_path=zip_full_path,encoding='gzip',chunk_size=1024)
+    download_file(url=gzip_url, download_full_path=zip_full_path, encoding='gzip', chunk_size=1024)
 
     # Extract compressed content.
-    return extract_from_gzip(zipfilename=zip_full_path,outputpath=extract_path,outfilename=outfilename)
+    return extract_from_gzip(zipfilename=zip_full_path, outputpath=extract_path, outfilename=outfilename)
 
-def to_csv_with_progress_bar(df: pd.DataFrame, path:str, sep: str=',', header: bool=True, index: bool=True, mode: str='w'):
+
+def to_csv_with_progress_bar(df: pd.DataFrame, path: str, sep: str = ',', header: bool = True, index: bool = True, mode: str = 'w'):
 
     # Wraps the pandas to_csv with a tqdm progress bar.
 
@@ -149,16 +156,17 @@ def to_csv_with_progress_bar(df: pd.DataFrame, path:str, sep: str=',', header: b
     # path: full path to CSV file.
 
     chunks = np.array_split(df.index, 100)  # split into 100 chunks
-    for chunk, subset in enumerate(tqdm(chunks,desc='Writing')):
+    for chunk, subset in enumerate(tqdm(chunks, desc='Writing')):
         if chunk == 0:
             #First row, which may be part of an append of the contents of df to an existing file.
-            df.loc[subset].to_csv(path, header=header, mode=mode, index=index,sep=sep)
+            df.loc[subset].to_csv(path, header=header, mode=mode, index=index, sep=sep)
         else:
-            df.loc[subset].to_csv(path, header=None, mode='a', index=index,sep=sep)
+            df.loc[subset].to_csv(path, header=None, mode='a', index=index, sep=sep)
 
     return
 
-def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,sep: str=',',on_bad_lines: str='skip',encoding: str='utf-8', index_col: int=None) ->pd.DataFrame:
+
+def read_csv_with_progress_bar(path: str, rows_to_read: int = 0, comment: str = None, sep: str = ',', on_bad_lines: str = 'skip', encoding: str = 'utf-8', index_col: int = None) -> pd.DataFrame:
 
     # Wraps the pandas read_csv with a tqdm progress bar.
 
@@ -184,8 +192,60 @@ def read_csv_with_progress_bar(path:str, rows_to_read: int=0,comment: str=None,s
     # Read file in chunks, updating progress bar after each chunk.
     listdf = []
     with tqdm(total=lines, desc='Reading') as bar:
-        for chunk in pd.read_csv(path, skip_blank_lines=True,chunksize=1000, comment=comment, sep=sep, nrows=nrows,on_bad_lines=on_bad_lines,encoding=encoding,index_col=index_col):
+        for chunk in pd.read_csv(path, skip_blank_lines=True, chunksize=1000, comment=comment, sep=sep, nrows=nrows, on_bad_lines=on_bad_lines, encoding=encoding, index_col=index_col):
             listdf.append(chunk)
             bar.update(chunk.shape[0])
 
     return pd.concat(listdf, axis=0, ignore_index=True)
+
+def header_needs_update(filetest: str, new_header: list) -> bool:
+    # Check whether an update to the header is needed.
+    for line in fileinput.input(filetest):
+        if fileinput.isfirstline():
+            header = line.rstrip('\n')
+            header = header.split(',')
+            break
+    fileinput.close()
+    return not (header == new_header)
+
+def update_columns_to_csv_header(file: str, new_columns: list, fill: bool = False):
+
+    # August 2023 - Moved from OWLNETS-UMLS-GRAPH
+    # Updates the header of an ontology CSV file, adding new column names from the list argument.
+    # This allows the addition of columns for custom properties or relationships.
+
+    ulog.print_and_logger_info(f'Setting headers for {file} to {new_columns}...')
+
+    if not header_needs_update(filetest=file, new_header=new_columns):
+        ulog.print_and_logger_info(f'Header for {file} does not need updating.')
+        return
+
+    # Set up tqdm progress bar.
+    file_size = os.path.getsize(file)
+    pbar = tqdm(total=file_size, unit='MB')
+
+    rewrite = True
+    for line in fileinput.input(file, inplace=True):
+        # Strip the newline from the end of the current row.
+        linestrip = line.rstrip('\n')
+
+        if fileinput.isfirstline():
+            # Replace the header with the columns from the argument list.
+            newline = ','.join(new_columns)
+        else:
+            # Write the line without the newline character, but after adding blank values for new columns.
+            newline = linestrip
+            if fill:
+                linestrip = linestrip.split(',')
+                fillcols = len(new_columns) - len(linestrip)
+                for fillcols in range(fillcols):
+                    newline = newline + ','
+
+        print(newline)
+        # Update progress bar.
+        pbar.update(sys.getsizeof(line)-sys.getsizeof('\n'))
+
+    pbar.close()
+    fileinput.close()
+
+    return
