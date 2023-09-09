@@ -1326,6 +1326,12 @@ if node_metadata_has_labels:
     # ['CUI', 'SUI:ID']].dropna().drop_duplicates().reset_index(drop=True)
     newCUI_SUIs = newCUI_SUIs.merge(SUIs, how='left', left_on='node_label', right_on='name:ID')[
         ['CUI', 'name:ID']].dropna().drop_duplicates().reset_index(drop=True)
+
+    # SEPT 2023 - Drop empty terms.
+    newCUI_SUIs = newCUI_SUIs.replace({'': np.nan})
+    newCUI_SUIs = newCUI_SUIs.dropna(subset=[':END_ID'])
+    newCUI_SUIs.reset_index(drop=True, inplace=True)
+
     newCUI_SUIs.columns = [':START:ID', ':END_ID']
 
     # write/append - comment out during development
