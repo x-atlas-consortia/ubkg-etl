@@ -1329,7 +1329,7 @@ if node_metadata_has_labels:
 
     # SEPT 2023 - Drop empty terms.
     newCUI_SUIs = newCUI_SUIs.replace({'': np.nan})
-    newCUI_SUIs = newCUI_SUIs.dropna(subset=[':END_ID'])
+    newCUI_SUIs = newCUI_SUIs.dropna(subset=['name:ID'])
     newCUI_SUIs.reset_index(drop=True, inplace=True)
 
     newCUI_SUIs.columns = [':START:ID', ':END_ID']
