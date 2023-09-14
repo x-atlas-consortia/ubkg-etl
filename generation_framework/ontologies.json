@@ -251,6 +251,10 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HCOPMP",
     "comment": "HCOPMP - mouse_genotype_phenotype"
   },
+  "RATHCOP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py RATHCOP",
+    "comment": "RATHCOP - human-rat ensemble orthologs"
+  },
   "MSIGDB": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MSIGDB",
     "comment": "MSIGDB"
@@ -279,9 +283,13 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py ERCCRBS",
     "comment": "ERCC - Remote Binding Site"
   },
-  "CHLO": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CHLO",
-    "comment": "CHLO - Chromosome Location Ontology"
+  "HSCLO": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HSCLO",
+    "comment": "HSCLO - Chromosome Location Ontology"
+  },
+  "GENCODEHSCLO": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GENCODEHSCLO",
+    "comment": "GENCODE - HSCLO mapping"
   },
   "4DN": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py 4DN",
@@ -299,12 +307,16 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py ERCCREG",
     "comment": "ERCC Regulatory Elements"
   },
-  "MOTORPAC": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MOTORPAC",
-    "comment": "MOTORPAC"
+  "MOTRPAC": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MOTRPAC",
+    "comment": "MOTRPAC"
   },
   "KFPT": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py KFPT",
     "comment": "Gabriella Miller Kids First"
+  },
+  "HMAZ": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HMAZ",
+    "comment": "HuBMAP Azimuth"
   }
 }
