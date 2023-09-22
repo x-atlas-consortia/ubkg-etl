@@ -595,7 +595,6 @@ if relations_file_exists:
 # In[10]:
 
 edgelist.loc[edgelist['inverse'].isnull(), 'inverse'] = 'inverse_' + edgelist['relation_label']
-
 # ---------------------------------------------------------
 # PREPARE NODES
 

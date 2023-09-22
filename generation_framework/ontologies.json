@@ -318,5 +318,9 @@
   "HMAZ": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HMAZ",
     "comment": "HuBMAP Azimuth"
+  },
+  "CEDAR": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CEDAR",
+    "comment": "CEDAR templates"
   }
 }

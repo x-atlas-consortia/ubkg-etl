@@ -193,6 +193,14 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # Deprecated July 2023; no longer needed because HGNC is now formatted as HGNC:CODE.
     # ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
 
+    # SEPT 2023
+    # CEDAR
+    ret = np.where(x.str.contains('https://repo.metadatacenter.org/templates/'),
+                   'CEDAR:' + x.str.split('/').str[-1], ret)
+    ret = np.where(x.str.contains('https://repo.metadatacenter.org/template-fields/'),
+                   'CEDAR:' + x.str.split('/').str[-1], ret)
+    ret = np.where(x.str.contains('http://www.w3.org/2001/XMLSchema'),
+                   'XSD:' + x.str.split('#').str[-1], ret)
 
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
@@ -279,7 +287,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
         elif len(x)>0:
             # JULY 2023
             # For the case of a CodeID that appears to be a "naked" UMLS CUI, format as UMLS:CUI.
-            if x[0] == 'C' and x[1].isnumeric:
+            # SEPT 2023 - Account for codes in the CEDAR SAB.
+            if x[0] == 'C' and not 'CEDAR' in x and x[1].isnumeric:
              ret[idx] = 'UMLS:'+x
         else:
             ret[idx] = x
