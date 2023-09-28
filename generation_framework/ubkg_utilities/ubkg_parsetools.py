@@ -321,6 +321,8 @@ def relationReplacements(x:pd.Series) :
     # Arguments:
     #  x - Pandas Series object containing predicates (edges)
 
+    # SEPT 2023 - Added replacements for rdf#type IRIs.
+
     # AUGUST 2023
     # Replace . and - with _
     ret = x.str.replace('.', '_',regex=False).str.replace('.', '_',regex=False)
@@ -333,6 +335,10 @@ def relationReplacements(x:pd.Series) :
     # 4. a string
 
     ret = np.where(x.str.contains('RO:'),'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1],x)
+
+    # Replace #type from RDF schemas with isa.
+    ret = np.where(x.str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),'isa',x)
+    ret = np.where(x.str.contains('http://www.w3.org/2000/01/rdf-schema#type'), 'isa', x)
 
 
 
