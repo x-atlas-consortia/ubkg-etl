@@ -199,8 +199,12 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
                    'CEDAR:' + x.str.split('/').str[-1], ret)
     ret = np.where(x.str.contains('https://repo.metadatacenter.org/template-fields/'),
                    'CEDAR:' + x.str.split('/').str[-1], ret)
+    ret = np.where(x.str.contains('https://schema.metadatacenter.org/core/'),
+                   'CEDAR:' + x.str.split('/').str[-1], ret)
     ret = np.where(x.str.contains('http://www.w3.org/2001/XMLSchema'),
                    'XSD:' + x.str.split('#').str[-1], ret)
+
+
 
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are

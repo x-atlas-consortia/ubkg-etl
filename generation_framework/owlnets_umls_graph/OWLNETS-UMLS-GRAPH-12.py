@@ -565,6 +565,10 @@ edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('subCla
 # JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
 edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
                                       'isa', edgelist['relation_label'])
+# JAS SEPT 2023 - http://www.w3.org/2000/01/rdf-schema#type
+edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http://www.w3.org/2000/01/rdf-schema#type'),
+                                      'isa', edgelist['relation_label'])
+
 # The algorithm for inverses is simpler: if one was derived from RO, use it; else leave empty, and
 # the script will create a pseudo-inverse.
 
