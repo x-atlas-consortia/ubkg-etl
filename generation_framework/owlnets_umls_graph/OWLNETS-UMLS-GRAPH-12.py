@@ -58,6 +58,7 @@ import ubkg_parsetools as uparse
 import ubkg_extract as uextract
 import ubkg_logging as ulog
 import ubkg_reporting as ureport
+import ubkg_clean_csv as uclean
 
 
 def owlnets_path(file: str) -> str:
@@ -1075,7 +1076,6 @@ edgelist = edgelist[edgelist['CUI1'] != edgelist['CUI2']]
 # --------------------------------------------------
 # ## Write out files
 ulog.print_and_logger_info('APPENDING TO ONTOLOGY CSVs...')
-# edgelist.to_csv('EDGELIST.csv')
 
 # ### Test existence when appropriate in original csvs and then add data for each csv
 
@@ -1673,6 +1673,23 @@ if node_metadata_has_definitions:
     del DEFrel
     del DEF_REL
     del newDEF_REL
+
+
+# JAS Sept 2023
+# Remove duplicate rows from all CSVs.
+
+uclean.remove_duplicates(csvpath=csv_path('CODE-SUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CODEs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-CODEs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-CUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-SUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-TUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('DEFrel.csv'))
+uclean.remove_duplicates(csvpath=csv_path('DEFs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('SUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('TUIrel.csv'))
+uclean.remove_duplicates(csvpath=csv_path('TUIs.csv'))
 
 # --------------------------------------------------
 # QC reporting, Workflow point 3
