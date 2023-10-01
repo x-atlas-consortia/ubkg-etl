@@ -244,6 +244,7 @@ def write_nodes_file(df:pd.DataFrame, owlnets_dir: str):
                 node = str(row['Class ID'])
                 node_namespace = args.owl_sab
                 node_label = str(row['Preferred Label'])
+
                 if 'definition' in df.columns:
                     node_definition = str(row['definition'])
                 if 'Definitions' in df.columns:
@@ -318,8 +319,10 @@ def getdfCSV(owl_dir: str, csv_file: str) -> pd.DataFrame:
     dfontology = uextract.read_csv_with_progress_bar(csv_path, on_bad_lines='skip', encoding='utf-8', sep=',')
     dfontology = dfontology.replace({'None': np.nan})
     dfontology = dfontology.replace({'': np.nan})
+    # JAS OCT 2023 Change to add all nodes to allow for nodes without parents.
+    # Use case: HRAVS, which as of Oct 2023 was the only use case for this script.
     # Drop rows without at least subclass relationships.
-    dfontology = dfontology.dropna(subset=['Class ID', 'Parents'])
+    # dfontology = dfontology.dropna(subset=['Class ID', 'Parents'])
 
     return dfontology
 
@@ -359,5 +362,4 @@ if has_component_IRI == '':
 write_edges_file(df=dfontology,owlnets_dir=owlnets_dir,has_component_IRI=has_component_IRI,sab=args.owl_sab)
 write_nodes_file(df=dfontology,owlnets_dir=owlnets_dir)
 write_relations_file(owlnets_dir=owlnets_dir,predicate=has_component_IRI,label=has_component_lbl)
-
 

@@ -925,6 +925,7 @@ for cui in tqdm(node_metadata_duplicates['CUI']):
 
 # ### Join CUI from node_metadata to each edgelist subject and object
 
+
 # #### ASSEMBLE CUI-CUIs
 ulog.print_and_logger_info('-- Assembling CUI-CUI (concept-concept) relationships...')
 # In[18]:
@@ -1063,6 +1064,7 @@ edgelist = edgelist[['CUI1', 'relation_label', 'CUI2', 'inverse', 'evidence_clas
 edgelist['SAB'] = OWL_SAB
 
 edgelist = edgelist.drop_duplicates(subset=['CUI1', 'relation_label', 'CUI2'])
+
 
 # -------------------------------------------------
 # JAS 27 MAR 2023
