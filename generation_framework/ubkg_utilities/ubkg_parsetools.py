@@ -36,7 +36,6 @@ def getPrefixes()->pd.DataFrame:
 
 def codeReplacements(x:pd.Series, ingestSAB: str):
 
-    print(x)
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
     # recognized by the knowledge graph.
 
@@ -81,7 +80,6 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # script.
     ret = x.str.replace(':', ' ').str.replace('#', ' ').str.replace('_', ' ').str.split('/').str[-1]
 
-    print(ret)
     # --------------
     # SPECIAL CONVERSIONS: UMLS SABS
     # 1. Standardize SABs--e.g., convert NCBITaxon (from IRIs) to NCBI (in UMLS); MESH to MSH; etc.
@@ -207,8 +205,13 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
                    'XSD:' + x.str.split('#').str[-1], ret)
 
     # HRAVS
+    # The HRAVS IRIs are in format ...hravs#HRAVS_X, which results in HRAVS HRAVS X.
     ret = np.where(x.str.contains('https://purl.humanatlas.io/vocab/hravs#'),
                    'HRAVS:' + x.str.split('_').str[-1], ret)
+    # The gzip_csv converter script translates HRAVS IRIs to hravs HRAVS X.
+    ret = np.where(x.str.upper().str.contains('HRAVS HRAVS'),
+                   'HRAVS:' + x.str.split(' ').str[-1], ret)
+
 
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
@@ -301,8 +304,6 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
         else:
             ret[idx] = x
 
-    print(ret)
-    exit(1)
     return ret
 
     # -------------

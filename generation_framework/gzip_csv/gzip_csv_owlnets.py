@@ -159,7 +159,7 @@ def write_edges_file(df:pd.DataFrame, owlnets_dir: str, has_component_IRI: str,s
 
     # Writes an edges file in OWLNETS format.
     # Arguments:
-    # df - DataFrame of UNIPROTKB data
+    # df - DataFrame of source data
     # owlnets_dir - output directory
     # has_component_IRI - IRI for the 'has_component' relationship
     # sab: SAB for ontology
