@@ -212,6 +212,11 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = np.where(x.str.upper().str.contains('HRAVS HRAVS'),
                    'HRAVS:' + x.str.split(' ').str[-1], ret)
 
+    # ORDO
+    # ORDO uses Orphanet as a namespace.
+    ret = np.where(x.str.contains('http://www.orpha.net/ORDO/'),
+                   'ORDO:' + x.str.split('_').str[-1], ret)
+
 
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
