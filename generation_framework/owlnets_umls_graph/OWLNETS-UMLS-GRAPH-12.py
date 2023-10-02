@@ -1635,6 +1635,11 @@ if node_metadata_has_synonyms:
 # In[30]:
 ulog.print_and_logger_info('--Appending to DEFs.csv and DEFrel.csv...')
 
+# SEPT 2023 - Drop empty definitions.
+node_metadata['node_definition'] = node_metadata['node_definition'].replace({'': np.nan})
+node_metadata = node_metadata.dropna(subset=['node_definition'])
+node_metadata.reset_index(drop=True, inplace=True)
+
 # June 2023 - Only process if there are any definitions.
 node_metadata_has_definitions = len(node_metadata['node_definition'].value_counts()) > 0
 
