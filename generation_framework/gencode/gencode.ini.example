@@ -9,7 +9,7 @@ base_url=https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/
 # Absolute Path in the local repo to which to download source GZip files
 owl_dir=generation_framework/owl/GENCODE
 # Absolute Path in the local repo to which to expand GZIPPed GTF files of data for use in ingestion
-owlnets_dir=generation_framework/owlnets_output/GENCODE
+owlnets_dir=generation_framework/owlnets_output/GENCODE_VS
 
 [URL]
 # Files paths and filenames refer to the GenCode release.
