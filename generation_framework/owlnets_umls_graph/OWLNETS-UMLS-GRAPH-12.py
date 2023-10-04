@@ -58,6 +58,7 @@ import ubkg_parsetools as uparse
 import ubkg_extract as uextract
 import ubkg_logging as ulog
 import ubkg_reporting as ureport
+import ubkg_clean_csv as uclean
 
 
 def owlnets_path(file: str) -> str:
@@ -541,7 +542,9 @@ edgelist = edgelist[['subject', 'predicate', 'object', 'evidence_class', 'relati
 # 5. label from OWLNETS_relations.txt, not joined against RO
 # 6. predicate from edgelist
 # 7. 'subClassOf' predicates converted to 'isa'
+# JAS SEPT 2023 - #8 moved to relationreplacements in ubkg_parsetools.py
 # 8. JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
+
 
 edgelist['relation_label'] = edgelist['relation_label_RO_fromIRIjoin']
 
@@ -562,9 +565,11 @@ edgelist['relation_label'] = np.where(edgelist['relation_label'].isnull(), edgel
 edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('subClassOf'), 'isa',
                                       edgelist['relation_label'])
 
+# JAS SEPT 2023 - Moved to relationshipreplacements in ubkg_parsetools.py
 # JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
-edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                                      'isa', edgelist['relation_label'])
+#edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                                      #'isa', edgelist['relation_label'])
+
 # The algorithm for inverses is simpler: if one was derived from RO, use it; else leave empty, and
 # the script will create a pseudo-inverse.
 
@@ -920,6 +925,7 @@ for cui in tqdm(node_metadata_duplicates['CUI']):
 
 # ### Join CUI from node_metadata to each edgelist subject and object
 
+
 # #### ASSEMBLE CUI-CUIs
 ulog.print_and_logger_info('-- Assembling CUI-CUI (concept-concept) relationships...')
 # In[18]:
@@ -1059,6 +1065,7 @@ edgelist['SAB'] = OWL_SAB
 
 edgelist = edgelist.drop_duplicates(subset=['CUI1', 'relation_label', 'CUI2'])
 
+
 # -------------------------------------------------
 # JAS 27 MAR 2023
 # Remove "self-references"--i.e., assertions in which the CUIs for subject and object nodes are identical.
@@ -1071,7 +1078,6 @@ edgelist = edgelist[edgelist['CUI1'] != edgelist['CUI2']]
 # --------------------------------------------------
 # ## Write out files
 ulog.print_and_logger_info('APPENDING TO ONTOLOGY CSVs...')
-# edgelist.to_csv('EDGELIST.csv')
 
 # ### Test existence when appropriate in original csvs and then add data for each csv
 
@@ -1629,6 +1635,11 @@ if node_metadata_has_synonyms:
 # In[30]:
 ulog.print_and_logger_info('--Appending to DEFs.csv and DEFrel.csv...')
 
+# SEPT 2023 - Drop empty definitions.
+node_metadata['node_definition'] = node_metadata['node_definition'].replace({'': np.nan})
+node_metadata = node_metadata.dropna(subset=['node_definition'])
+node_metadata.reset_index(drop=True, inplace=True)
+
 # June 2023 - Only process if there are any definitions.
 node_metadata_has_definitions = len(node_metadata['node_definition'].value_counts()) > 0
 
@@ -1669,6 +1680,23 @@ if node_metadata_has_definitions:
     del DEFrel
     del DEF_REL
     del newDEF_REL
+
+
+# JAS Sept 2023
+# Remove duplicate rows from all CSVs.
+
+uclean.remove_duplicates(csvpath=csv_path('CODE-SUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CODEs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-CODEs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-CUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-SUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUI-TUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('CUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('DEFrel.csv'))
+uclean.remove_duplicates(csvpath=csv_path('DEFs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('SUIs.csv'))
+uclean.remove_duplicates(csvpath=csv_path('TUIrel.csv'))
+uclean.remove_duplicates(csvpath=csv_path('TUIs.csv'))
 
 # --------------------------------------------------
 # QC reporting, Workflow point 3

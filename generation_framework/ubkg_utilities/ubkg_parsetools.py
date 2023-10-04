@@ -193,6 +193,30 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # Deprecated July 2023; no longer needed because HGNC is now formatted as HGNC:CODE.
     # ret = np.where(x.str.contains('HCOP'),'HCOP HCOP:' + x.str.split(':').str[-1],ret)
 
+    # SEPT 2023
+    # CEDAR
+    ret = np.where(x.str.contains('https://repo.metadatacenter.org/templates/'),
+                   'CEDAR:' + x.str.split('/').str[-1], ret)
+    ret = np.where(x.str.contains('https://repo.metadatacenter.org/template-fields/'),
+                   'CEDAR:' + x.str.split('/').str[-1], ret)
+    ret = np.where(x.str.contains('https://schema.metadatacenter.org/core/'),
+                   'CEDAR:' + x.str.split('/').str[-1], ret)
+    ret = np.where(x.str.contains('http://www.w3.org/2001/XMLSchema'),
+                   'XSD:' + x.str.split('#').str[-1], ret)
+
+    # HRAVS
+    # The HRAVS IRIs are in format ...hravs#HRAVS_X, which results in HRAVS HRAVS X.
+    ret = np.where(x.str.contains('https://purl.humanatlas.io/vocab/hravs#'),
+                   'HRAVS:' + x.str.split('_').str[-1], ret)
+    # The gzip_csv converter script translates HRAVS IRIs to hravs HRAVS X.
+    ret = np.where(x.str.upper().str.contains('HRAVS HRAVS'),
+                   'HRAVS:' + x.str.split(' ').str[-1], ret)
+
+    # ORDO
+    # ORDO uses Orphanet as a namespace.
+    ret = np.where(x.str.contains('http://www.orpha.net/ORDO/'),
+                   'ORDO:' + x.str.split('_').str[-1], ret)
+
 
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
@@ -279,7 +303,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
         elif len(x)>0:
             # JULY 2023
             # For the case of a CodeID that appears to be a "naked" UMLS CUI, format as UMLS:CUI.
-            if x[0] == 'C' and x[1].isnumeric:
+            # SEPT 2023 - Account for codes in the CEDAR SAB.
+            if x[0] == 'C' and not 'CEDAR' in x and x[1].isnumeric:
              ret[idx] = 'UMLS:'+x
         else:
             ret[idx] = x
@@ -308,6 +333,8 @@ def relationReplacements(x:pd.Series) :
     # Arguments:
     #  x - Pandas Series object containing predicates (edges)
 
+    # SEPT 2023 - Added replacements for rdf#type IRIs.
+
     # AUGUST 2023
     # Replace . and - with _
     ret = x.str.replace('.', '_',regex=False).str.replace('.', '_',regex=False)
@@ -320,6 +347,10 @@ def relationReplacements(x:pd.Series) :
     # 4. a string
 
     ret = np.where(x.str.contains('RO:'),'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1],x)
+
+    # Replace #type from RDF schemas with isa.
+    ret = np.where(x.str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),'isa',x)
+    ret = np.where(x.str.contains('http://www.w3.org/2000/01/rdf-schema#type'), 'isa', x)
 
 
 

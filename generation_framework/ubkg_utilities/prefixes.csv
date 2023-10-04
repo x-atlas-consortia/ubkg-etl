@@ -40,4 +40,6 @@ http://uri.neuinfo.org/nif/nifstd/nlx_mol_,NIFSTD.NLX.MOL
 http://uri.neuinfo.org/nif/nifstd/nlx_cell_,NIFSDT.NLX.CELL
 http://uri.neuinfo.org/nif/nifstd/nlx_anat_,NIFSTD.NLX.ANAT
 http://uri.neuinfo.org/nif/nifstd/nlx_organ_,NIFSTD.NLX.ORG
-http://purl.humanatlas.io/valueset/,HRAVS
+https://repo.metadatacenter.org/templates/,CEDAR
+https://repo.metadatacenter.org/template-fields/,CEDAR
+http://www.w3.org/2001/XMLSchema#,XSD

@@ -221,9 +221,9 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py PGO",
     "comment": "Pseudogene"
   },
-  "GENCODE_ONT": {
+  "GENCODE_VS": {
     "comment": "GenCode application ontology, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py GENCODE_ONT"
+    "execute": "./skowlnets/skowlnets.py GENCODE_VS"
   },
   "CLINVAR": {
     "home_url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/README.txt",
@@ -318,5 +318,9 @@
   "HMAZ": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HMAZ",
     "comment": "HuBMAP Azimuth"
+  },
+  "CEDAR": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CEDAR",
+    "comment": "CEDAR templates"
   }
 }
