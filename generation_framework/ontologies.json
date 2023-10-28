@@ -322,5 +322,9 @@
   "CEDAR": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CEDAR",
     "comment": "CEDAR templates"
+  },
+  "HMFIELD": {
+    "execute": "./hmfields/hmfields.py HMFIELD",
+    "comment": "HuBMAP pre-CEDAR metadata"
   }
 }
