@@ -659,4 +659,3 @@ if not args.skipbuild:
     add_field_schema_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_schemas=dict_field_schemas,
                                    list_schemas=list_encoded_schemas,
                                    path=edgelist_path, sab=args.sab)
-
