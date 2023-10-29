@@ -27,6 +27,9 @@ gdown==4.7.1
 # Downgrade NetworkX to a stable previous version.
 networkx==2.8
 
+# For reading YAML
+pyyaml==6.0
+
 # Dependencies without references in code. Kept for archival.
 # setuptools~=65.3.0
 # SQLAlchemy==1.4.44
