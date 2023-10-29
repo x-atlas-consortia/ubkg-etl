@@ -74,14 +74,44 @@ def get_node_id(idx: int, sab: str) -> str:
     """
     return f'{sab}:{idx:03d}'
 
+def build_schema_list(sab: str, yaml_dict_field_schemas: dict) -> list:
+    """
+    Build a unique list of schema nodes.
+    :param sab: SAB for the vocabulary.
+    :param yaml_dict_field_schemas: dictionary from a YAML file--i.e., field_schemas.yaml.
+    :return: list of encoded schemas, with each schema in a dict.
+    """
+    list_schemas = []
 
-def write_nodes_file(sab: str, yaml_dict: dict, dirpath: str):
+    for field in yaml_dict_field_schemas:
+        # Get schemas associated with field.
+        list_field_schemas = yaml_dict_field_schemas[field]
+        # Add a schema to the list if new to the list.
+        for schema in list_field_schemas:
+            match = [s for s in list_schemas if s['schema']==schema]
+            if len(match) == 0:
+                # The schema is new to the list.
+                dict_schema = {'schema':schema}
+                list_schemas.append(dict_schema)
+
+    # Encode the unique list of schemas.
+    # idx = 1000 will be for the parent node.
+    idx = 1001
+    for dict_schema in list_schemas:
+        node_id = get_node_id(idx=idx, sab=sab)
+        dict_schema['node_id'] = node_id
+        idx = idx + 1
+
+    return list_schemas
+
+def write_nodes_file(sab: str, yaml_dict_fields: dict, list_encoded_schemas: list, dirpath: str):
 
     """
     Writes a nodes file in OWLNETS format.
     :param sab: SAB for the ontology.
-    :param yaml_dict: dictionary from a YAML file. This is expected to be field_descriptions.yaml.
+    :param yaml_dict_fields: dictionary from a YAML file. This is expected to be field_descriptions.yaml.
     :param dirpath: output directory
+    :param list_encoded_schemas: list of encoded schemas built from field_schemas.YAML.
     :return:
     """
 
@@ -108,12 +138,12 @@ def write_nodes_file(sab: str, yaml_dict: dict, dirpath: str):
         out.write(f'{node_id}\t{node_namespace}\t{node_label}\t{node_definition}\t{node_synonyms}\t{node_dbxrefs}\n')
 
         idx = 1
-        for key in yaml_dict:
+        for key in yaml_dict_fields:
 
             node_id = get_node_id(idx=idx, sab=sab)
             node_namespace = sab
             node_label = key
-            node_definition = yaml_dict[key]
+            node_definition = yaml_dict_fields[key]
             node_synonyms = ''
             node_dbxrefs = ''
 
@@ -121,6 +151,25 @@ def write_nodes_file(sab: str, yaml_dict: dict, dirpath: str):
                       f'\t{node_synonyms}\t{node_dbxrefs}\n')
 
             idx = idx + 1
+
+        # Schema nodes
+        node_id = get_node_id(idx=1000, sab=sab)
+        node_namespace = sab
+        node_label = 'metadata_schema'
+        node_definition = 'metadata schema'
+        node_synonyms = ''
+        node_dbxrefs = ''
+        out.write(f'{node_id}\t{node_namespace}\t{node_label}\t{node_definition}\t{node_synonyms}\t{node_dbxrefs}\n')
+
+        for schema in list_encoded_schemas:
+            node_id = schema['node_id']
+            node_namespace = sab
+            node_label = schema['schema']
+            node_definition = schema['schema'] + ' schema'
+            node_synonyms = ''
+            node_dbxrefs = ''
+            out.write(
+                f'{node_id}\t{node_namespace}\t{node_label}\t{node_definition}\t{node_synonyms}\t{node_dbxrefs}\n')
 
     return
 
@@ -142,11 +191,15 @@ def initialize_edges_file(path: str):
     return
 
 
-def build_isa(sab: str, yaml_dict: dict, path: str):
+def build_isa(sab: str, yaml_dict_fields: dict, list_encoded_schemas: list, path: str):
     """
-    Writes a set of isa relationships between all nodes in dict_fields and the ontology root.
+    Writes sets of isa relationships between:
+        1. all nodes in dict_fields and the ontology root
+        2. all schema nodes and the schema root.
+
     :param sab: SAB of the ontology
-    :param yaml_dict: dict of field nodes
+    :param yaml_dict_fields: dict of field nodes
+    :param list_encoded_schemas: list of encoded schemas built from field_schemas.yaml.
     :param path: path to edge file
     :return:
     """
@@ -154,12 +207,27 @@ def build_isa(sab: str, yaml_dict: dict, path: str):
 
     with open(path, 'a') as out:
         idx = 1
-        for key in yaml_dict:
+        for key in yaml_dict_fields:
             subject = get_node_id(idx=idx, sab=sab)
             predicate = 'isa'
             obj = get_node_id(idx=0, sab=sab)
             out.write(f'{subject}\t{predicate}\t{obj}\n')
             idx = idx + 1
+
+        # Schema edges
+        # 1000 - schema root
+        subject = get_node_id(idx=1000, sab=sab)
+        predicate = 'isa'
+        obj = get_node_id(idx=0, sab=sab)
+        out.write(f'{subject}\t{predicate}\t{obj}\n')
+
+        # Encoded schemas are children of the schema root.
+        for dict_schema in list_encoded_schemas:
+            subject = dict_schema['node_id']
+            predicate = 'isa'
+            obj = get_node_id(idx=1000, sab=sab)
+            out.write(f'{subject}\t{predicate}\t{obj}\n')
+
     return
 
 
@@ -395,64 +463,90 @@ def add_field_assay_relationships(yaml_dict_fields: dict, yaml_dict_field_assays
         dataset['code'] = codematches[0]['code']
 
     # Loop through the YAML dictionary of fields.
-    # Match the field's associated dataset data type from the field-assay YAML to entities from the UBKG.
+    # Match the field's associated assay from the field-assay YAML to entities from the UBKG,
+    # searching on data_type, description, or alt-names.
     # Write a "used_for_data_type" relationship to the edge file.
 
     with open(path, 'a') as out:
         idx = 1
 
         for key in yaml_dict_fields:
+
             matches = [] # initialize
             subj = get_node_id(idx=idx, sab=sab)
 
             # A field maps to a list of "assays", using a combination of data_types, display names, and alt-names.
             yaml_field_assays = yaml_dict_field_assays.get(key)
-            if yaml_field_assays is None:
+
+            if yaml_field_assays is not None:
+                # Try to match for each assay associated with the field in field_assays.yaml.
+                for assay in yaml_field_assays:
+
+                    # Match against data_type.
+                    matches_data_type = [ubkg_dataset for ubkg_dataset in ubkg_dataset_json if ubkg_dataset['data_type'] == assay]
+
+                    # Match against description (display name).
+                    matches_description = [ubkg_dataset for ubkg_dataset in ubkg_dataset_json if ubkg_dataset['description'] == assay]
+
+                    # Match against alt-names.
+                    matches_alt_names = [ubkg_dataset for ubkg_dataset in ubkg_dataset_json if assay in ubkg_dataset['alt-names']]
+
+                    if len(matches_data_type) > 0:
+                        matches.extend(matches_data_type)
+                    elif len(matches_description) > 0:
+                        matches.extend(matches_description)
+                    elif len(matches_alt_names) > 0:
+                        matches.extend(matches_alt_names)
+                    else:
+                        ulog.print_and_logger_info(
+                        f'Field {key} - assay {assay} not matched to an assay in UBKG.')
+
+                    if len(matches) > 0:
+                        # Write the assertions.
+                        for match in matches:
+                            obj = match.get('code')
+                            predicate = 'used_for_data_type'
+                            out.write(f'{subj}\t{predicate}\t{obj}\n')
+
+
+            else:
                 ulog.print_and_logger_info(f'Field {key} not associated with an assay in field_assays.yaml.')
-                break
-
-            # Try to match for each assay associated with the field in field_assays.yaml.
-            for assay in yaml_field_assays:
-                # First, try to match against data_type.
-                 matches = [ubkg_dataset for ubkg_dataset in ubkg_dataset_json if ubkg_dataset['data_type'] == assay]
-
-                # If there are no matches against data_type, try the display name for the dataset.
-                if len(matches) > 0:
-                    break
-
-                matches = [ubkg_dataset for ubkg_dataset in ubkg_dataset_json if ubkg_dataset['description'] == assay]
-
-                # If there are no matches for either data_type or display name, try the list of alt-names.
-                if len(matches) > 0:
-                    break
-
-                for ubkg_dataset in ubkg_dataset_json:
-                    alt_names = ubkg_dataset.get('alt-names')
-                    if alt_names is not None:
-                        altmatches = [alt_name for alt_name in alt_names if alt_name == assay]
-                    if len(altmatches) > 0:
-                        # Get the CodeID for the data_type node corresponding to the alt-name. The alt-name
-                        # is a term of type SY from HUBMAP.
-                        # Add to the matches variable (a list of dicts) to emulate the results that
-                        # returned from the other use cases.
-                        print(f'{key} matched on alt-name {altmatches}')
-                        altmatch = {}
-                        altmatch['code'] = ubkg_dataset['code']
-                        matches.append(altmatch)
-                        break
-
-                print(f'{key}:{matches}')
-                if len(matches) == 0:
-                    ulog.print_and_logger_info(f'Field {key} ({idx}) not matched to assay in UBKG. Assigned assays are {yaml_field_assays}.')
-                # Write the assertion.
-                for m in matches:
-                    obj = m.get('code')
-                    predicate = 'used_for_data_type'
-                    out.write(f'{subj}\t{predicate}\t{obj}\n')
-                    #print(f'{subj}\t{predicate}\t{obj}')
 
             idx = idx + 1
+
         return
+
+def add_field_schema_relationships(yaml_dict_fields:dict, yaml_dict_field_schemas: dict, list_encoded_schemas:list,
+                               path:str, sab: str):
+    """
+    Creates relationships between fields from the dict_field_descriptions YAML file and schemas from the
+    field_schemas YAML file.
+    :param yaml_dict_fields: dictionary built from field_descriptions.yaml
+    :param yaml_dict_field_schemas: dictionary built from field_schemas.yaml
+    :param list_encoded_schemas: list of encoded schemas built from field_schemas.yaml.
+    :param path: output path
+    :param sab: SAB
+    :return:
+    """
+
+    with open(path, 'a') as out:
+
+        idx = 1
+        for field in yaml_dict_fields:
+            subj = get_node_id(idx=idx, sab=sab)
+
+            # Get the schemas associated with the field.
+            field_schemas = yaml_dict_field_schemas.get(field)
+
+            if field_schemas is not None:
+                # Get the node_id for each schema. Write an edge between the field and the schema.
+                for schema in field_schemas:
+                    encoded_schema = [s for s in list_encoded_schemas if s['schema'] == schema]
+                    obj = encoded_schema[0]['node_id']
+                    predicate = 'used_in_schema'
+                    out.write(f'{subj}\t{predicate}\t{obj}\n')
+
+            idx = idx + 1
 
 # -----------------------------------------
 # START
@@ -499,15 +593,20 @@ if not args.skipbuild:
     url_field_assays = repo_dir + 'field-assays.yaml'
     dict_field_assays = load_yaml(url_field_assays)
 
+    # Field to schema relationships.
+    url_field_schemas = repo_dir + 'field-schemas.yaml'
+    dict_field_schemas = load_yaml(url_field_schemas)
+    list_encoded_schemas = build_schema_list(sab=args.sab, yaml_dict_field_schemas=dict_field_schemas)
+
 # Write the node file using the fields in field_descriptions.yaml.
-write_nodes_file(sab=args.sab, yaml_dict=dict_fields, dirpath=owlnets_dir)
+write_nodes_file(sab=args.sab, yaml_dict_fields=dict_fields, list_encoded_schemas=list_encoded_schemas, dirpath=owlnets_dir)
 
 # Build the edge file.
 edgelist_path: str = os.path.join(owlnets_dir, 'OWLNETS_edgelist.txt')
 initialize_edges_file(path=edgelist_path)
 
 # Assert isa relationships between the field nodes and the HMFIELD parent node.
-build_isa(sab=args.sab, yaml_dict=dict_fields, path=edgelist_path)
+build_isa(sab=args.sab, yaml_dict_fields=dict_fields, list_encoded_schemas=list_encoded_schemas, path=edgelist_path)
 
 # Translate content of the YAML files that describe relationships into assertions.
 
@@ -523,4 +622,7 @@ add_field_entity_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_ent
 add_field_assay_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_assays=dict_field_assays,
                                path=edgelist_path, urlbase=ubkg_url, sab=args.sab)
 
-exit(1)
+# Schema
+add_field_schema_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_schemas=dict_field_schemas, list_encoded_schemas=list_encoded_schemas,
+                               path=edgelist_path, sab=args.sab)
+
