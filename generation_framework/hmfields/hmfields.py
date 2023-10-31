@@ -305,7 +305,7 @@ def get_concept_code(cui: str, urlbase: str, sab: str) -> str | None:
 
 
 def add_field_type_relationships(yaml_dict_fields: dict, yaml_dict_field_types: dict, path: str, urlbase: str,
-                                 sab: str):
+                                 sab: str, parent_idx: dict):
     """
     Creates relationships between fields from the dict_fields YAML file and XSD field type nodes
     from CEDAR.
@@ -316,6 +316,7 @@ def add_field_type_relationships(yaml_dict_fields: dict, yaml_dict_field_types: 
     :param path: output file
     :param urlbase: URL to the UBKG API
     :param sab: ontology SAB
+    :param parent_idx: indexes of parent node codes
     :return:
     """
 
@@ -349,7 +350,7 @@ def add_field_type_relationships(yaml_dict_fields: dict, yaml_dict_field_types: 
     # Write a "has_datatype" relationship to the edge file. The "has_datatype" relationship matches that used in CEDAR.
 
     with open(path, 'a') as out:
-        idx = 1
+        idx = parent_idx['field_parent_node_idx'] + 1
         for key in yaml_dict_fields:
             subj = get_node_id(idx=idx, sab=sab)
             yaml_field_type = yaml_dict_field_types.get(key)
@@ -377,7 +378,7 @@ def add_field_type_relationships(yaml_dict_fields: dict, yaml_dict_field_types: 
 
 
 def add_field_entity_relationships(yaml_dict_fields: dict, yaml_dict_field_entities: dict, path: str,
-                                   urlbase: str, sab: str):
+                                   urlbase: str, sab: str, parent_idx: dict):
     """
         Creates relationships between fields from the dict_fields YAML file and codes in the Provenance Entity
         hierarchy of the HUBMAP ontology.
@@ -388,6 +389,7 @@ def add_field_entity_relationships(yaml_dict_fields: dict, yaml_dict_field_entit
         :param path: output file
         :param urlbase: URL to the UBKG API
         :param sab: ontology SAB
+        :param parent_idx: indexes of parent codes in ontology
         :return:
         """
 
@@ -404,7 +406,7 @@ def add_field_entity_relationships(yaml_dict_fields: dict, yaml_dict_field_entit
     # Write a "used_in_entity" relationship to the edge file.
 
     with open(path, 'a') as out:
-        idx = 1
+        idx = parent_idx['field_parent_node_idx'] + 1
         for key in yaml_dict_fields:
             subj = get_node_id(idx=idx, sab=sab)
 
@@ -447,7 +449,7 @@ def get_codeids_for_term_sab_type(term_string: str, sab: str, term_type: str, ur
 
 
 def add_field_assay_relationships(yaml_dict_fields: dict, yaml_dict_field_assays: dict, path: str, urlbase: str,
-                                  sab: str):
+                                  sab: str, parent_idx: dict):
     """
         Creates relationships between fields from the dict_fields YAML file and codes in the Dataset Data Type
         hierarchy of the HUBMAP ontology.
@@ -457,6 +459,7 @@ def add_field_assay_relationships(yaml_dict_fields: dict, yaml_dict_field_assays
         :param path: output file
         :param urlbase: URL to the UBKG API
         :param sab: ontology SAB
+        :param parent_idx: dict of indexes of parent codes in ontology
         :return:
         """
 
@@ -488,7 +491,7 @@ def add_field_assay_relationships(yaml_dict_fields: dict, yaml_dict_field_assays
     # Write a "used_for_data_type" relationship to the edge file.
 
     with open(path, 'a') as out:
-        idx = 1
+        idx = parent_idx['field_parent_node_idx'] + 1
 
         for key in yaml_dict_fields:
 
@@ -540,7 +543,7 @@ def add_field_assay_relationships(yaml_dict_fields: dict, yaml_dict_field_assays
 
 
 def add_field_schema_relationships(yaml_dict_fields: dict, yaml_dict_field_schemas: dict, list_schemas: list,
-                                   path: str, sab: str):
+                                   path: str, sab: str, parent_idx: dict):
     """
     Creates relationships between fields from the dict_field_descriptions YAML file and schemas from the
     field_schemas YAML file.
@@ -549,12 +552,13 @@ def add_field_schema_relationships(yaml_dict_fields: dict, yaml_dict_field_schem
     :param list_schemas: list of encoded schemas built from field_schemas.yaml.
     :param path: output path
     :param sab: SAB
+    :param parent_idx: dict of indexes of parent codes in ontology
     :return:
     """
 
     with open(path, 'a') as out:
 
-        idx = 1
+        idx = parent_idx['field_parent_node_idx'] + 1
         for field in yaml_dict_fields:
             subj = get_node_id(idx=idx, sab=sab)
 
@@ -645,17 +649,17 @@ if not args.skipbuild:
 
     # Field type
     add_field_type_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_types=dict_field_types,
-                                 path=edgelist_path, urlbase=ubkg_url, sab=args.sab)
+                                 path=edgelist_path, urlbase=ubkg_url, sab=args.sab, parent_idx=sab_parent_idx)
 
     # Provenance entity
     add_field_entity_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_entities=dict_field_entities,
-                                   path=edgelist_path, urlbase=ubkg_url, sab=args.sab)
+                                   path=edgelist_path, urlbase=ubkg_url, sab=args.sab, parent_idx=sab_parent_idx)
 
     # Assay (dataset data type)
     add_field_assay_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_assays=dict_field_assays,
-                                  path=edgelist_path, urlbase=ubkg_url, sab=args.sab)
+                                  path=edgelist_path, urlbase=ubkg_url, sab=args.sab, parent_idx=sab_parent_idx)
 
     # Schema
     add_field_schema_relationships(yaml_dict_fields=dict_fields, yaml_dict_field_schemas=dict_field_schemas,
                                    list_schemas=list_encoded_schemas,
-                                   path=edgelist_path, sab=args.sab)
+                                   path=edgelist_path, sab=args.sab, parent_idx=sab_parent_idx)
