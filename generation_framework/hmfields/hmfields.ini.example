@@ -17,7 +17,13 @@ ubkg_url=http://127.0.0.1:5002/
 # Indexes of parent nodes in the HMFIELD ontology
 # SAB root
 SAB_PARENT=0000
-# Parent node for all fields
-FIELD_PARENT=1000
-# Parent node for all schemas
-SCHEMA_PARENT=2000
+# Parent node for fields
+FIELD_PARENT = 1000
+# Parent node for types
+TYPE_PARENT=2000
+# Parent node for (provenance) entities
+ENTITY_PARENT=3000
+# Parent node for assays
+ASSAY_PARENT=4000
+# Parent node for schemas
+SCHEMA_PARENT=5000
