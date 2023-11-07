@@ -193,8 +193,6 @@ def build_node_list(sab: str, yaml_dict_field_nodes: dict, parent_node_idx: int,
                     # HMFIELD entity cross-references are to Provenance Entity codes from HUBMAP.
                     xref_sab = 'HUBMAP'
                     xref_term_type = 'PT'
-                    if node == 'contributor':
-                        node == 'contributors'
 
                     # Match case.
                     xref_term_string = node.capitalize()
