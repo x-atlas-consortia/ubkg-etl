@@ -328,6 +328,21 @@ def get_concept_code(cui: str, urlbase: str, sab: str) -> str | None:
         return match[0]
     return
 
+def get_concept_for_code(code: str, urlbase: str) -> str | None:
+    """
+    Returns concept for a given code.
+    :param code:
+    :param urlbase: base URL for UBKG endpoints.
+    :return: concept
+    """
+    url = f'{urlbase}codes/{code}/concepts'
+    response = requests.get(url)
+    respjson = response.json()
+    # The response is a list of concepts. Take the first one in case of duplicates.
+    if len(respjson) > 0:
+        return respjson[0]['concept']
+    return
+
 
 def build_type_xref(urlbase: str) -> dict:
     """
@@ -389,13 +404,24 @@ def build_dataset_xref(urlbase: str) -> list:
     for dataset in ubkg_dataset_json:
         dict_dataset = {}
 
+
         # Get the code for the data_type--i.e., the code for the node in the Dataset Data Type hierarchy.
         data_type_matches = get_codeids_for_term_sab_type(term_string=dataset['data_type'], sab='HUBMAP',
                                                           term_type='PT', urlbase=urlbase)
         data_type_code = data_type_matches
 
-        # The CUI for the concept related to the code is just the code ID + ' CUI'.
-        data_type_cui = f'{data_type_code} CUI'
+        # Special case: the 'Light Sheet' assay, which is an alt-name for Lightsheet that contains a space in the name.
+        # The canonical UBKG API endpoint terms/{term id}/codes does not handle correctly terms with spaces.
+        if dataset['data_type'] == 'Light Sheet':
+            data_type_code = 'HUBMAP:C007604'
+
+        print('data_type: ',dataset['data_type'])
+        print(f'CODE: {data_type_code}')
+
+        # Obtain the CUI for the concept associated with the code. This accounts for cases in which
+        # the code has been cross-referenced to another code--i.e., for which the CUI is not just the codeID + ' CUI'.
+        data_type_cui = get_concept_for_code(data_type_code,urlbase=urlbase)
+        print(f'CUI: {data_type_cui}')
 
         # Get the code for the node in the Dataset hierarchy.
         dataset_cui = get_concept_with_relationship(cui=data_type_cui, rel='has_data_type', depth=1,
@@ -434,6 +460,7 @@ def get_codeids_for_term_sab_type(term_string: str, sab: str, term_type: str, ur
     term_string_encoded = urllib.parse.urlencode(term_string_json).split('=')[1]
 
     urlcode = urlbase + 'terms/' + term_string_encoded + '/codes'
+    print(urlcode)
 
     responsecode = requests.get(urlcode)
     if responsecode.status_code != 200:
