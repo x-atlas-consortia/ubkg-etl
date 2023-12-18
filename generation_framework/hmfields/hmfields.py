@@ -415,13 +415,9 @@ def build_dataset_xref(urlbase: str) -> list:
         if dataset['data_type'] == 'Light Sheet':
             data_type_code = 'HUBMAP:C007604'
 
-        print('data_type: ',dataset['data_type'])
-        print(f'CODE: {data_type_code}')
-
         # Obtain the CUI for the concept associated with the code. This accounts for cases in which
         # the code has been cross-referenced to another code--i.e., for which the CUI is not just the codeID + ' CUI'.
         data_type_cui = get_concept_for_code(data_type_code,urlbase=urlbase)
-        print(f'CUI: {data_type_cui}')
 
         # Get the code for the node in the Dataset hierarchy.
         dataset_cui = get_concept_with_relationship(cui=data_type_cui, rel='has_data_type', depth=1,
@@ -460,7 +456,6 @@ def get_codeids_for_term_sab_type(term_string: str, sab: str, term_type: str, ur
     term_string_encoded = urllib.parse.urlencode(term_string_json).split('=')[1]
 
     urlcode = urlbase + 'terms/' + term_string_encoded + '/codes'
-    print(urlcode)
 
     responsecode = requests.get(urlcode)
     if responsecode.status_code != 200:
