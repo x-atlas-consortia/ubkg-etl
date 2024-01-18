@@ -13,18 +13,19 @@ import ubkg_logging as ulog
 # OWLNETS-UMLS-GRAPH
 # skowlnets
 
-def getPrefixes()->pd.DataFrame:
+
+def getprefixes() -> pd.DataFrame:
     # Reads a resource file of SAB/prefixes.
 
     # Find absolute path to file.
     file = 'prefixes.csv'
     fpath = os.path.dirname(os.getcwd())
-    fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities',file)
+    fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities', file)
     df = pd.DataFrame()
 
     if os.path.exists(fpath):
         # This is being called by build_csv.py.
-        df= pd.read_csv(fpath)
+        df = pd.read_csv(fpath)
     elif os.path.exists(file):
         # This is being called by the local parsetester.py script.
         df = pd.read_csv(file)
@@ -34,7 +35,8 @@ def getPrefixes()->pd.DataFrame:
 
     return df
 
-def codeReplacements(x:pd.Series, ingestSAB: str):
+
+def codeReplacements(x: pd.Series, ingestSAB: str):
 
     # This function converts strings that correspond to either codes or CUIs for concepts to a format
     # recognized by the knowledge graph.
@@ -59,7 +61,8 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # Because of the variety of formats used for codes in various sources, this standardization is
     # complicated.
 
-    # For the majority of nodes, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML serialization,
+    # For the majority of nodes, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML
+    # serialization,
     # the formatting is straightforward. However, there are a number of special cases, which are handled below.
 
     # For some SABs, the reformatting is complicated enough to warrant a resource file named prefixes.csv, which
@@ -175,7 +178,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # REFSEQ - restore underscore between NR and number.
     # JULY 2023 - Refactored for SAB:CODE refactoring
     # Assumes that code at this point is in format REFSEQ NR X, to be reformatted as REFSEQ:NR_X.
-    ret = np.where(x.str.contains('REFSEQ'),x.str.replace('REFSEQ ','REFSEQ:').str.replace(' ','_'),ret)
+    ret = np.where(x.str.contains('REFSEQ'), x.str.replace('REFSEQ ', 'REFSEQ:').str.replace(' ', '_'), ret)
 
     # July 2023
     # MSIGDB - restore underscores.
@@ -217,33 +220,31 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     ret = np.where(x.str.contains('http://www.orpha.net/ORDO/'),
                    'ORDO:' + x.str.split('_').str[-1], ret)
 
-
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
     # translated to IRIs that are not formatted as expected. Obtain the original namespace prefixes for
     # SABs.
     # Read in file of prefix mappings.
-    dfPrefix = getPrefixes()
+    dfPrefix = getprefixes()
     # Convert for each of the prefixes.
     for index, row in dfPrefix.iterrows():
-        if ingestSAB in ['GLYCOCOO','GLYCORDF']:
-            #GlyCoCOO (a Turtle) and GlyCoRDF use IRIs that delimit with hash and use underlines.
-            #"http://purl.glycoinfo.org/ontology/codao#Compound_disease_association
+        if ingestSAB in ['GLYCOCOO', 'GLYCORDF']:
+            # GlyCoCOO (a Turtle) and GlyCoRDF use IRIs that delimit with hash and use underlines.
+            # "http://purl.glycoinfo.org/ontology/codao#Compound_disease_association
             # July 2023 - refactored to use colon as SAB:code delimiter
             ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ':' +
                            x.str.replace(' ', '_').str.replace('/', '_').str.split('#').str[-1],
                            ret)
         # July 2023: other prefixes are only from NPO, NPOSKCAN
         else:
-            if ingestSAB in ['NPO','NPOSKCAN']:
+            if ingestSAB in ['NPO', 'NPOSKCAN']:
                 # Other SABs format IRIs with a terminal backslash and the code string.
                 # A notable exception is the PantherDB format (in NPOSKCAN), for which the IRI is an API call
                 # (e.g., http://www.pantherdb.org/panther/family.do?clsAccession=PTHR10558).
                 # July 2023 - refactored to use colon as SAB:code delimiter
                 ret = np.where(x.str.contains(row['prefix']), row['SAB'] + ':' +
-                           x.str.replace(' ', '_').str.replace('/','_').str.replace('=','_').str.split('_').str[-1],
-                           ret)
-
+                               x.str.replace(' ', '_').str.replace('/', '_').str.replace('=', '_').str.split('_').str[-1],
+                               ret)
 
     # UNIPROT (not to be confused with UNIPROTKB).
     # UNIPROT IRIs are formatted differently than those in Glygen, but are in the Glygen OWL files, so they need
@@ -265,12 +266,12 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # HGNC HGNC:
     # HPO HP:
     # HCOP HCOP:
-    ret = np.where(x.str.contains('HGNC HGNC:'), x.str.replace('HGNC HGNC:','HGNC:'), ret)
-    ret = np.where(x.str.contains('HPO HP:'), x.str.replace('HPO HP:', 'HPO:'), ret)
+    ret = np.where(x.str.contains('HGNC HGNC:'), x.str.replace('HGNC HGNC:', 'HGNC:'), ret)
+    # January 2024 - standardized to HP from HPO.
+    ret = np.where(x.str.contains('HPO HP:'), x.str.replace('HPO HP:', 'HP:'), ret)
     ret = np.where(x.str.contains('HCOP HCOP:'), x.str.replace('HCOP HCOP:', 'HCOP:'), ret)
 
     ret = np.where(x.str.contains('NCBI Gene'), x.str.replace('NCBI Gene', 'ENTREZ:'), ret)
-
 
     # ---------------
     # FINAL PROCESSING
@@ -296,7 +297,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
 
     for idx, x in np.ndenumerate(ret):
         xsplit = x.split(sep=' ', maxsplit=1)
-        if len(xsplit)>1:
+        if len(xsplit) > 1:
             sab = xsplit[0].upper()
             code = ' '.join(xsplit[1:len(xsplit)])
             ret[idx] = sab+':'+code
@@ -325,7 +326,7 @@ def codeReplacements(x:pd.Series, ingestSAB: str):
     # .str.replace('HGNC ', 'HGNC HGNC:', regex=False) \
     # .str.replace('gene symbol report?hgnc id=', 'HGNC HGNC:', regex=False)
 
-def relationReplacements(x:pd.Series) :
+def relationReplacements(x: pd.Series):
 
     # This function converts strings that correspond to a predicate string to a format recognized by the generation
     # framework
@@ -337,21 +338,34 @@ def relationReplacements(x:pd.Series) :
 
     # AUGUST 2023
     # Replace . and - with _
-    ret = x.str.replace('.', '_',regex=False).str.replace('.', '_',regex=False)
+    ret = x.str.replace('.', '_', regex=False).str.replace('.', '_', regex=False)
 
-    # For the majority of edges, especially those from either UMLS or from OBO-compliant OWL files in RDF/XML serialization,
+    # JANUARY 2024
+    # Format relationship strings to comply with neo4j naming rules:
+    # 1. Only alphanumeric characters or the underscore.
+    # 2. Prepend "rel_" to relationships with labels that start with numbers.
+    #
+    ret = x.str.replace('(', '', regex=False)
+    ret = x.str.replace(')', '', regex=False)
+    ret = x.str.replace('[', '', regex=False)
+    ret = x.str.replace(']', '', regex=False)
+    ret = x.str.replace('-', '_', regex=False)
+    ret = x.str.lower()
+    ret = np.where(x.astype(str).str[0].str.isnumeric(),'rel_' + x, x)
+
+
+    # For the majority of edges, especially those from either UMLS or from OBO-compliant
+    # OWL files in RDF/XML serialization,
     # the format of an edge is one of the following:
     # 1. A IRI in the form http://purl.obolibrary.org/obo/RO_code
     # 2. RO_code
     # 3. RO:code
     # 4. a string
 
-    ret = np.where(x.str.contains('RO:'),'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1],x)
+    ret = np.where(x.str.contains('RO:'), 'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1], x)
 
     # Replace #type from RDF schemas with isa.
-    ret = np.where(x.str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),'isa',x)
+    ret = np.where(x.str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), 'isa', x)
     ret = np.where(x.str.contains('http://www.w3.org/2000/01/rdf-schema#type'), 'isa', x)
-
-
 
     return ret

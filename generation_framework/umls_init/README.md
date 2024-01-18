@@ -30,17 +30,18 @@ The standardized formats for CODE and CodeID are:
 
 Reformatting specific to SABs:
 
-| SAB               | Original Format            | New Format                | Description                                    |
-|-------------------|----------------------------|---------------------------|------------------------------------------------|
-| HGNC              | HGNC HGNC:CODE             | HGNC:CODE                 | Remove SAB from code                           |
-| GO                | GO GO:CODE                 | GO:CODE                   | Remove SAB from code                           |
-| HPO               | HPO HP:CODE                | HPO:CODE                  | Set SAB to HPO; remove SAB from code           |
+| SAB               | Original Format            | New Format               | Description                                   |
+|-------------------|----------------------------|--------------------------|-----------------------------------------------|
+| HGNC              | HGNC HGNC:CODE             | HGNC:CODE                | Remove SAB from code                          |
+| GO                | GO GO:CODE                 | GO:CODE                  | Remove SAB from code                          |
+| HPO               | HPO HP:CODE                | HP:CODE                  | Set SAB to HP; remove SAB from code           |
 | HCPCS Level codes | HCPCS Level n: Exxxx-Exxxx | HCPCS:Level_n_Exxxx-Exxxx | Removed colon; replaced spaces with underscore |
 
 ## Relationship format
-Some UMLS SABs format relationship strings with either dots or dashes. These
+1. Some UMLS SABs format relationship strings with either dots or dashes. These
 are reserved characters in either the generation script or in neo4j.
 This script replaces the dot and dash with an underscore.
+2. Some relationships from UMLS have labels that do not comply with [neo4j naming conventions](https://neo4j.com/docs/cypher-manual/current/syntax/naming/). To avoid the need for escaping in Cypher via back-ticks, the script reformats these relationship labels.
 
 ## Removing SUI
 This script removes the SUI identifier for terms 
