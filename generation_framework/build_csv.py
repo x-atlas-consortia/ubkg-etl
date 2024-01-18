@@ -29,7 +29,7 @@ import ubkg_config as uconfig
 OWLNETS_SCRIPT: str = './owlnets_script/__main__.py'
 FIX_OWLNETS_TSV_SCRIPT: str = './owlnets_script/fix_tsv_file.py'
 VALIDATION_SCRIPT: str = './blackbox_validation/__main__.py'
-#UMLS_GRAPH_SCRIPT: str = './Jonathan/OWLNETS-UMLS-GRAPH-12.py'
+# UMLS_GRAPH_SCRIPT: str = './Jonathan/OWLNETS-UMLS-GRAPH-12.py'
 # JAS 16 Mar 2023 renamed folder to OWLNETS-UMLS-GRAPH script.
 UMLS_GRAPH_SCRIPT: str = './owlnets_umls_graph/OWLNETS-UMLS-GRAPH-12.py'
 
@@ -111,8 +111,8 @@ parser.add_argument("-w", "--with_imports", action="store_true",
                     help='process OWL file even if imports are found, otherwise give up with an error')
 
 # JAS MAY 2023 - Generalized the -s switch
-#parser.add_argument("-s", "--skipPheKnowLator", action="store_true",
-                    #help='assume that the PheKnowLator has been run and skip the run of it')
+# parser.add_argument("-s", "--skipPheKnowLator", action="store_true",
+                    # help='assume that the PheKnowLator has been run and skip the run of it')
 parser.add_argument("-s", "--skipBuild", action="store_true",
                     help='skip the building of source files such as OWLNETS and use the existing OWLNETS content')
 parser.add_argument("-S", "--skipValidation", action="store_true",
@@ -122,7 +122,7 @@ parser.add_argument("-v", "--verbose", action="store_true",
 # JAS 15 NOV 2022 - organism argument no longer needed, because PR is no longer ingested.
 # JAS 19 October 2022
 # parser.add_argument("-p", '--organism', type=str, default='human',
-                    #help='organism (e.g., human, mouse)')
+                    # help='organism (e.g., human, mouse)')
 
 args = parser.parse_args()
 
@@ -162,7 +162,8 @@ def lines_in_csv_files(path: str, save_path: str) -> None:
             lines_fp: int = lines_in_file(fp)
             fp_save: str = os.path.join(save_path, filename)
             lines_fp_save: int = lines_in_file(fp_save)
-            ulog.print_and_logger_info(f"Lines in files: {fp} {lines_fp}; {fp_save} {lines_fp_save}; difference: {lines_fp-lines_fp_save}")
+            ulog.print_and_logger_info(f"Lines in files: {fp} {lines_fp}; {fp_save} {lines_fp_save}; difference: "
+                                       f"{lines_fp-lines_fp_save}")
 
 
 def verify_ontologies_json_file(ontologies: dict, ontologies_filename: str) -> None:
@@ -170,11 +171,13 @@ def verify_ontologies_json_file(ontologies: dict, ontologies_filename: str) -> N
         ['owl_url', 'home_url', 'comment', 'sab', 'download_owl_url_to_file_name', 'execute']
     for key, value in ontologies.items():
         if not key.isupper():
-            ulog.print_and_logger_info(f"For the Ontologies file {ontologies_filename}: the ontology key {key} must be upper case.")
+            ulog.print_and_logger_info(f"For the Ontologies file {ontologies_filename}: the ontology key "
+                                       f"{key} must be upper case.")
             exit(1)
         for key_o in value:
             if key_o not in valid_ontology_keys:
-                ulog.print_and_logger_info(f"For the Ontologies file {ontologies_filename} with ontology key {key}: {key_o} must be one of: {', '.join(valid_ontology_keys)}")
+                ulog.print_and_logger_info(f"For the Ontologies file {ontologies_filename} with ontology key "
+                                           f"{key}: {key_o} must be one of: {', '.join(valid_ontology_keys)}")
                 exit(1)
 
 
@@ -183,15 +186,16 @@ def fix_owlnets_metadata_file(working_owlnets_dir: str) -> None:
     owlnets_metadata_file: str = os.path.join(working_owlnets_dir, 'OWLNETS_node_metadata.txt')
     owlnets_metadata_orig_file: str = os.path.join(working_owlnets_dir, 'OWLNETS_node_metadata_orig.txt')
     # JAS 4 APR 2023 - Replaced os.system call with subprocess and error handling.
-    #os.system(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
+    # os.system(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
     usub.call_subprocess(f"mv {owlnets_metadata_file} {owlnets_metadata_orig_file}")
 
     fix_owlnets_tsv_script: str = f"{FIX_OWLNETS_TSV_SCRIPT} --fix {owlnets_metadata_file} {owlnets_metadata_orig_file}"
     ulog.print_and_logger_info(f"Running: {fix_owlnets_tsv_script}")
-    #os.system(fix_owlnets_tsv_script)
+    # os.system(fix_owlnets_tsv_script)
     usub.call_subprocess(fix_owlnets_tsv_script)
 
-def get_UBKG_context(sablist: List[str])->List[str]:
+
+def get_ubkg_context(sablist: List[str]) -> List[str]:
     # JAS MAY 2023
     # A UBKG context corresponds to a set of SABs that are ingested in a particular order.
     # UBKG contexts can be defined in an optional configuration file.
@@ -217,11 +221,13 @@ def get_UBKG_context(sablist: List[str])->List[str]:
 # ----------------------------
 # Start of main script
 
-#ontology_names = [s.upper() for s in args.ontologies]
+# ontology_names = [s.upper() for s in args.ontologies]
 # JAS MAY 2023 - UBKG contexts
 # Check whether the argument corresponds to one of the UBKG contexts--e.g., base, hmsn, dd
-ubkg_context = get_UBKG_context(args.ontologies)
-if ubkg_context[0]=='':
+
+
+ubkg_context = get_ubkg_context(args.ontologies)
+if ubkg_context[0] == '':
     # The argument list is a collection of SABs, not necessarily equivalent to the set in a UBKG context.
     ontology_names = [s.upper() for s in args.ontologies]
 else:
@@ -241,15 +247,16 @@ if args.verbose is True:
     umls_csvs_dir_islink = False
     if os.path.islink(args.umls_csvs_dir) is True:
         umls_csvs_dir_islink = os.path.realpath(args.umls_csvs_dir)
-    print(f" * Directory containing the UMLS Graph Extract .csv files to process: {args.umls_csvs_dir} (exists: {os.path.isdir(args.umls_csvs_dir)}) (simlink: {umls_csvs_dir_islink})")
+    print(f" * Directory containing the UMLS Graph Extract .csv files to process: {args.umls_csvs_dir} "
+          f"(exists: {os.path.isdir(args.umls_csvs_dir)}) (simlink: {umls_csvs_dir_islink})")
     if args.force_owl_download is True:
         print(f" * PheKnowLator will force .owl file downloads")
     if args.with_imports is True:
         print(f" * PheKnowLator will run even if imports are found in .owl file")
     if args.skipBuild is True:
         print(f" * Skip the build of content in OWLNETS path")
-    #if args.skipPheKnowLator is True:
-         #print(f" * Skip PheKnowLator run")
+    # if args.skipPheKnowLator is True:
+         # print(f" * Skip PheKnowLator run")
     if args.oneOwl is not None:
         print(f" * Process only one OWL file: {args.oneOwl}")
     if args.skipValidation is True:
@@ -304,7 +311,9 @@ for ontology_name in ontology_names:
             with_imports = '--with_imports'
         if args.verbose is True:
             verbose = '--verbose'
-        owlnets_script: str = f"{OWLNETS_SCRIPT} --ignore_owl_md5 {clean} {verbose} {force_owl_download} {with_imports} -l {args.owlnets_dir} -t {args.owltools_dir} -o {args.owl_dir} {owl_url} {owl_sab}"
+        owlnets_script: str = f"{OWLNETS_SCRIPT} --ignore_owl_md5 {clean} {verbose} {force_owl_download} " \
+                              f"{with_imports} -l {args.owlnets_dir} -t {args.owltools_dir} " \
+                              f"-o {args.owl_dir} {owl_url} {owl_sab}"
         ulog.print_and_logger_info(f"Running: {owlnets_script}")
         # JAS APR 2023 replaced call to os.system
         # os.system(owlnets_script)
@@ -332,7 +341,9 @@ for ontology_name in ontology_names:
     #     validation_script: str = f"{VALIDATION_SCRIPT} -o {args.umls_csvs_dir} -l {bargs.owlnets_dir}"
     #     logger.info(f"Running: {validation_script}")
     #     os.system(validation_script)
-    save_csv_dir = copy_csv_files_to_save_dir(args.umls_csvs_dir, 'save')
+
+    # JAS JANUARY 2024 - Deprecate copy of CSVs to save directories.
+    # save_csv_dir = copy_csv_files_to_save_dir(args.umls_csvs_dir, 'save')
 
     # JAS 15 nov 2022 - removed organism argument
     # JAS 19 OCT 2022 added organism argument
@@ -346,7 +357,8 @@ for ontology_name in ontology_names:
         # os.system(umls_graph_script)
         usub.call_subprocess(umls_graph_script)
 
-        lines_in_csv_files(args.umls_csvs_dir, save_csv_dir)
+        # JAS JANUARY 2024 - Deprecate saving copies of CSVs to save directory.
+        # lines_in_csv_files(args.umls_csvs_dir, save_csv_dir)
 
     # Add log entry for how long it took to do the processing...
     elapsed_time = time.time() - start_time

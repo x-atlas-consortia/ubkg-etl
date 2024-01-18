@@ -40,6 +40,8 @@ import ubkg_extract as uextract
 # Config file
 import ubkg_config as uconfig
 
+import ubkg_parsetools as uparse
+
 
 def csv_path(path: str, file: str) -> str:
     # Appends the CSV path to the file argument.
@@ -95,6 +97,13 @@ for f in dictfile_columns:
     for col in convert_columns:
         ulog.print_and_logger_info(f'--Reformatting column {col}')
 
+        # JAS JANUARY 2024
+        # Handle special case of HPO nodes.
+        # The UMLS format for HPO nodes is HPO HP:<code>.
+        # The format used by all other ontologies is HP:<code>.
+        dffile[col] = np.where(dffile[col].str.contains('HPO HP:'),
+                               dffile[col].str.replace('HPO HP:', 'HP:'), dffile[col])
+
         for sabkey in dictsabs:
             sabstring = dictsabs[sabkey]
             dffile[col] = dffile[col].str.replace(sabstring, '')
@@ -103,7 +112,9 @@ for f in dictfile_columns:
         # If the code contains 'Level', remove the colon and replace all spaces with underscore;
         # otherwise, replace the space with a colon.
         dffile[col] = np.where(dffile[col].str.contains('Level'), dffile[col].str.replace(': ', '_').str.replace('Level ', 'Level_'), dffile[col])
+
         dffile[col] = dffile[col].str.replace(' ', ':')
+
     ulog.print_and_logger_info(f'Rewriting {csvfile}')
     uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
 
@@ -119,8 +130,12 @@ for f in dictrel_columns:
     convert_columns = list(dictrel_columns[f].split(','))
     for col in convert_columns:
         ulog.print_and_logger_info(f'--Reformatting column {col}')
-        dffile[col] = dffile[col].str.replace('.', '_', regex=False)
-        dffile[col] = dffile[col].str.replace('-', '_', regex=False)
+        # JANUARY 2024
+        # dffile[col] = dffile[col].str.replace('.', '_', regex=False)
+        # dffile[col] = dffile[col].str.replace('-', '_', regex=False)
+
+        dffile[col] = uparse.relationReplacements(dffile[col])
+
     ulog.print_and_logger_info(f'Rewriting {csvfile}')
     uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)
 
