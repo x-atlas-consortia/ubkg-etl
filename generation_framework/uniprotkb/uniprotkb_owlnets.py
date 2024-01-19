@@ -27,6 +27,7 @@ import ubkg_extract as uextract
 # Logging module
 import ubkg_logging as ulog
 import ubkg_config as uconfig
+import ubkg_parsetools as uparse
 # -----------------------------
 
 
@@ -193,29 +194,48 @@ def write_nodes_file(df: pd.DataFrame,  owlnets_dir: str):
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             node_id = 'UNIPROTKB:' + row['Entry']
             node_namespace = 'UNIPROTKB'
-            # August 2023
-            # The Protein Names field delimits using parenthesis--e.g., Approved name (synonym 1) (synonym 2)
-            # Set the preferred term to be the first entry in the Protein Names field from UniProtKB.
-            # Set all other names to be synonyms.
+
+            # January 2024
+            # The Protein Names field formats as follows:
+            # Approved name (synonym 1) (synonym 2)...
+            # In other words, parentheses are used to delimit synonyms.
+            # In addition, each synonym string can contain parentheses.
+            # Example: 'Plasminogen receptor (KT) (Plg-R(KT))'
+            # It is necessary to do the following:
+            # 1. Isolate the approved name and make the approved name as the node label.
+            # 2. Separate the synonyms using the outermost pairs of parentheses.
+            # 3. Retain all other parentheses to prevent the creation of spurious synonyms.
+
             # node_label = row['Entry Name']
             # node_definition = row['Protein names']
 
-            # Split on the pair of parentheses.
             protein_names = row['Protein names']
-            protein_names = re.split(r'[()]', protein_names)
+            # Extract the recommended name.
+            # Split on the parenthesis. This results in splits on
+            # nested parentheses and thus spurious synonyms; however,
+            # we only need the first element, which is the recommended name.
+            approved_name = re.split(r'[()]', protein_names)
             # Remove extraneous blanks.
-            for n in protein_names:
+            for n in approved_name:
                 if n.strip() == '':
-                    protein_names.remove(n)
-
-            # The recommended name is the first in the list.
-            node_label = protein_names[0]
+                    approved_name.remove(n)
+            # The recommended name is the first name in the list.
+            node_label = approved_name[0]
 
             # Synonyms:
             # Replace the approved name with the UniProtKB Entry Name, so it will the first synonym.
-            protein_names[0]=row['Entry Name']
+            synonyms = []
+            synonyms.append(row['Entry Name'])
+            # Parse the protein names string by level of nested parentheses.
+            synonyms_parsed = uparse.parse_string_nested_parentheses(protein_names)
+            if synonyms_parsed != []:
+                # Treat 0-level strings as synonyms.
+                for parsetuple in synonyms_parsed:
+                    if parsetuple[0] == 0:
+                        synonyms.append(parsetuple[1])
+
             # Delimit.
-            node_synonyms = '|'.join(protein_names)
+            node_synonyms = '|'.join(synonyms)
 
             node_definition = row['Function [CC]']
 

@@ -369,3 +369,40 @@ def relationReplacements(x: pd.Series):
     ret = np.where(x.str.contains('http://www.w3.org/2000/01/rdf-schema#type'), 'isa', x)
 
     return ret
+
+def parse_string_nested_parentheses(strparen: str) -> list[tuple]:
+
+    """
+    Analyzes a string with nested parentheses in terms of level of nesting.
+
+    For example, '(a(b(c)(d)e)(f)g)' can be analyzed as:
+    level 0: a(b(c)(d)e)(f)g
+    level 1: f
+    level 1: b(c)(d)e
+    level 2: c
+    level 2: d
+    or
+    [(2, 'c'), (2, 'd'), (1, 'b(c)(d)e'), (1, 'f'), (0, 'a(b(c)(d)e)(f)g')]
+
+    UBKG use case: UniprotKB, which uses parentheses both as delimiters and
+    inside elements--e.g., (element 1 (details))(element 2 (details))
+
+    Adapted from a solution posted by Gareth Rees at
+    https://stackoverflow.com/questions/4284991/parsing-nested-parentheses-in-python-grab-content-by-level
+
+    """
+    return list(parenthetic_contents(strparen))
+
+def parenthetic_contents(strparen: str) -> tuple:
+
+    # Employs a stack to analyze elements in a string by level of nesting.
+    stack = []
+    for i, c in enumerate(strparen):
+        if c == '(':
+            # New level of parenthesis nesting.
+            stack.append(i)
+        elif c == ')' and stack:
+            # Closing of element at this level of nesting.
+            # Return to higher level of nesting.
+            start = stack.pop()
+            yield (len(stack), strparen[start + 1: i])
