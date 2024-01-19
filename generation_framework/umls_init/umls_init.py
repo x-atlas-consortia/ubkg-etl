@@ -91,6 +91,11 @@ for f in dictfile_columns:
     ulog.print_and_logger_info(f'Reading {csvfile}')
     dffile = uextract.read_csv_with_progress_bar(path=csvfile)
 
+    # JAS JANUARY 2024
+    # Rename the HPO SAB to HP.
+    if f == 'CODEs':
+        dffile['SAB'] = np.where(dffile['SAB']=='HPO', 'HP', dffile['SAB'])
+
     # list of columns to reformat
     convert_columns = list(dictfile_columns[f].split(','))
 
