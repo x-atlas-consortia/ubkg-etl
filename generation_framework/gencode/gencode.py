@@ -4,6 +4,8 @@
 # Unified Biomedical Knowledge Graph
 # Script to ingest GenCode data
 
+# JANUARY 2024 - Replaced all references to GENCODE_ONT with GENCODE_VS
+
 import os
 import sys
 
@@ -376,14 +378,14 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
     # Translates the content of a GTF annotation file to OWLNETS format.
     # df - DataFrame of annotated GTF information.
     # path - export path of OWLNETS files
-    # ont_path - path to the directory containing OWLNETS files related to the ingestion of the GENCODE_ONT ontology
+    # ont_path - path to the directory containing OWLNETS files related to the ingestion of the GENCODE_VS ontology
 
     # Assertions on transcripts:
     # - transcribed from genes, using Ensembl IDs for genes
     # - has proteins as gene products, using the UNIPROTKB IDs
 
     # The object node IDs for assertions for which subjects are features are obtained from the
-    # OWLNETS_node_metadata file for the GENCODE_ONT set of assertions.
+    # OWLNETS_node_metadata file for the GENCODE_VS set of assertions.
     # Feature assertions:
     # 1. Feature is located in a chromosome
     # 2. Feature has feature type
@@ -394,8 +396,8 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
     # June 2023 - replaced concatenation using + with f strings to account for null column values.
     # Pandas sets the type of a column for which the first row is null to float.
 
-    # Read the node information from GENCODE_ONT.
-    dfGenCode_ont = getGenCodeOnt(path=ont_path)
+    # Read the node information from GENCODE_VS.
+    dfGenCode_vs = getGenCodeOnt(path=ont_path)
 
     edgelist_path: str = os.path.join(path, 'OWLNETS_edgelist.txt')
     ulog.print_and_logger_info('Building: ' + os.path.abspath(edgelist_path))
@@ -446,10 +448,10 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
 
             # Assertion: (feature) located in (chromosome)
             predicate = 'http://purl.obolibrary.org/obo/RO_0001025' # located in
-            # Obtain from GENCODE_ONT the node_id for the node that corresponds
+            # Obtain from GENCODE_VS the node_id for the node that corresponds
             # to the value from the chromosome_name column.
-            if dfGenCode_ont.loc[dfGenCode_ont['node_label']==row['chromosome_name'],'node_id'].shape[0] > 0:
-                object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['chromosome_name'], 'node_id'].iat[0])
+            if dfGenCode_vs.loc[dfGenCode_vs['node_label']==row['chromosome_name'],'node_id'].shape[0] > 0:
+                object = str(dfGenCode_vs.loc[dfGenCode_vs['node_label'] == row['chromosome_name'], 'node_id'].iat[0])
                 if object != '':
                     out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
@@ -457,9 +459,9 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # Assertion: (feature) has feature type (feature type)
             # There is currently no appropriate relation property in RO.
             predicate = 'is_feature_type'
-            # Obtain from GENCODE_ONT the node_id for the feature type
-            if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['feature_type'], 'node_id'].shape[0] > 0:
-                object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['feature_type'], 'node_id'].iat[0])
+            # Obtain from GENCODE_VS the node_id for the feature type
+            if dfGenCode_vs.loc[dfGenCode_vs['node_label'] == row['feature_type'], 'node_id'].shape[0] > 0:
+                object = str(dfGenCode_vs.loc[dfGenCode_vs['node_label'] == row['feature_type'], 'node_id'].iat[0])
                 if object !='':
                     out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
@@ -468,8 +470,8 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # There is currently no appropriate relation property in RO.
             predicate = 'is_gene_biotype'
             if row['gene_type'] != '':
-                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].shape[0] > 0:
-                    object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['gene_type'], 'node_id'].iat[0])
+                if dfGenCode_vs.loc[dfGenCode_vs['node_label'] == row['gene_type'], 'node_id'].shape[0] > 0:
+                    object = str(dfGenCode_vs.loc[dfGenCode_vs['node_label'] == row['gene_type'], 'node_id'].iat[0])
                     if object != '':
                         out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
@@ -478,8 +480,8 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
             # There is currently no appropriate relation property in RO.
             predicate = 'is_transcript_biotype'
             if row['transcript_type'] != '':
-                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['transcript_type'], 'node_id'].shape[0] > 0:
-                    object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == row['transcript_type'], 'node_id'].iat[0])
+                if dfGenCode_vs.loc[dfGenCode_vs['node_label'] == row['transcript_type'], 'node_id'].shape[0] > 0:
+                    object = str(dfGenCode_vs.loc[dfGenCode_vs['node_label'] == row['transcript_type'], 'node_id'].iat[0])
                 if object != '':
                     out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
@@ -493,8 +495,8 @@ def write_edges_file(df: pd.DataFrame, path: str, ont_path: str):
                 direction = 'negative'
 
             if direction != '':
-                if dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].shape[0] > 0:
-                    object = str(dfGenCode_ont.loc[dfGenCode_ont['node_label'] == direction, 'node_id'].iat[0])
+                if dfGenCode_vs.loc[dfGenCode_vs['node_label'] == direction, 'node_id'].shape[0] > 0:
+                    object = str(dfGenCode_vs.loc[dfGenCode_vs['node_label'] == direction, 'node_id'].iat[0])
             if object != '':
                 out.write(subject + '\t' + predicate + '\t' + object + '\n')
 
@@ -733,7 +735,7 @@ def write_relations_file(path: str):
 
 def getGenCodeOnt(path: str) -> pd.DataFrame:
 
-    # The GENCODE annotation file has columns with values that have been encoded as nodes in the GENCODE_ONT
+    # The GENCODE annotation file has columns with values that have been encoded as nodes in the GENCODE_VS
     # set of assertions.
     # Load the nodes file related to the prior ingestion.
 
@@ -743,7 +745,7 @@ def getGenCodeOnt(path: str) -> pd.DataFrame:
         return uextract.read_csv_with_progress_bar(nodefile, sep='\t')
     except FileNotFoundError:
         ulog.print_and_logger_info('GENCODE depends on the prior ingestion of information '
-                                   'from the GENCODE_ONT SAB. Run .build_csv.sh for GENCODE_ONT prior '
+                                   'from the GENCODE_VS SAB. Run .build_csv.sh for GENCODE_VS prior '
                                    'to running it for GENCODE.')
         exit(1)
 

@@ -220,6 +220,7 @@ def codeReplacements(x: pd.Series, ingestSAB: str):
     ret = np.where(x.str.contains('http://www.orpha.net/ORDO/'),
                    'ORDO:' + x.str.split('_').str[-1], ret)
 
+
     # PREFIXES
     # A number of ontologies, especially those that originate from Turtle files, use prefixes that are
     # translated to IRIs that are not formatted as expected. Obtain the original namespace prefixes for
@@ -273,6 +274,9 @@ def codeReplacements(x: pd.Series, ingestSAB: str):
 
     ret = np.where(x.str.contains('NCBI Gene'), x.str.replace('NCBI Gene', 'ENTREZ:'), ret)
 
+    # JANUARY 2024 - GENCODE_VS
+    # Restore the underscore.
+    ret = np.where(x.str.contains('GENCODE_VS'),x.str.replace('GENCODE:VS', 'GENCODE_VS'), ret)
     # ---------------
     # FINAL PROCESSING
 
