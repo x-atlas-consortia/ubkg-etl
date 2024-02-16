@@ -30,13 +30,13 @@ The scripts in this folder generate files in UBKG edges/nodes format for ingesti
 
 ### Precursor Assertions
 Some GenCode assertions employ nodes from other sets of assertions, including:
-1. GENCODE_ONT: custom nodes, in a source file built with the SimpleKnowledge framework
+1. GENCODE_VS: custom nodes, in a source file built with the SimpleKnowledge framework
 2. PGO: Pseudogene Ontology
 
 Note: In the UBKG, codeIDs for PGO nodes are in the format **PGO PGO:(code)**, similar to the formats for GO, HPO, and HGNC.
 
-GENCODE_ONT is a special case. The GENCODE annotated file refers to nodes in GENCODE_ONT by term instead of code,
-so it is necessary to map from term to code in GENCODE_ONT. The script assumes that GENCODE_ONT has been ingested so 
+GENCODE_VS is a special case. The GENCODE annotated file refers to nodes in GENCODE_ONT by term instead of code,
+so it is necessary to map from term to code in GENCODE_VS. The script assumes that GENCODE_VS has been ingested so 
 that the file **OWLNETS_node_metadata.txt** is available.
 
 ### To run

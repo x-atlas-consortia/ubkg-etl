@@ -63,9 +63,19 @@ def getargs() -> argparse.Namespace:
     return args
 
 
-def getrefseqsummaries(apikey: str, outdir: str) -> pd.DataFrame:
+def getrefseqsummaries(apikey: str, outdir: str, start: int, chunk: int) -> pd.DataFrame:
+    """
+    Calls endpoints of the NCBI eUtils to obtain a list of summaries of all human gene Entrez IDs.
 
-    # Calls endpoints of the NCBI eUtils to obtain a list of summaries of all human gene Entrez IDs.
+    :param apikey: API Key for NCBI eUtils
+    :param outdir: output directory
+    :param start: offset for the full set of Entrez IDs--e.g., 50,001
+    :param chunk: number of genes to extract--e.g., 50,000
+    :return:
+
+    January 2024 - added start and chunk feature.
+    """
+
 
     # base URL for all calls to eUtils endpoints.
     baseurl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
@@ -85,22 +95,30 @@ def getrefseqsummaries(apikey: str, outdir: str) -> pd.DataFrame:
     # Used to chunk through the gene database.
     # The eUtils API throttles responses and recommends calling eSummary with no more than 500 UIDs.
 
-    retstart = 0
-    retcount = 1
+    retstart = start
+    retcount = start + chunk
     retmax = 499
 
-    ulog.print_and_logger_info('Obtaining RefSeq summaries for genes from NCBI eUTILs...')
+    ulog.print_and_logger_info(f'Obtaining RefSeq summaries for genes from NCBI eUTILs in blocks of {retmax}...')
     # List of UIDs to pass to call to esummary. The last list may contain fewer elements than the chunk size retmax.
     listids = []
 
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
     # Chunk through Gene database.
-    while retstart < retcount:
+    while retstart < (start + chunk):
 
-        print(f'-- range: {retstart} to {retstart + retmax}')
+        # The first value of retcount will be calculated. The subsequent value will
+        # be the actual count.
+        print(f'-- range: {retstart} to {retstart + retmax} (total count={retcount})')
         # Pause to avoid a 429 error (too many requests) from eUtils.
         time.sleep(1)
+
+        # If the value of retstart + retmax is greater than the total count, the
+        # response body will contain an end of line character that results in an
+        # exception in the JSON conversion.
+        if retstart + retmax > retcount:
+            retmax = retcount
 
         # Build esearch URL to return a chunk of Entrez UIDs to use in subsequent call to esummary.
         # The usehistory parameter results in storage of query results on the NCBI History server.
@@ -193,21 +211,30 @@ refseq_config = uconfig.ubkgConfigParser(cfgfile)
 csv_dir = refseq_config.get_value(section='Directories', key='csv_dir')
 owlnets_dir = refseq_config.get_value(section='Directories', key='owlnets_dir')
 
+# January 2024 - Obtain parameters that specify the subset of gene entries to obtain.
+# The total number is over 194K, and the NCBI EUtilities API tends to fail with 500
+# errors, so extract only a subset at a time--i.e., from the 50,001st to the 100,0000th.
+# offset is the absolute number in the set
+offset = int(refseq_config.get_value(section='Block', key='offset'))
+# chunk is the number to extract
+chunk = int(refseq_config.get_value(section='Block', key='chunk'))
+
 # Get the NCBI API key for use with eUtils.
 eutilapikey = uapikey.getapikey()
 
 # Obtain the file of data extracted from RefSeq.
-
 fRefSeq = os.path.join(owlnets_dir,'REFSEQ.csv')
 
 if refargs.skipbuild:
-    # Use existing file.
+    # Use existing file. It is assumed that this file represents the complete extract.
     ulog.print_and_logger_info(f'Using existing file: {fRefSeq}')
     dfsummary = uextract.read_csv_with_progress_bar(path=fRefSeq)
 else:
-    # Generate new file
-    ulog.print_and_logger_info(f'Generating new file: {fRefSeq}')
-    dfsummary = getrefseqsummaries(apikey=eutilapikey, outdir=owlnets_dir)
+    # Generate new file.
+    # January 2024 - Only a subset of the full data will be extracted at a time.
+    ulog.print_and_logger_info(f'Generating new file {fRefSeq} for RefSeq entries from {offset} to {offset + chunk}')
+    # Extract the subset specified by the offset and chunk variables to file.
+    dfsummary = getrefseqsummaries(apikey=eutilapikey, outdir=owlnets_dir, start=offset, chunk=chunk)
 
 # Read DEFs.csv.
 ulog.print_and_logger_info('Loading DEFs.csv for comparison...')

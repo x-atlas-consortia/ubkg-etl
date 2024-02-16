@@ -3,3 +3,9 @@
 csv_dir=path/to/ubkg/csvs
 # Absolute Path in the local repo for storing data downloaded from RefSeq.
 owlnets_dir = path/to/ubkg-etl/generation_framework/owlnets_output/REFSEQ
+
+[Block]
+# Offset--starting point in full set of gene entities
+offset=0
+# Number of gene entities to extract at a time.
+chunk=50000

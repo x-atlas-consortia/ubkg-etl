@@ -243,12 +243,12 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HGNCHPO",
     "comment": "HGNCHPO - human genotype - phenotype mapping "
   },
-  "HCOPHGNC": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HCOPHGNC",
+  "HCOP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HCOP",
     "comment": "HCOPHGNC - human-mouse orthologs"
   },
-  "HCOPMP": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py HCOPMP",
+  "MPMGI": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MPMGI",
     "comment": "HCOPMP - mouse_genotype_phenotype"
   },
   "RATHCOP": {
@@ -311,8 +311,8 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py MOTRPAC",
     "comment": "MOTRPAC"
   },
-  "KFPT": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py KFPT",
+  "KF": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py KF",
     "comment": "Gabriella Miller Kids First"
   },
   "HMAZ": {
