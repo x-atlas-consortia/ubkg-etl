@@ -334,5 +334,9 @@
   "STRING": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py STRING",
     "comment": "StringDB"
+  },
+  "WP": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py WP",
+    "comment": "WikiPathways"
   }
 }
