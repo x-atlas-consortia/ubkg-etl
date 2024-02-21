@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# FEBRUARY 2024
+# Replace HPO with HP in CUI-CUIs.csv
+
 # JULY 2023
 # Script that initializes the set of UMLS CSVs extracted from the Neptune data warehouse.
 # 1. Reformats codes from SABs that do not comply with the standard format of SAB CODE.
@@ -140,6 +143,11 @@ for f in dictrel_columns:
         # dffile[col] = dffile[col].str.replace('-', '_', regex=False)
 
         dffile[col] = uparse.relationReplacements(dffile[col])
+
+    # February 2024
+    # Convert SAB HPO to HP.
+    ulog.print_and_logger_info(f'--Converting HPO to HP in SAB column')
+    dffile['SAB'] = dffile['SAB'].str.replace('HPO', 'HP', regex=False)
 
     ulog.print_and_logger_info(f'Rewriting {csvfile}')
     uextract.to_csv_with_progress_bar(df=dffile, path=csvfile, index=False)

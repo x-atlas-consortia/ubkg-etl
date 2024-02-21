@@ -125,6 +125,7 @@ def getrefseqsummaries(apikey: str, outdir: str, start: int, chunk: int) -> pd.D
         esearch = f'esearch.fcgi?&{params}&usehistory=y&retmax={retmax}&retstart={retstart}&term={query}'
         urlsearch = f'{baseurl}{esearch}'
 
+        ulog.print_and_logger_info('-- Getting list of uuids...')
         # Call esearch to obtain list of UIDs.
         responsesearch = requests.get(urlsearch, headers=headers)
         if responsesearch.status_code != 200:
@@ -150,6 +151,7 @@ def getrefseqsummaries(apikey: str, outdir: str, start: int, chunk: int) -> pd.D
         esummary = f'esummary.fcgi?&{params}&WebEnv={webenv}&query_key={querykey}&retstart={retstart}&retmax={retmax}'
 
         urlsummary = f'{baseurl}{esummary}'
+        ulog.print_and_logger_info('-- Getting summary information for set of uuids...')
         responsesummary = requests.get(urlsummary, headers=headers)
 
         if responsesummary.status_code != 200:
@@ -157,28 +159,36 @@ def getrefseqsummaries(apikey: str, outdir: str, start: int, chunk: int) -> pd.D
 
         # Obtain gene summary information for the chunk of uids.
         responsesummaryjson = responsesummary.json()
+
+        if responsesummaryjson is None:
+            ulog.print_and_logger_info('Empty response from API in response to URL:')
+            ulog.print_and_logger_info(f'{esummary}')
+            break
+
         result = responsesummaryjson.get('result')
         uids = result.get('uids')
 
         # Add information on each summary and uid to lists.
         for uid in uids:
             gene = result.get(uid)
-            summary = gene.get('summary')
+            if gene is not None:
+                summary = gene.get('summary')
 
-            # When a code has a definition, the UBKG generation script adds this definition with rows in the
-            # DEFs.csv and DEFrel.csv files. For this case, use the following identifiers:
-            # 1. ATUI: base64-encoded string concatenated from the SAB, definition string, and CUI.
-            # 2. CODE: string in the standard format of `ENTREZ:uid`
+                # When a code has a definition, the UBKG generation script adds this definition with rows in the
+                # DEFs.csv and DEFrel.csv files. For this case, use the following identifiers:
+                # 1. ATUI: base64-encoded string concatenated from the SAB, definition string, and CUI.
+                # 2. CODE: string in the standard format of `ENTREZ:uid`
 
-            # The code will be mapped to a CUI in the UBKG CSVs.
+                # The code will be mapped to a CUI in the UBKG CSVs.
 
-            code = f'ENTREZ:{uid}'
-            atui = f'ENTREZ {summary} CUI'
-            atui = base64.urlsafe_b64encode(atui.encode('UTF-8')).decode('ascii')
+                code = f'ENTREZ:{uid}'
+                atui = f'ENTREZ {summary} CUI'
+                atui = base64.urlsafe_b64encode(atui.encode('UTF-8')).decode('ascii')
 
-            listatuis.append(atui)
-            listcodes.append(code)
-            listdefs.append(summary)
+                listatuis.append(atui)
+                listcodes.append(code)
+                listdefs.append(summary)
+
 
         # Advance to next chunk.
         retstart = retstart + retmax + 1
@@ -232,7 +242,8 @@ if refargs.skipbuild:
 else:
     # Generate new file.
     # January 2024 - Only a subset of the full data will be extracted at a time.
-    ulog.print_and_logger_info(f'Generating new file {fRefSeq} for RefSeq entries from {offset} to {offset + chunk}')
+    ulog.print_and_logger_info(f'Generating new file {fRefSeq}.')
+    ulog.print_and_logger_info(f'Chunk: {offset} to {offset + chunk}')
     # Extract the subset specified by the offset and chunk variables to file.
     dfsummary = getrefseqsummaries(apikey=eutilapikey, outdir=owlnets_dir, start=offset, chunk=chunk)
 
