@@ -330,5 +330,9 @@
   "CLINGEN": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CLINGEN",
     "comment": "CLINGEN"
+  },
+  "STRING": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py STRING",
+    "comment": "StringDB"
   }
 }
