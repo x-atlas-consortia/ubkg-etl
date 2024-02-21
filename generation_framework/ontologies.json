@@ -326,5 +326,9 @@
   "HMFIELD": {
     "execute": "./hmfields/hmfields.py HMFIELD",
     "comment": "HuBMAP pre-CEDAR metadata"
+  },
+  "CLINGEN": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py CLINGEN",
+    "comment": "CLINGEN"
   }
 }
