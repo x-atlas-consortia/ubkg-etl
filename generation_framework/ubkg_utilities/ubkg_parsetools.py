@@ -342,20 +342,27 @@ def relationReplacements(x: pd.Series):
 
     # AUGUST 2023
     # Replace . and - with _
-    ret = x.str.replace('.', '_', regex=False).str.replace('.', '_', regex=False)
 
-    # JANUARY 2024
+    # JANUARY/Feburary 2024
     # Format relationship strings to comply with neo4j naming rules:
     # 1. Only alphanumeric characters or the underscore.
     # 2. Prepend "rel_" to relationships with labels that start with numbers.
     #
-    ret = x.str.replace('(', '', regex=False)
-    ret = x.str.replace(')', '', regex=False)
-    ret = x.str.replace('[', '', regex=False)
-    ret = x.str.replace(']', '', regex=False)
-    ret = x.str.replace('-', '_', regex=False)
-    ret = x.str.lower()
-    ret = np.where(x.astype(str).str[0].str.isnumeric(),'rel_' + x, x)
+
+
+
+    ret = x.str.replace('.', '_', regex=False)
+    ret = ret.str.replace('-', '_', regex=False)
+    ret = ret.str.replace('(', '_', regex=False)
+    ret = ret.str.replace(')', '_', regex=False)
+    ret = ret.str.replace('[', '_', regex=False)
+    ret = ret.str.replace(']', '_', regex=False)
+    ret = ret.str.replace('{', '_', regex=False)
+    ret = ret.str.replace('}', '_', regex=False)
+    ret = ret.str.replace(':', '_', regex=False)
+
+    ret = ret.str.lower()
+    ret = np.where(ret.astype(str).str[0].str.isnumeric(),'rel_' + ret, ret)
 
 
     # For the majority of edges, especially those from either UMLS or from OBO-compliant
@@ -366,11 +373,11 @@ def relationReplacements(x: pd.Series):
     # 3. RO:code
     # 4. a string
 
-    ret = np.where(x.str.contains('RO:'), 'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1], x)
+    ret = np.where(x.str.contains('RO:'), 'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1], ret)
 
     # Replace #type from RDF schemas with isa.
-    ret = np.where(x.str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), 'isa', x)
-    ret = np.where(x.str.contains('http://www.w3.org/2000/01/rdf-schema#type'), 'isa', x)
+    ret = np.where(x.str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), 'isa', ret)
+    ret = np.where(x.str.contains('http://www.w3.org/2000/01/rdf-schema#type'), 'isa', ret)
 
     return ret
 
