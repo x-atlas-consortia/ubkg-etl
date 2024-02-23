@@ -3,3 +3,11 @@
 csv_dir=path/to/ubkg/csvs
 # Absolute Path in the local repo for storing data downloaded from RefSeq.
 owlnets_dir = path/to/ubkg-etl/generation_framework/owlnets_output/REFSEQ
+
+[Block]
+# Offset--starting point in full set of gene entities. Change this before each run--e.g.,
+# 0, then (chunk) + 1, then (2*chunk)+1, etc.
+offset=100001
+# Number of gene entities to extract at a time. This should stay the same for the full set of runs--e.g.,
+# 50K at a time.
+chunk=50000

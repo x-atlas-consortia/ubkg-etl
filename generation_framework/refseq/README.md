@@ -2,7 +2,7 @@
 ## RefSeq summary ingestion script
 
 ### Purpose
-The script in this folder import gene summaries from RefSeq, linking to Entrez ID.
+The script in this folder imports gene summaries from RefSeq, linking to Entrez ID.
 
 ### Content
 - **refseq.py** does the following:
@@ -29,3 +29,10 @@ The Entrez IDs to which refseq links gene summaries come from GenCode.
 - Copy and modify **refseq.ini.example** to a file named **refseq.ini** in the gencode directory.
 - Copy and modify **apikey.txt.example** to a file named **apikey.txt**. The file should contain a NCBI API key.
 
+### February 2024 - chunking features
+Initially, the script was able to obtain all 194+K RefSeq entries in a single
+run. During the most recent attempt to update, however, the script failed repeatedly due to failures in the Eutils API server.
+These failures may be throttles--i.e., introduced purposefully.
+
+To address the issue of failures, the script now only attempts to download information on a block of 
+entries. Use the values of **offset** and **chunk** in **refseq.ini** to size the subsets of entries to download.
