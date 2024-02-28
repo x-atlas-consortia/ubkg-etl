@@ -338,5 +338,9 @@
   "WP": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py WP",
     "comment": "WikiPathways"
+  },
+  "CEDAR_ENTITY": {
+    "execute": "./cedar_entity/cedar_entity.py",
+    "comment": "CEDAR-Provenance Entity mapping"
   }
 }
