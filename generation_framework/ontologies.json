@@ -347,5 +347,9 @@
     "owl_url": "https://purl.obolibrary.org/obo/pcl.owl",
     "home_url": "https://github.com/obophenotype/provisional_cell_ontology",
     "comment": "Provisional Cell Ontology"
+  },
+  "REACTOME": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py REACTOME",
+    "comment": "Reactome"
   }
 }

@@ -564,6 +564,9 @@ edgelist['relation_label'] = np.where(edgelist['relation_label'].isnull(), edgel
                                       edgelist['relation_label'])
 edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('subClassOf'), 'isa',
                                       edgelist['relation_label'])
+# JAS MARCH 2024 - relationships are cast to lowercase.
+edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('subclassof'), 'isa',
+                                      edgelist['relation_label'])
 
 # JAS SEPT 2023 - Moved to relationshipreplacements in ubkg_parsetools.py
 # JAS 13 JAN 2023 - 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' converted to 'isa'
