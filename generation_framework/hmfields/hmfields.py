@@ -355,7 +355,7 @@ def build_type_xref(urlbase: str) -> dict:
 
     A consequence of the PT_CEDAR relationships is that because the valueset endpoint in hs-ontology-api assumes
     relationship type of PT, it will return no information on the codes for the children of XSD:anySimpletype.
-    To obtain these codes, we use the "canonical" endpdoints of the UBKG API.
+    To obtain these codes, we use the "canonical" endpoints of the UBKG API.
 
     """
 

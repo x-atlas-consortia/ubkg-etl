@@ -23,6 +23,24 @@ Unlike other ingestions, the HMFIELD ontology queries an instance of
 UBKG directly to find codes to use in assertions. The script calls endpoints
 of the UBKG API. 
 
+### CEDAR Dependency and refreshing HMFIELD
+HMFIELD codes are cross-referenced, where possible, to CEDAR field codes. This means that the
+HMFIELD ontology has a dependency on the currency of CEDAR data.
+
+To obtain information on CEDAR for cross-referencing, HMFIELD queries the UBKG using the 
+UBKG API. This means that **refreshing** HMFIELD data in the UBKG requires an instance of UBKG with
+the latest CEDAR data. This is often the very instance of UBKG that is being refreshed.
+
+To ingest HMFIELD into UBKG,
+1. Ingest all other sources in the HMSN context.
+2. Build a new local instance of UBKG.
+3. Configure **hmfields.ini** so that it points to the local instance of the UBKG.
+4. Ingest HMFIELD.
+5. Rebuild the local instance.
+
+If the field-*.yaml files are not deprecated, the ETL could be modified so that it uses the CEDAR edge/node files directly.
+
+
 # The HMFIELD Ontology
 ### Background
 HuBMAP recently integrated CEDAR into the ingest metadata validation workflow. Prior to CEDAR, ingest metadata was validated using infrastructure based on source in the [ingest-validation-tools repository](https://github.com/hubmapconsortium/ingest-validation-tools). 
