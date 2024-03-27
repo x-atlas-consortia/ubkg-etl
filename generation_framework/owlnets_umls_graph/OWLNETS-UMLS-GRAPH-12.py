@@ -210,6 +210,9 @@ def getROrelationshiptriples() -> pd.DataFrame:
 
     dfrt = dfrt.drop(columns='inverse_IRI')
 
+    # March 2024 Cast IRI to lowercase.
+    dfrt['IRI'] = dfrt['IRI'].str.lower()
+
     return dfrt
 
 
@@ -360,6 +363,9 @@ ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-refer
 # JAS 6 JAN 2023 - add evidence_class; limit columns.
 edgelist = uextract.read_csv_with_progress_bar(path=owlnets_path(edgepath), on_bad_lines='skip', sep='\t')
 
+# MARCH 2024 - Casting predicate to lowercase.
+edgelist['predicate'] = uparse.relationReplacements(edgelist['predicate'])
+
 # edgelist = pd.read_csv(owlnets_path(edgepath), sep='\t')
 if 'evidence_class' not in edgelist.columns:
     # August 2023 - set to blank instead of NAN for consistent row content.
@@ -423,6 +429,7 @@ if relations_file_exists:
         columns={"relation_label": "relation_label_from_file"})
 else:
     edgelist['relation_label_from_file'] = np.NaN
+
 # del relations
 
 # JAS 8 November 2022 - now handled downstream
@@ -442,9 +449,10 @@ edgelist['subject'] = uparse.codeReplacements(edgelist['subject'], OWL_SAB)
 # improved codeReplacements function.
 edgelist['object'] = uparse.codeReplacements(edgelist['object'], OWL_SAB)
 
+# MARCH 2024 - moved to prior point in script.
 # MAY 2023
 # Format edges.
-edgelist['predicate'] = uparse.relationReplacements(edgelist['predicate'])
+# edgelist['predicate'] = uparse.relationReplacements(edgelist['predicate'])
 
 # Obtain relationship information from the Relations Ontology.
 dfrelationtriples = getROrelationshiptriples()
@@ -564,6 +572,7 @@ edgelist['relation_label'] = np.where(edgelist['relation_label'].isnull(), edgel
                                       edgelist['relation_label'])
 edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('subClassOf'), 'isa',
                                       edgelist['relation_label'])
+
 # JAS MARCH 2024 - relationships are cast to lowercase.
 edgelist['relation_label'] = np.where(edgelist['predicate'].str.contains('subclassof'), 'isa',
                                       edgelist['relation_label'])
@@ -603,6 +612,9 @@ if relations_file_exists:
 # In[10]:
 
 edgelist.loc[edgelist['inverse'].isnull(), 'inverse'] = 'inverse_' + edgelist['relation_label']
+
+edgelist.to_csv('EDGELIST.CSV')
+exit(1)
 
 # ---------------------------------------------------------
 # PREPARE NODES

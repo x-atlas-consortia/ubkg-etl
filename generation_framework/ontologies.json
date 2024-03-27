@@ -73,7 +73,7 @@
     "sab": "OGI"
   },
   "ORDO": {
-    "owl_url": "https://data.bioontology.org/ontologies/ORDO/submissions/22/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/ORDO/submissions/28/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/ORDO",
     "comment": "Orphanet Rare Disease Ontology",
     "download_owl_url_to_file_name": "ordo.owl",

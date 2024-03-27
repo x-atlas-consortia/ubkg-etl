@@ -373,7 +373,9 @@ def relationReplacements(x: pd.Series):
     # 3. RO:code
     # 4. a string
 
-    ret = np.where(x.str.contains('RO:'), 'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1], ret)
+    # March 2024 predicates are in lowercase.
+    # ret = np.where(x.str.contains('RO:'), 'http://purl.obolibrary.org/obo/RO_' + x.str.split('RO:').str[-1], ret)
+    ret = np.where(x.str.contains('ro:'), 'http://purl.obolibrary.org/obo/ro_' + x.str.split('ro:').str[-1], ret)
 
     # Replace #type from RDF schemas with isa.
     ret = np.where(x.str.contains('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), 'isa', ret)
