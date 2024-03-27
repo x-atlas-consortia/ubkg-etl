@@ -613,9 +613,6 @@ if relations_file_exists:
 
 edgelist.loc[edgelist['inverse'].isnull(), 'inverse'] = 'inverse_' + edgelist['relation_label']
 
-edgelist.to_csv('EDGELIST.CSV')
-exit(1)
-
 # ---------------------------------------------------------
 # PREPARE NODES
 
