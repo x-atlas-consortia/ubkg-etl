@@ -73,7 +73,7 @@
     "sab": "OGI"
   },
   "ORDO": {
-    "owl_url": "https://data.bioontology.org/ontologies/ORDO/submissions/22/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/ORDO/submissions/28/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/ORDO",
     "comment": "Orphanet Rare Disease Ontology",
     "download_owl_url_to_file_name": "ordo.owl",
@@ -134,7 +134,7 @@
     "comment": "The BioAssay Ontology (BAO) describes chemical biology screening assays and their results"
   },
   "UO": {
-    "owl_url": "https://data.bioontology.org/ontologies/UO/submissions/216/download?apikey=4983e1fe-1f54-412e-99bb-74764d659cb0",
+    "owl_url": "https://data.bioontology.org/ontologies/UO/submissions/220/download?apikey=4983e1fe-1f54-412e-99bb-74764d659cb0",
     "comment": "Unit Ontology"
   },
   "MONDO": {
@@ -143,7 +143,7 @@
     "comment": "The Mondo Disease Ontology (MONDO): a global community effort to harmonize multiple disease resources to yield a coherent merged ontology"
   },
   "EFO": {
-    "owl_url": "https://data.bioontology.org/ontologies/EFO/submissions/244/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/EFO/submissions/261/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/EFO",
     "comment": "The Experimental Factor Ontology (EFO) is an application focused ontology modelling the experimental variables in multiple resources at the EBI and Open Targets."
   },
@@ -168,7 +168,7 @@
     "comment": "GlycoCoO in Turtle"
   },
   "OBIB": {
-    "owl_url": "https://data.bioontology.org/ontologies/OBIB/submissions/13/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/OBIB/submissions/14/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/OBIB",
     "comment": "The ontology for Biobanking (OBIB) is an ontology built for annotation and modeling of biobank repository and biobanking administration."
   },
@@ -183,7 +183,7 @@
     "execute": "./gzip_csv/gzip_csv_owlnets.py 'https://data.bioontology.org/ontologies/HRAVS/download?apikey=4983e1fe-1f54-412e-99bb-74764d659cb0&download_format=csv' HRAVS"
   },
   "NPO": {
-    "owl_url": "https://data.bioontology.org/ontologies/NPOKB/submissions/8/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/NPOKB/submissions/14/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/NPOKB?p=summary",
     "comment": "NPO in Turtle"
   },
