@@ -40,7 +40,8 @@ def load_yaml(url: str) -> dict:
     content = response.content.decode("utf-8")
     # Load the yaml
     content = yaml.safe_load(content)
-
+    print(url)
+    print(content)
     return content
 
 
@@ -188,6 +189,8 @@ def build_node_list(sab: str, yaml_dict_field_nodes: dict, parent_node_idx: int,
                         type_match = [x for x in type_xref if x['type'] == node]
                         if len(type_match) > 0:
                             node_dbxref = type_match[0]['code']
+                        else:
+                            node_dbxref = ''
 
                 elif node_type == 'entity':
                     # HMFIELD entity cross-references are to Provenance Entity codes from HUBMAP.
@@ -286,6 +289,8 @@ def add_isa(sab: str, path: str, list_nodes: list, parent_idx: int):
 
 def get_concepts_expand_request_body(concept: str, sab_list: list[str], rel_list: list[str], depth: int) -> dict:
     """
+    April 2024 DEPRECATED
+
     Builds a request body for a call to the concepts/expand endpoint in UBKG API.
     :param concept: CUI for the concept
     :param sab_list: SABs for expansion
@@ -359,23 +364,40 @@ def build_type_xref(urlbase: str) -> dict:
 
     """
 
+    # APR 2024
+    # Replace deprecated POST method with new GET.
+
     # 1. Obtain all child concepts of XSD:anySimpletype that have CEDAR codes, using the concepts/expand endpoint.
-    url = urlbase + 'concepts/expand'
-    request_body = get_concepts_expand_request_body(concept='XSD:anySimpleType CUI', sab_list=['CEDAR'],
-                                                    rel_list=['isa'], depth=1)
-    headers = get_post_header()
-    response = requests.post(url=url, headers=headers, json=request_body)
+    #url = urlbase + 'concepts/expand'
+    #request_body = get_concepts_expand_request_body(concept='XSD:anySimpleType CUI', sab_list=['CEDAR'],
+                                                    #rel_list=['isa'], depth=1)
+    #headers = get_post_header()
+    #response = requests.post(url=url, headers=headers, json=request_body)
+
+    url = urlbase + 'concepts/XSD:anySimpleType CUI/paths/expand?sab=CEDAR&rel=isa&mindepth=1&maxdepth=2'
+    response = requests.get(url)
     dict_return = response.json()
 
     # 2. For each child concept in the response, obtain the corresponding code from XSD.
-    for field_type in dict_return:
-        rcui = field_type.get('concept')
-        code = get_concept_code(cui=rcui, urlbase=urlbase, sab='XSD')
-        field_type['code'] = code
+    #for field_type in dict_return:
+        #rcui = field_type.get('concept')
+        #code = get_concept_code(cui=rcui, urlbase=urlbase, sab='XSD')
+        #field_type['code'] = code
         # Strip the SAB from the code to get the type.
-        field_type['type'] = code.split(':')[1]
+        #field_type['type'] = code.split(':')[1]
 
-    return dict_return
+    # The paths/expand endpoint returns in a JSON in the neo4j Table frame schema. Obtain the code from
+    # the nodes array.
+
+    nodes = dict_return.get('nodes')
+    for node in nodes:
+        rcui = node.get('id')
+        code = get_concept_code(cui=rcui, urlbase=urlbase, sab='XSD')
+        node['code'] = code
+        # Strip the SAB from the code to get the type.
+        node['type'] = code.split(':')[1]
+
+    return nodes
 
 
 def build_dataset_xref(urlbase: str) -> list:
@@ -403,7 +425,6 @@ def build_dataset_xref(urlbase: str) -> list:
     list_dataset = []
     for dataset in ubkg_dataset_json:
         dict_dataset = {}
-
 
         # Get the code for the data_type--i.e., the code for the node in the Dataset Data Type hierarchy.
         data_type_matches = get_codeids_for_term_sab_type(term_string=dataset['data_type'], sab='HUBMAP',
@@ -486,16 +507,25 @@ def get_concept_with_relationship(cui: str, rel: str, depth: int, urlbase: str, 
     :return: CUI
     """
 
-    url = urlbase + 'concepts/paths'
-    request_body = get_concepts_expand_request_body(concept=cui, sab_list=[sab],
-                                                    rel_list=[rel], depth=depth)
-    headers = get_post_header()
-    response = requests.post(url=url, headers=headers, json=request_body)
-    ubkg_response_json = response.json()
-    match = [p for p in ubkg_response_json if p.get('relationship') == rel]
-    if len(match) > 0:
-        return match[0].get('concept')
+    # APRIL 2024 - Replace call to deprecated paths endpoint.
+    #url = urlbase + 'concepts/paths'
+    #request_body = get_concepts_expand_request_body(concept=cui, sab_list=[sab],
+                                                    #rel_list=[rel], depth=depth)
+    #headers = get_post_header()
+    #response = requests.post(url=url, headers=headers, json=request_body)
 
+    url = f'{urlbase}/concepts/{cui}/paths/expand?sab={sab}&rel={rel}&mindepth=1&maxdepth=2'
+    response = requests.get(url)
+    ubkg_response_json = response.json()
+
+    # The paths/expand endpoint returns a JSON with the Table result frame schema.
+    # The desired concept will be the source of the one element in the edges array.
+    edges = ubkg_response_json.get('edges')
+    match = [p for p in edges if p.get('type') == rel]
+    if len(match) > 0:
+        return match[0].get('source')
+
+    return 'get_concept_with_relationship: no match'
 
 def add_assertions(path: str, dict_associations: dict, list_fields: list, list_objects: list, predicate: str):
     """
@@ -569,16 +599,20 @@ if not args.skipbuild:
     # Build content for node file from source YAML files in repo.
     # Build list of parent nodes.
     list_parent_nodes = build_parent_node_list(sab=args.sab, dict_index=all_parent_idx)
+
+    # April 2024 - all file names now include "_deprecated".
+
     # Load field descriptions. These will be nodes in the HMFIELD ontology.
-    url_field_descriptions = repo_dir + 'field-descriptions.yaml'
+    url_field_descriptions = repo_dir + 'field-descriptions_deprecated.yaml'
     dict_fields = load_yaml(url_field_descriptions)
+
     # Encode and cross-references from HMFIELD fields to CEDAR fields.
     list_encoded_fields = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_fields,
                                           parent_node_idx=all_parent_idx['field'],
                                           node_type='field', urlbase=ubkg_url)
 
     # Field to type relationships. These will be cross-referenced to XSD field types from the CEDAR template ontology.
-    url_field_types = repo_dir + 'field-types.yaml'
+    url_field_types = repo_dir + 'field-types_deprecated.yaml'
     dict_field_types = load_yaml(url_field_types)
     # Unique, encoded, and cross-referenced list of HMFIELD types
     list_encoded_types = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_types,
@@ -586,7 +620,7 @@ if not args.skipbuild:
                                          node_type='type', urlbase=ubkg_url)
 
     # Field to entity relationships. These will be cross-referenced to Provenance Entity nodes in the HUBMAP ontology.
-    url_field_entities = repo_dir + 'field-entities.yaml'
+    url_field_entities = repo_dir + 'field-entities_deprecated.yaml'
     dict_field_entities = load_yaml(url_field_entities)
     # Encoded unique list of HMFIELD entities
     list_encoded_entities = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_entities,
@@ -595,7 +629,7 @@ if not args.skipbuild:
 
     # Field to assay relationships.
     # These will be cross-referenced to Dataset nodes in the HUBMAP ontology.
-    url_field_assays = repo_dir + 'field-assays.yaml'
+    url_field_assays = repo_dir + 'field-assays_deprecated.yaml'
     dict_field_assays = load_yaml(url_field_assays)
     # Unique, encoded, and cross-referenced list of HMFIELD assays
     list_encoded_assays = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_assays,
@@ -604,7 +638,7 @@ if not args.skipbuild:
 
     # Field to schema relationships.
     # These will not be cross-referenced.
-    url_field_schemas = repo_dir + 'field-schemas.yaml'
+    url_field_schemas = repo_dir + 'field-schemas_deprecated.yaml'
     dict_field_schemas = load_yaml(url_field_schemas)
     # Unique, encoded, and cross-referenced list of HMFIELD schemas
     list_encoded_schemas = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_schemas,
@@ -660,3 +694,5 @@ if not args.skipbuild:
                    predicate='used_in_schema')
 
     # Do not write an OWLNETS relationship file.
+
+    exit(1)
