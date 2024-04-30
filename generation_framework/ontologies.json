@@ -134,7 +134,8 @@
     "comment": "The BioAssay Ontology (BAO) describes chemical biology screening assays and their results"
   },
   "UO": {
-    "owl_url": "https://data.bioontology.org/ontologies/UO/submissions/220/download?apikey=4983e1fe-1f54-412e-99bb-74764d659cb0",
+    "owl_url": "http://purl.obolibrary.org/obo/uo.owl",
+    "home_url": "https://obofoundry.org/ontology/uo.html",
     "comment": "Unit Ontology"
   },
   "MONDO": {
@@ -143,7 +144,7 @@
     "comment": "The Mondo Disease Ontology (MONDO): a global community effort to harmonize multiple disease resources to yield a coherent merged ontology"
   },
   "EFO": {
-    "owl_url": "https://data.bioontology.org/ontologies/EFO/submissions/261/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
+    "owl_url": "https://data.bioontology.org/ontologies/EFO/submissions/262/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/EFO",
     "comment": "The Experimental Factor Ontology (EFO) is an application focused ontology modelling the experimental variables in multiple resources at the EBI and Open Targets."
   },
@@ -168,8 +169,8 @@
     "comment": "GlycoCoO in Turtle"
   },
   "OBIB": {
-    "owl_url": "https://data.bioontology.org/ontologies/OBIB/submissions/14/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
-    "home_url": "https://bioportal.bioontology.org/ontologies/OBIB",
+    "owl_url": "http://purl.obolibrary.org/obo/obib.owl",
+    "home_url": "https://obofoundry.org/ontology/obib.html",
     "comment": "The ontology for Biobanking (OBIB) is an ontology built for annotation and modeling of biobank repository and biobanking administration."
   },
   "XCO": {
@@ -351,5 +352,13 @@
   "REACTOME": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py REACTOME",
     "comment": "Reactome"
+  },
+  "DGN": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py DGN",
+    "comment": "DisGenet"
+  },
+  "HUBMAP": {
+    "comment": "UBKG source ontology, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py UBKGSOURCE"
   }
 }
