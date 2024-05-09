@@ -357,7 +357,7 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py DGN",
     "comment": "DisGenet"
   },
-  "HUBMAP": {
+  "UBKGSOURCE": {
     "comment": "UBKG source ontology, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py UBKGSOURCE"
   }
