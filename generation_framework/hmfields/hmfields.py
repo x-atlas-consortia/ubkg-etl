@@ -40,8 +40,6 @@ def load_yaml(url: str) -> dict:
     content = response.content.decode("utf-8")
     # Load the yaml
     content = yaml.safe_load(content)
-    print(url)
-    print(content)
     return content
 
 
@@ -603,7 +601,7 @@ if not args.skipbuild:
     # April 2024 - all file names now include "_deprecated".
 
     # Load field descriptions. These will be nodes in the HMFIELD ontology.
-    url_field_descriptions = repo_dir + 'field-descriptions_deprecated.yaml'
+    url_field_descriptions = repo_dir + 'field-descriptions.yaml'
     dict_fields = load_yaml(url_field_descriptions)
 
     # Encode and cross-references from HMFIELD fields to CEDAR fields.
@@ -612,7 +610,7 @@ if not args.skipbuild:
                                           node_type='field', urlbase=ubkg_url)
 
     # Field to type relationships. These will be cross-referenced to XSD field types from the CEDAR template ontology.
-    url_field_types = repo_dir + 'field-types_deprecated.yaml'
+    url_field_types = repo_dir + 'field-types.yaml'
     dict_field_types = load_yaml(url_field_types)
     # Unique, encoded, and cross-referenced list of HMFIELD types
     list_encoded_types = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_types,
@@ -620,7 +618,7 @@ if not args.skipbuild:
                                          node_type='type', urlbase=ubkg_url)
 
     # Field to entity relationships. These will be cross-referenced to Provenance Entity nodes in the HUBMAP ontology.
-    url_field_entities = repo_dir + 'field-entities_deprecated.yaml'
+    url_field_entities = repo_dir + 'field-entities.yaml'
     dict_field_entities = load_yaml(url_field_entities)
     # Encoded unique list of HMFIELD entities
     list_encoded_entities = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_entities,
@@ -629,7 +627,7 @@ if not args.skipbuild:
 
     # Field to assay relationships.
     # These will be cross-referenced to Dataset nodes in the HUBMAP ontology.
-    url_field_assays = repo_dir + 'field-assays_deprecated.yaml'
+    url_field_assays = repo_dir + 'field-assays.yaml'
     dict_field_assays = load_yaml(url_field_assays)
     # Unique, encoded, and cross-referenced list of HMFIELD assays
     list_encoded_assays = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_assays,
@@ -638,7 +636,7 @@ if not args.skipbuild:
 
     # Field to schema relationships.
     # These will not be cross-referenced.
-    url_field_schemas = repo_dir + 'field-schemas_deprecated.yaml'
+    url_field_schemas = repo_dir + 'field-schemas.yaml'
     dict_field_schemas = load_yaml(url_field_schemas)
     # Unique, encoded, and cross-referenced list of HMFIELD schemas
     list_encoded_schemas = build_node_list(sab=args.sab, yaml_dict_field_nodes=dict_field_schemas,
@@ -694,5 +692,3 @@ if not args.skipbuild:
                    predicate='used_in_schema')
 
     # Do not write an OWLNETS relationship file.
-
-    exit(1)
