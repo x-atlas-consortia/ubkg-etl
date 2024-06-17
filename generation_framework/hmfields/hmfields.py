@@ -412,6 +412,9 @@ def build_dataset_xref(urlbase: str) -> list:
     response = requests.get(url)
     ubkg_dataset_json = response.json()
 
+    # JUNE 2024 - the response is now the value for a key named assay_classifications.
+    assay_classifications = ubkg_dataset_json.get('assay classifications')
+
     # The datasets endpoint returns two keys of relevance:
     # 1. data_type, which corresponds to the preferred term for a property node in the Dataset Data Type hierarchy.
     # 2. alt-names, which corresponds to an optional set of synonyms (terms of type SY) for a node in the
@@ -421,9 +424,8 @@ def build_dataset_xref(urlbase: str) -> list:
     # A HMFIELD assay will cross-reference the Dataset node instead of a node corresponding to data_type or alt_name.
 
     list_dataset = []
-    for dataset in ubkg_dataset_json:
+    for dataset in assay_classifications:
         dict_dataset = {}
-
         # Get the code for the data_type--i.e., the code for the node in the Dataset Data Type hierarchy.
         data_type_matches = get_codeids_for_term_sab_type(term_string=dataset['data_type'], sab='HUBMAP',
                                                           term_type='PT', urlbase=urlbase)
@@ -451,7 +453,8 @@ def build_dataset_xref(urlbase: str) -> list:
         list_dataset.append(dict_dataset)
 
         # Dataset: alt-name
-        alts = dataset['alt-names']
+        # JUNE 2024 - changed to alt_names
+        alts = dataset['alt_names']
         for alt in alts:
             dict_dataset = {'dataset_code': dataset_code, 'identifier': alt}
             list_dataset.append(dict_dataset)
