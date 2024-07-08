@@ -73,22 +73,27 @@ tag "basic" in column 11 and tag "Ensembl_canonical" in column 12.
 This means that the key-value columns after the Level 1 split will resemble the following
 (x, y, z, a are keys):
 
-columns
-row       1         2         3       4
-0         x 20
-1         x 30
-2                    x 40
-3         a 99
-4         y 25       z 30     x 50    x 60 <--note multiple values for the x key
+| columns | 1   | 2   | 3   | 4   |
+|:--------|-----|-----|-----|-----|
+| 0       | x20 |     |     |     |
+| 1       | x30 |     |     |     |
+| 2       |     | x40 |     |     |
+| 3       | a99 |     |     |     |
+| 4       | y25 | z30 | x50 | x60 |
+(note multiple values for the x key in the fourth row)
+
 
 The desired result if search_key = x is a series of values corresponding to key=x,
 sorted in the original row order, with multiple values collected into lists--e.g.,
-x
-0 20
-1 30
-2 40
-3
-4 50,60
+
+| x       |
+|---------|
+| 0 20    |
+| 1 30    |
+| 2 40    |
+| 3       |
+| 4 50 60 |
+
 
 ## Transcript-specific Assertions
 
