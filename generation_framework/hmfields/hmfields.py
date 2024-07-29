@@ -118,7 +118,7 @@ def build_node_list(sab: str, yaml_dict_field_nodes: dict, parent_node_idx: int,
         # Cross-references are to XSD type codes from CEDAR. Identifying these codes require special treatment.
         type_xref = build_type_xref(urlbase=urlbase)
     elif node_type == 'assay':
-        dataset_xref = build_dataset_xref(urlbase=urlbase)
+        assayclass_xref = build_assayclass_xref(urlbase=urlbase)
 
     for field in yaml_dict_field_nodes:
         # Get nodes associated with field.
@@ -201,10 +201,11 @@ def build_node_list(sab: str, yaml_dict_field_nodes: dict, parent_node_idx: int,
                                                                 term_type=xref_term_type, urlbase=urlbase)
 
                 elif node_type == 'assay':
-                    # Cross-references are to Dataset Type codes in HUBMAP.
-                    dataset_match = [x for x in dataset_xref if x['identifier'] == node]
-                    if len(dataset_match) > 0:
-                        node_dbxref = dataset_match[0]['dataset_code']
+                    # Cross-references are to assaytype codes in HUBMAP.
+                    # dataset_match = [x for x in dataset_xref if x['identifier'] == node]
+                    assayclass_match = [x for x in assayclass_xref if x['identifier'] == node]
+                    if len(assayclass_match) > 0:
+                        node_dbxref = assayclass_match[0]['assayclass_code']
                     else:
                         node_dbxref = ''
 
@@ -398,68 +399,35 @@ def build_type_xref(urlbase: str) -> dict:
     return nodes
 
 
-def build_dataset_xref(urlbase: str) -> list:
+def build_assayclass_xref(urlbase: str) -> list:
     """
-    Builds a list of dictionaries of information on HUBMAP Dataset codes corresponding to assays
+    JULY 2024 Upgraded for new HUBMAP assay class model.
+
+    Builds a list of dictionaries of information on HUBMAP assay class codes corresponding to assays
     in field_assays.yaml.
     :param urlbase: URL base for the UBKG API.
-    :return: list of dictionaries with dataset information, denormalized at level of individual identifier--i.e.,
-    {dataset_code:<code for node of dataset>, identifier:<data_type or an alt-name>}
+    :return: list of dictionaries with assay class information.
     """
 
     # Obtain information on HUBMAP datasets using the datasets endpoint.
-    url = urlbase + 'datasets?application_context=HUBMAP'
+    # url = urlbase + 'datasets?application_context=HUBMAP'
+    url = urlbase + 'assayclasses?application_context=HUBMAP'
     response = requests.get(url)
-    ubkg_dataset_json = response.json()
+    assay_classifications = response.json()
+    list_assay_class = []
+    for assayclass in assay_classifications:
+        dict_assayclass = {}
+        # Get the code for the assayclass
 
-    # JUNE 2024 - the response is now the value for a key named assay_classifications.
-    assay_classifications = ubkg_dataset_json.get('assay classifications')
-
-    # The datasets endpoint returns two keys of relevance:
-    # 1. data_type, which corresponds to the preferred term for a property node in the Dataset Data Type hierarchy.
-    # 2. alt-names, which corresponds to an optional set of synonyms (terms of type SY) for a node in the
-    # Dataset Data Type hierarchy.
-
-    # The Dataset Data Type property node has a relationship with a node in the Dataset hierarchy.
-    # A HMFIELD assay will cross-reference the Dataset node instead of a node corresponding to data_type or alt_name.
-
-    list_dataset = []
-    for dataset in assay_classifications:
-        dict_dataset = {}
-        # Get the code for the data_type--i.e., the code for the node in the Dataset Data Type hierarchy.
-        data_type_matches = get_codeids_for_term_sab_type(term_string=dataset['data_type'], sab='HUBMAP',
+        assaytype_term = assayclass['value']['assaytype']
+        assaytype_code = get_codeids_for_term_sab_type(term_string=assaytype_term, sab='HUBMAP',
                                                           term_type='PT', urlbase=urlbase)
-        data_type_code = data_type_matches
-
-        # Special case: the 'Light Sheet' assay, which is an alt-name for Lightsheet that contains a space in the name.
-        # The canonical UBKG API endpoint terms/{term id}/codes does not handle correctly terms with spaces.
-        if dataset['data_type'] == 'Light Sheet':
-            data_type_code = 'HUBMAP:C007604'
-
-        # Obtain the CUI for the concept associated with the code. This accounts for cases in which
-        # the code has been cross-referenced to another code--i.e., for which the CUI is not just the codeID + ' CUI'.
-        data_type_cui = get_concept_for_code(data_type_code,urlbase=urlbase)
-
-        # Get the code for the node in the Dataset hierarchy.
-        dataset_cui = get_concept_with_relationship(cui=data_type_cui, rel='has_data_type', depth=1,
-                                                    urlbase=urlbase, sab='HUBMAP')
-
-        # The code can be obtained from the CUI.
-        dataset_code = dataset_cui.split(' CUI')[0]
 
         # Build output.
-        # Dataset:data_type
-        dict_dataset = {'dataset_code': dataset_code, 'identifier': dataset['data_type']}
-        list_dataset.append(dict_dataset)
+        dict_assayclass = {'assayclass_code': assaytype_code, 'identifier': assaytype_term}
+        list_assay_class.append(dict_assayclass)
 
-        # Dataset: alt-name
-        # JUNE 2024 - changed to alt_names
-        alts = dataset['alt_names']
-        for alt in alts:
-            dict_dataset = {'dataset_code': dataset_code, 'identifier': alt}
-            list_dataset.append(dict_dataset)
-
-    return list_dataset
+    return list_assay_class
 
 
 def get_codeids_for_term_sab_type(term_string: str, sab: str, term_type: str, urlbase: str) -> list[str]:

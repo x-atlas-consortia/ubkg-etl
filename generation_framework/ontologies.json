@@ -360,5 +360,9 @@
   "UBKGSOURCE": {
     "comment": "UBKG source ontology, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py UBKGSOURCE"
+  },
+  "BIOMARKER": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py BIOMARKER",
+    "comment": "Biomarker Partnership"
   }
 }
