@@ -47,6 +47,8 @@ import ubkg_config as uconfig
 
 def download_source_file(cfg: uconfig.ubkgConfigParser, sab: str, owl_dir: str, owlnets_dir: str) -> str:
 
+    # Oct 2024 - SimpleKnowledge spreadsheets are stored in the SimpleKnowledge GitHub repo.
+
     # Obtains SimpleKnowledge source spreadsheet from Google Drive.
 
     # Returns the full path to the downloaded file.
@@ -65,7 +67,8 @@ def download_source_file(cfg: uconfig.ubkgConfigParser, sab: str, owl_dir: str, 
     url = cfg.get_value(section='URL',key=sab)
     filepath = os.path.join(owl_dir,'SimpleKnowledge.xlsx')
     # Download GZIP file.
-    uextract.download_file_from_google_drive(share_url=url, download_full_path=filepath)
+    # uextract.download_file_from_google_drive(share_url=url, download_full_path=filepath)
+    uextract.download_file_from_github(share_url=url, download_full_path=filepath)
 
     return filepath
 

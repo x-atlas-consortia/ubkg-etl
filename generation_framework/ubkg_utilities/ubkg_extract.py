@@ -18,6 +18,18 @@ import sys
 # UBKG logging utility
 import ubkg_logging as ulog
 
+def download_file_from_github(share_url: str, download_full_path: str):
+
+    # Downloads a file as a raw file from a GitHub repo.
+    # Arguments:
+    # share_url: the link to the raw file in GitHub.
+
+    ulog.print_and_logger_info(f'Downloading to {download_full_path}')
+    ghfile = requests.get(share_url)
+    with open(download_full_path, 'wb') as output:
+        output.write(ghfile.content)
+
+    return
 
 def download_file_from_google_drive(share_url: str, download_full_path: str):
 

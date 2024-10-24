@@ -2,7 +2,7 @@
 
 Uses the input spreadsheet for the SimpleKnowledge Editor to generate a set of text files that comply with the OWLNETS format, as described [here](https://github.com/callahantiff/PheKnowLator/blob/master/notebooks/OWLNETS_Example_Application.ipynb).
 
-The user guide to build the SimpleKnowledge Editor spreadsheet can be found [here](https://docs.google.com/document/d/1wjsOzJYRV2FRehX7NQI74ZKRXvH45l0QmClBBF_VypM/edit?usp=sharing).
+The user guide to build the SimpleKnowledge Editor spreadsheet can be found [here](https://github.com/x-atlas-consortia/SimpleKnowledge/blob/main/doc/EditorUserGuide.md).
 
 # Content
 - **skowlnets.py** - Does the following:
@@ -10,6 +10,9 @@ The user guide to build the SimpleKnowledge Editor spreadsheet can be found [her
    - Downloads the SimpleKnowledge spreadsheet that corresponds to the SAB argument.
    - Generates files in OWLNETS format based on the spreadsheet.
 - **skowlnets.ini.example** - Annotated example of an ini file.
+
+# Configuration file and SimpleKnowledge source spreadsheets
+The SimpleKnowledge spreadsheets that **skowlnets.py** uses are located in the **scr** folder of the [SimpleKnowledge](https://github.com/x-atlas-consortia/SimpleKnowledge/tree/main) GitHub repository.
 
 # Arguments
 1. The SAB for the ontology--e.g., HUBMAP, SENNET, AZ
