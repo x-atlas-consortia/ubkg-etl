@@ -364,5 +364,9 @@
   "BIOMARKER": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py BIOMARKER",
     "comment": "Biomarker Partnership"
+  },
+  "OTG": {
+    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py OTG",
+    "comment": "Open Target Genomics"
   }
 }
