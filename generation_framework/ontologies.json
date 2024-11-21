@@ -95,8 +95,8 @@
     "comment": "This Relation Ontology should get relationships and inverses and the RO code where we want the name"
   },
   "SBO": {
-    "owl_url": "http://www.ebi.ac.uk/sbo/exports/Main/SBO_OWL.owl",
-    "home_url": "https://www.ebi.ac.uk/sbo/main/",
+    "owl_url": "http://purl.obolibrary.org/obo/sbo.owl",
+    "home_url": "https://obofoundry.org/ontology/sbo.html",
     "comment": "Systems Biology Ontology",
     "sab": "SBO"
   },
