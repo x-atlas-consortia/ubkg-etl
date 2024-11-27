@@ -19,6 +19,10 @@ formats that can be appended to the set of UMLS CSV files.
 ![generation_framework](https://user-images.githubusercontent.com/10928372/202733307-d9a7c76d-8a0a-401f-a0e2-011d8449ac41.jpg)
 
 # Basic workflow
+
+Note: to view the current operational workflow used to generate a UBKG context, see
+the file **GENERATION WORKFLOW.md**.
+
 The integration of an ontology into the UBKG requires two types of script file:
 
 ### 1. OWLNETS: triple store information--edges, nodes, and (optional) relations metadata
