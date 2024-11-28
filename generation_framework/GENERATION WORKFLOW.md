@@ -76,9 +76,13 @@ A number of SABs require their own scripts, including
 * UNIPROTKB
 * GENCODE
 * CEDAR_ENTITY
-* HMFIELDS
 
 Consult the **README.md** files in the appropriate directories.
+
+#### HMFIELD
+The HMFIELD SAB has a dependency on CEDAR_ENTITY and HUBMAP, which means that a refresh of HMFIELD requires the generation 
+of an intermediate UBKG instance. Refer to the **README.md** file in the _hmfields_ directory.
+
 
 ### RefSeq
 The RefSeq import affects only the **DEFs.csv** and **DEF_REL.csv** files, and uses a different script (**refseq.py**).
