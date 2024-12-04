@@ -368,5 +368,13 @@
   "OTG": {
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py OTG",
     "comment": "Open Target Genomics"
+  },
+  "STELLAR": {
+    "comment": "STELLAR-CL mappings, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py STELLAR"
+  },
+  "DCT": {
+    "comment": "DeepCellType-CL mappings, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py DCT"
   }
 }

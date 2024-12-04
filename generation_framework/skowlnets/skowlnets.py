@@ -66,9 +66,11 @@ def download_source_file(cfg: uconfig.ubkgConfigParser, sab: str, owl_dir: str, 
 
     url = cfg.get_value(section='URL',key=sab)
     filepath = os.path.join(owl_dir,'SimpleKnowledge.xlsx')
-    # Download GZIP file.
-    # uextract.download_file_from_google_drive(share_url=url, download_full_path=filepath)
-    uextract.download_file_from_github(share_url=url, download_full_path=filepath)
+    if 'google' in url.lower():
+        # Download Google sheet.
+        uextract.download_file_from_google_drive(share_url=url, download_full_path=filepath)
+    else:
+        uextract.download_file_from_github(share_url=url, download_full_path=filepath)
 
     return filepath
 
@@ -125,7 +127,6 @@ def write_edges_file(df: pd.DataFrame, owlnets_dir: str):
                     objects = row.iloc[col]
 
                     if not pd.isna(objects):
-
                         listobjects = objects.split(',')
                         for obj in listobjects:
                             if col == 4:
