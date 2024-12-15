@@ -84,6 +84,11 @@
     "home_url": "http://www.obofoundry.org/ontology/pato.html",
     "comment": "Phenotype And Trait Ontology "
   },
+  "PATO_BASE": {
+    "owl_url": "http://purl.obolibrary.org/obo/pato/pato-base.owl",
+    "home_url": "http://www.obofoundry.org/ontology/pato.html",
+    "comment": "Phenotype And Trait Ontology - includes axioms linking to other ontologies, but no imports of those ontologies"
+  },
   "PR": {
     "owl_url": "http://purl.obolibrary.org/obo/pr.owl",
     "home_url": "http://www.obofoundry.org/ontology/pr.html",
@@ -105,6 +110,12 @@
     "home_url": "https://uberon.github.io/downloads.html",
     "comment": "UBER-anatomy ONtology: An integrated cross-species ontology covering anatomical structures in animals. This one contains data without references"
   },
+  "UBERON_BASE": {
+    "owl_url": "http://purl.obolibrary.org/obo/uberon/uberon-base.owl",
+    "home_url": "https://uberon.github.io/downloads.html",
+    "comment": "Axioms defined within Uberon and to be used in imports for other ontologies"
+  },
+
   "UNIPROTKB": {
     "home_url": "https://www.uniprot.org/uniprot/?query=facets=reviewed%3Atrue&fil=organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22",
     "comment": "Data from UniProtKB exported to OWLNETS format. Supply -s argument to call to use existing UniProtKB data file.",

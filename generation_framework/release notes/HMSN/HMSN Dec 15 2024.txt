@@ -1,0 +1,45 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+15 December, 2024
+
+UPDATES
+
+General
+1. The UBKGSOURCES SAB was updated to reflect new versions and download dates of SABs. To view version information on
+   a particular SAB, execute the sources endpoint of the ubkg-api.
+2. Releases of UBKG contexts will henceforth include a set of release notes in this format.
+
+Base context
+
+1. UBERON, PATO, and CL are now ingested from the *_base.owl files (files without imports from other ontologies) to reduce duplicative interdependencies.
+2. The ingestion order of UBERON and PATO was changed so that PATO is ingested before UBERON.
+
+Context-specific
+
+1. The UMLS content (part of the base UBKG context) was updated to reflect the UMLS 2024AB release.
+2. All SAB sources of the base context were refreshed, including new downloads from OWL sources.
+3. Organ changes
+   a. Left Ovary (HUBMAP:C030070, SENNET:C030038) cross-reference changed from FMA:7214 to UBERON:0002119.
+   b. Right Ovary (HUBMAP:C030082, SENNET:C030041) cross-reference changed from FMA:7213 to UBERON:0002118.
+4. Changes to assay classification hierarchy and dataset type hierarchy to synchronize with Rules Engine.
+5. Updated SABs:
+   a. HRA
+   b. CEDAR
+6. New SABs:
+   a. STELLAR (STELLAR-CL mapping)
+   b. DCT (DeepCellType-CL mapping)
+7. Deprecated SABs:
+   a. PCL
+8. Cached data used for SABs:
+   a. CEDAR_ENTITY
+   b. HMFIELD
+   NOTE: HMFIELD uses field associations from YAML files that have been deprecated in favor of CEDAR.
+
+
+
