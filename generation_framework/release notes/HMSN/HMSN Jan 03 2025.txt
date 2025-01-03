@@ -6,7 +6,7 @@ UBKG CONTEXT
 HuBMAP/SenNet
 
 RELEASE DATE
-20 December, 2024
+03 January 2025
 
 UPDATES
 

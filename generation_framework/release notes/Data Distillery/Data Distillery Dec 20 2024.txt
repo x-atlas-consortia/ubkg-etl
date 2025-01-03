@@ -1,0 +1,28 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+UBKG CONTEXT
+Data Distillery
+
+RELEASE DATE
+20 December, 2024
+
+UPDATES
+
+UPDATES
+
+General
+1. The UBKGSOURCES SAB was updated to reflect new versions and download dates of SABs. To view version information on
+   a particular SAB, execute the sources endpoint of the ubkg-api.
+2. Releases of UBKG contexts will henceforth include a set of release notes in this format.
+
+Base context
+
+1. UBERON, PATO, and CL are now ingested from the *_base.owl files (files without imports from other ontologies) to reduce duplicative interdependencies.
+2. The ingestion order of UBERON and PATO was changed so that PATO is ingested before UBERON.
+
+Specific
+1. The ERCCRBP SAB uses the smaller version (May 2024) of the edge file, provided by ERCC.
+2. The GTEXCOEXP file uses the larger version of its edge and node files.
+3. Starting with this release, the Data Distillery context will include the SABs of the HuBMAP/SenNet context.
+
