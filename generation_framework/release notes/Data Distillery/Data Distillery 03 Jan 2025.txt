@@ -5,16 +5,16 @@ UBKG CONTEXT
 Data Distillery
 
 RELEASE DATE
-20 December, 2024
-
-UPDATES
+03 January 2025
 
 UPDATES
 
 General
-1. The UBKGSOURCES SAB was updated to reflect new versions and download dates of SABs. To view version information on
+1. The UMLS content (part of the base UBKG context) was updated to reflect the UMLS 2024AB release.
+2. All SAB sources of the base context were refreshed, including new downloads from OWL sources.
+3. The UBKGSOURCES SAB was updated to reflect new versions and download dates of SABs. To view version information on
    a particular SAB, execute the sources endpoint of the ubkg-api.
-2. Releases of UBKG contexts will henceforth include a set of release notes in this format.
+4. Releases of UBKG contexts will henceforth include a set of release notes in this format.
 
 Base context
 
