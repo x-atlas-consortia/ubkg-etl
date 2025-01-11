@@ -16,7 +16,8 @@ owlnets_dir=generation_framework/owlnets_output/UNIPROTKB
 #   Protein Names
 #   Gene Names
 #   Function
-BaseQuery= https://rest.uniprot.org/uniprotkb/stream?compressed=true&fields=accession%2Creviewed%2Cid%2Cprotein_name%2Cgene_names%2Corganism_name%2Clength%2Ccc_function&format=tsv&query=%28%2A%29%20AND%20%28model_organism%
+#   GO annotations by GOA aspect - p (Biological Process); c (Cellular Component); and f (Molecular Function)
+BaseQuery= https://rest.uniprot.org/uniprotkb/stream?compressed=true&fields=accession%2Creviewed%2Cid%2Cprotein_name%2Cgene_names%2Corganism_name%2Clength%2Ccc_function%2Cgo_p%2Cgo_c%2Cgo_f&format=tsv&query=%28%2A%29%20AND%20%28model_organism
 
 [Organisms]
 # The values are codes from UNIPROTKB that identify organisms.

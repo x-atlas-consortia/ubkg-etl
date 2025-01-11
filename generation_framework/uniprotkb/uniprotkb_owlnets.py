@@ -8,6 +8,8 @@
 # owlnets_output, etc. This means: 1. The UNIPROTKB CSV file will be extracted from GZ and downloaded to the OWL folder
 # path, even though it is not an OWL file. 2. The OWLNETS output will be stored in the OWLNETS folder path.
 
+# January 2025 - enhanced to include UniProtKB GO annotations.
+
 import sys
 import pandas as pd
 import numpy as np
@@ -17,7 +19,7 @@ import argparse
 import re
 from tqdm import tqdm
 
-# Import UBKG utilities which is in a directory that is at the same level as the script directory.
+# Import UBKG utilities that are in a directory that is at the same level as the script directory.
 # Go "up and over" for an absolute path.
 fpath = os.path.dirname(os.getcwd())
 fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
@@ -31,7 +33,7 @@ import ubkg_parsetools as uparse
 # -----------------------------
 
 
-def getUNIPROTKB(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str) -> pd.DataFrame:
+def getuniprotkb(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str) -> pd.DataFrame:
 
     # Executes queries in the UNIPROTKB API that downloads GZip files of UNIPROTKB data.
     # Extracts the contents of the GZips--which should be TSVs.
@@ -91,7 +93,7 @@ def getUNIPROTKB(cfg: uconfig.ubkgConfigParser, owl_dir: str, owlnets_dir: str) 
     return df
 
 
-def getAllHGNCID(cfg: uconfig.ubkgConfigParser, owl_dir: str) -> pd.DataFrame:
+def getallhgncid(cfg: uconfig.ubkgConfigParser, owl_dir: str) -> pd.DataFrame:
     # Downloads all HGNC IDs from genenames.org.
 
     # Returns a DataFrame of the HGNC information.
@@ -110,14 +112,14 @@ def getAllHGNCID(cfg: uconfig.ubkgConfigParser, owl_dir: str) -> pd.DataFrame:
     return uextract.read_csv_with_progress_bar(path=hgnc_path, sep='\t')
 
 
-def getHGNCID(HGNCacronym: str):
+def gethgncid(hgnc_acronym: str):
     # Queries the HGNC REST API to obtain the HGNC ID, given an acronym.
-    # This is slow: the getAllHGNCID function is the preferred method.
+    # This is slow: the getallhgncid function is the preferred method.
 
     hgnc = ''
-    urlHGNC = 'http://rest.genenames.org/search/symbol/' + HGNCacronym
+    urlhgnc = 'http://rest.genenames.org/search/symbol/' + hgnc_acronym
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-    response = requests.get(urlHGNC, headers=headers)
+    response = requests.get(urlhgnc, headers=headers)
     if response.status_code == 200:
         numfound = response.json().get('response').get('numFound')
         if numfound >= 0:
@@ -126,14 +128,70 @@ def getHGNCID(HGNCacronym: str):
                 hgnc = docs[0].get('hgnc_id')
     return hgnc
 
+def get_go_ids(go_column: str) -> list[str]:
+    """
+    Parse GO codes from a GO column string.
 
-def write_edges_file(df: pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, predicate: str):
+    The GO annotations in a GO column of the UniProtKB stream output are in a semicolon-delimited list
+    in a fixed format--e.g.,
+    amyloid-beta metabolic process [GO:0050435]; apoptotic process [GO:0006915]
+
+    :param go_column: column content
+
+    """
+    list_go = go_column.split(';')
+    list_return = []
+    for go in list_go:
+        if '[' in go:
+            goid = go.split('[')[1]
+            goid = goid.split(']')[0]
+            list_return.append(goid)
+
+    return list_return
+
+def write_go_annotation_edges(subject: str, go_column: str, go_aspect: str, out):
+    """
+    Writes assertions between a protein and GO.
+    The three GO columns in the UniProtKB stream download correspond to the three Gene Ontology Annotation (GOA)
+    ontologies.
+    Use as edge predicates the default relationships for each aspect.
+    (The GOA itself has a higher resolution for the Cellular Component aspect, but UniProtKB groups annotations only
+    at the level of aspect.)
+    Aspect code   Description         default relation    Relations Ontology
+    p             Biological Process  involved_in         http://purl.obolibrary.org/obo/RO_0002331
+    c             Cellular Component  part_of             http://purl.obolibrary.org/obo/BFO_0000050
+    f             Molecular Function  enables             http://purl.obolibrary.org/obo/RO_0002327
+
+    The GO annotations in each column are in a semicolon-delimited list in a fixed format--e.g.,
+    amyloid-beta metabolic process [GO:0050435]; apoptotic process [GO:0006915]
+
+    :param subject: UniProtKB ID for the assertion of the GO annotation
+    :param go_column: semicolon-delimited list of GO annotations
+    :param go_aspect: one-letter code for the GOA aspect
+    :param out: output file pointer
+    """
+
+    if go_aspect == 'p':
+        pred = 'http://purl.obolibrary.org/obo/RO_0002331'
+    elif go_aspect == 'c':
+        pred = 'http://purl.obolibrary.org/obo/BFO_0000050'
+    elif go_aspect == 'f':
+        pred = 'http://purl.obolibrary.org/obo/RO_0002327'
+    else:
+        raise ValueError(f"Invalid GO aspect parameter '{go_aspect}'.")
+
+    list_goid = get_go_ids(go_column=go_column)
+    for goid in list_goid:
+        out.write(subject + '\t' + pred + '\t' + goid + '\n')
+
+
+def write_edges_file(df: pd.DataFrame, dfhgnc: pd.DataFrame, owlnets_dir: str):
 
     # Writes an edges file in OWLNETS format.
     # Arguments:
     # df - DataFrame of UNIPROTKB data
     # owlnets_dir: output directory
-    # dfHGNC: a DataFrame of HGNC data
+    # dfhgnc: a DataFrame of HGNC data
 
     # The OWLNETS format represents ontology data in a TSV in format:
 
@@ -148,9 +206,13 @@ def write_edges_file(df: pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, p
     #  property in a standard OBO ontology, such as RO.) For custom
     #  ontologies such as HuBMAP, we use custom relationship strings.)
 
+    # Jan 2025 - Enhanced with edges for GO annotations.
+
     edgelist_path: str = os.path.join(owlnets_dir, 'OWLNETS_edgelist.txt')
 
     ulog.print_and_logger_info('Building: ' + os.path.abspath(edgelist_path))
+
+    pred = 'http://purl.obolibrary.org/obo/RO_0002204'  # gene product of
 
     with open(edgelist_path, 'w') as out:
         out.write('subject' + '\t' + 'predicate' + '\t' + 'object' + '\n')
@@ -161,15 +223,19 @@ def write_edges_file(df: pd.DataFrame, dfHGNC: pd.DataFrame, owlnets_dir: str, p
             # Ignore synonyms or obsolete gene names.
             hgnc_name = row['Gene Names'].split(' ')[0]
             # Map to the corresponding entry in the genenames.org data.
-            dfobject = dfHGNC[dfHGNC['Approved symbol'].values == hgnc_name]
+            dfobject = dfhgnc[dfhgnc['Approved symbol'].values == hgnc_name]
             # JULY 2023 - CodeID format changed to SAB:CODE.
             if dfobject.shape[0] > 0:
                 #object = 'HGNC ' + dfobject['HGNC ID'].iloc[0]
-                object = dfobject['HGNC ID'].iloc[0]
-                out.write(subject + '\t' + predicate + '\t' + object + '\n')
+                obj = dfobject['HGNC ID'].iloc[0]
+                out.write(subject + '\t' + pred + '\t' + obj + '\n')
+
+            # Jan 2025 - GO annotations
+            write_go_annotation_edges(subject=subject, go_column=row['Gene Ontology (biological process)'],go_aspect='p',out=out)
+            write_go_annotation_edges(subject=subject, go_column=row['Gene Ontology (cellular component)'], go_aspect='c', out=out)
+            write_go_annotation_edges(subject=subject, go_column=row['Gene Ontology (molecular function)'], go_aspect='f', out=out)
 
     return
-
 
 def write_nodes_file(df: pd.DataFrame,  owlnets_dir: str):
 
@@ -224,8 +290,7 @@ def write_nodes_file(df: pd.DataFrame,  owlnets_dir: str):
 
             # Synonyms:
             # Replace the approved name with the UniProtKB Entry Name, so it will the first synonym.
-            synonyms = []
-            synonyms.append(row['Entry Name'])
+            synonyms = [row['Entry Name']]
             # Parse the protein names string by level of nested parentheses.
             synonyms_parsed = uparse.parse_string_nested_parentheses(protein_names)
             if synonyms_parsed != []:
@@ -247,25 +312,32 @@ def write_nodes_file(df: pd.DataFrame,  owlnets_dir: str):
     return
 
 
-def write_relations_file(owlnets_dir: str, predicate:str):
+def write_relations_file(owlnets_dir: str):
 
     # Writes a relations file in OWLNETS format.
     # Arguments:
     # df - DataFrame of source information
     # owlnets_dir: output directory
-    # predicate: the single relationship predicate
 
     # RELATION METADATA
     # Create a row for each type of relationship.
 
+    # Jan 2025 - added relationships for GO annotations.
+
     relation_path: str = os.path.join(owlnets_dir, 'OWLNETS_relations.txt')
     ulog.print_and_logger_info('Building: ' + os.path.abspath(relation_path))
+
+    predlist = ['http://purl.obolibrary.org/obo/RO_0002204', # gene_product_of
+                'http://purl.obolibrary.org/obo/RO_0002331', # involved_in
+                'http://purl.obolibrary.org/obo/BFO_0000050', # part_of
+                'http://purl.obolibrary.org/obo/RO_0002327'] # enables
 
     with open(relation_path, 'w') as out:
         # header
         out.write(
             'relation_id' + '\t' + 'relation_namespace' + '\t' + 'relation_label' + '\t' + 'relation_definition' + '\n')
-        out.write(predicate + '\t' + 'UNIPROTKB' + '\t' + predicate + '\t' + '' + '\n')
+        for pred in predlist:
+            out.write(pred + '\t' + 'UNIPROTKB' + '\t' + pred + '\t' + '' + '\n')
     return
 
 
@@ -309,20 +381,15 @@ if args.skipbuild:
 
     # Read previously downloaded HGNC information.
     hgncpath = os.path.join(owl_dir, 'HGNC.TSV')
-    dfHGNC = uextract.read_csv_with_progress_bar(hgncpath, sep='\t')
-    dfHGNC = dfHGNC.replace(np.nan, '', regex=True)
+    dfhgnc = uextract.read_csv_with_progress_bar(hgncpath, sep='\t')
+    dfhgnc = dfhgnc.replace(np.nan, '', regex=True)
 else:
     # Download file from UNIPROTKB.
-    dfUNIPROT = getUNIPROTKB(cfg=config, owl_dir=owl_dir, owlnets_dir=owlnets_dir)
+    dfUNIPROT = getuniprotkb(cfg=config, owl_dir=owl_dir, owlnets_dir=owlnets_dir)
     # Get latest list of HGNC IDs from genenames.org
-    dfHGNC = getAllHGNCID(cfg=config, owl_dir=owl_dir)
+    dfhgnc = getallhgncid(cfg=config, owl_dir=owl_dir)
 
 # Build OWLNETS text files.
-# Generate the OWLNETS files.
-# Only one predicate from the Relations Ontology is used.
-# The OWLNETS-UMLS-GRAPH script will find the inverse.
-predicate = 'http://purl.obolibrary.org/obo/RO_0002204'  # gene product of
-
-write_edges_file(df=dfUNIPROT, dfHGNC=dfHGNC, owlnets_dir=owlnets_dir, predicate=predicate)
+write_edges_file(df=dfUNIPROT, dfhgnc=dfhgnc, owlnets_dir=owlnets_dir)
 write_nodes_file(df=dfUNIPROT, owlnets_dir=owlnets_dir)
-write_relations_file(owlnets_dir=owlnets_dir, predicate=predicate)
+write_relations_file(owlnets_dir=owlnets_dir)

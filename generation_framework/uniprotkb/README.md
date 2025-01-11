@@ -23,12 +23,13 @@ data obtained from [UniProt.org](https://www.uniprot.org/).
 
 # Background
 
-It is possible to obtain data from [UniProt.org](https://www.uniprot.org/uniprotkb?query=*) by executing a call to UniProt's REST API. 
+It is possible to obtain data from [UniProt.org](https://www.uniprot.org/uniprotkb?query=*) by executing a call to the **stream** endpoint of UniProt's REST API. 
 For the purposes of the UBKG, the relevant information from UniProtKB is:
 1. UniProtDB entry (e.g., AOA0C5B5G6)
 2. UniProtKB name for the protein, or Entry Name (e.g., MOTSC_HUMAN)
 3. Names of the protein
 4. Gene Names - HGNC IDs of the genes that encode the proteins
+5. Gene Ontology (GO) annotations
 
 It is possible to obtain information for multiple species.
 1. For HuBMAP, the organism of interest is Homo sapiens. 
