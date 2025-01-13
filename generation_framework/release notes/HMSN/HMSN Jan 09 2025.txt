@@ -1,0 +1,24 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+09 January 2025
+
+UPDATES
+
+General
+No updates
+
+Base context
+
+No updates
+
+Context-specific
+
+1. The HuBMAP and SenNet SimpleKnowledge application ontologies were updated to reflect a change in the description
+for the "derived bulk_atacseq" classification (C200030).
+
