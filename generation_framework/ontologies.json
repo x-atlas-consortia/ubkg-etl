@@ -361,7 +361,7 @@
     "comment": "Provisional Cell Ontology"
   },
   "REACTOME": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py REACTOME",
+    "execute": "./reactome/reactome.py",
     "comment": "Reactome"
   },
   "DGN": {
