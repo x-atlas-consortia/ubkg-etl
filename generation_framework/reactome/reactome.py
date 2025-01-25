@@ -21,6 +21,8 @@ sys.path.append(fpath)
 # Logging module
 import ubkg_logging as ulog
 import ubkg_config as uconfig
+# Extraction module
+import ubkg_extract as uextract
 # -----------------------------
 
 class RawTextArgumentDefaultsHelpFormatter(
@@ -38,9 +40,16 @@ def getargs() -> argparse.Namespace:
     formatter_class=RawTextArgumentDefaultsHelpFormatter)
     # positional arguments
     parser.add_argument("-s", "--skipbuild", action="store_true", help="skip build of OWLNETS files")
-    args = parser.parse_args()
+    argsret = parser.parse_args()
 
-    return args
+    return argsret
+
+def geteventtype(eventtype: str) -> str:
+    """
+    Obtains a code for a Reactome event type from the custom REACTOME_VS valueset.
+    :param eventtype:
+    """
+    return ''
 
 def gethierarchyedges(dictevent:dict, taxon: str)->list:
     """
@@ -129,10 +138,14 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     listpropertyedges = []
 
     idebug = 0
+    print('DEBUG: only the first few events')
+
     for event in tqdm(listhierarchyedges):
+
         idebug = idebug + 1
         if idebug == 20:
             break
+
         # Each list element is a dictionary with schema
         # {
         #   'subject': <Reactome stable identifier>,
@@ -183,8 +196,8 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
         # is recursive--i.e., it returns for an event the physical entities for all events that have a causal
         # relationship with the event. To prevent duplication from recursion, only link physical entities to
         # reactions.
-        type = queryjson.get('schemaClass')
-        if type in ['Reaction','BlackBoxEvent']:
+        eventtype = queryjson.get('schemaClass')
+        if eventtype in ['Reaction','BlackBoxEvent']:
             # Merge the participant edge list with the edge list instead of appending it.
             listpropertyedges = listpropertyedges + getparticipantedges(base_url=base_url, event_id=subj)
 
@@ -224,7 +237,7 @@ def getallspeciesedges(cfg: uconfig.ubkgConfigParser) -> pd.DataFrame:
     """
     Build edges for a set of specified species.
 
-    :param cfg: application configuration file, which includes a list of species
+    :param cfg: application configuration object, which includes a list of species
     :return: a dataframe representing edge assertions
     """
 
@@ -239,8 +252,56 @@ def getallspeciesedges(cfg: uconfig.ubkgConfigParser) -> pd.DataFrame:
         listallspeciesedges = listallspeciesedges + getspeciesedges(base_url=base_url, species_id=species_id)
 
     # Convert list of assertions to a DataFrame.
-    dfedges = pd.DataFrame(listallspeciesedges)
-    return dfedges
+    dfret = pd.DataFrame(listallspeciesedges)
+    return dfret
+
+def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.DataFrame:
+    """
+    Builds a set of unique nodes.
+
+    :param cfg: application configuration object
+    :param df: DataFrame of assertions
+    :return: DataFrame of node information
+    """
+
+    # Get unique list of Reactome stable IDs for nodes.
+    # For each node in the list,
+    #    - Call Reactome Content Services API query/advanced endpoint to obtain a set of information on the node.
+    #    - Obtain information for node file:
+    #        - Preferred term
+    #        - Description
+    #        - Synonyms
+    #    - Append to list.
+    # Build DataFrame.
+
+    # node_id	node_namespace	node_label	node_definition	node_synonyms	node_dbxrefs
+    ulog.print_and_logger_info('Building nodes...')
+    listreactomeids = df['subject'].drop_duplicates().to_list()
+    base_url = cfg.get_value(section='URL', key='base_url')
+    listnodes = []
+
+    idebug = 0
+    print('DEBUG: only the first few nodes')
+
+    for node_id in tqdm(listreactomeids):
+        idebug = idebug + 1
+        if idebug == 21:
+            break
+
+        url = base_url + f'query/enhanced/{node_id}'
+        queryjson = getresponsejson(url)
+        node_label = queryjson.get('displayName','')
+        summation = queryjson.get('summation')
+        if summation is not None:
+            node_definition = summation[0].get('text','')
+
+        listnodes.append({'node_id':node_id,
+                          'node_namespace': 'REACTOME',
+                          'node_label': node_label,
+                          'node_definition': node_definition})
+
+    dfret = pd.DataFrame(listnodes)
+    return dfret
 
 # -----------------------------
 # MAIN
@@ -259,22 +320,30 @@ owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(sectio
 
 # Get Reactome source files.
 if args.skipbuild:
-    # Read previously downloaded file.
-    # filepath = os.path.join(os.path.join(owlnets_dir, 'UNIPROTKB_all.tsv'))
-    # dfUNIPROT = uextract.read_csv_with_progress_bar(filepath, sep='\t')
-    # dfUNIPROT = dfUNIPROT.replace(np.nan, '', regex=True)
-    print('skipping')
+    # Read previously built files.
+    fedge = os.path.join(os.path.join(owlnets_dir, 'edges.tsv'))
+    dfedges = uextract.read_csv_with_progress_bar(fedge, sep='\t')
+    fnode = os.path.join(os.path.join(owlnets_dir, 'edges.tsv'))
+    dfnodes = uextract.read_csv_with_progress_bar(fnode, sep='\t')
 else:
     # Build the edges for the specified set of species.
     # Because the Reactome model employs a hiearchical pathway model based on reactions, there will be significant
-    # duplication in edges. For example, a reaction can be part of multiple pathways, so edges associated with a
+    # duplication in edges. A reaction can be part of multiple pathways, so edges associated with a
     # particular reaction will be built for the reaction for every pathway that has the reaction as an event. The
     # UBKG generation framework script will drop duplicate edges before appending to the ontology CSVs.
-    dfeventedges = getallspeciesedges(cfg=config)
-    ftest = os.path.join(owlnets_dir, 'edges.csv')
-    dfeventedges.to_csv(ftest)
+    dfedges = getallspeciesedges(cfg=config)
+
+    # Build the nodes file, using the edge DataFrame.
+    dfnodes = getnodesfromedges(cfg=config, df=dfedges)
 
 
+# Write edges to file.
+fout = os.path.join(owlnets_dir, 'edges.tsv')
+dfedges.to_csv(fout,sep='\t')
+
+# Write nodes to file.
+fout = os.path.join(owlnets_dir, 'nodes.tsv')
+dfnodes.to_csv(fout, sep='\t')
 
 print('DEBUG: exit')
 exit(1)
