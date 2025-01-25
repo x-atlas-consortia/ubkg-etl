@@ -12,16 +12,12 @@ import argparse
 from tqdm import tqdm
 import requests
 import pandas as pd
-import numpy as np
-import json
 
 # Import UBKG utilities which is in a directory that is at the same level as the script directory.
 # Go "up and over" for an absolute path.
 fpath = os.path.dirname(os.getcwd())
 fpath = os.path.join(fpath, 'generation_framework/ubkg_utilities')
 sys.path.append(fpath)
-# Extraction module
-import ubkg_extract as uextract
 # Logging module
 import ubkg_logging as ulog
 import ubkg_config as uconfig
@@ -67,7 +63,8 @@ def gethierarchyedges(dictevent:dict, taxon: str)->list:
     if listchildren is not None:
         for child in listchildren:
             # Emulate the "hasEvent" relationship of the Reactome (graph) model.
-            dictedge = {'subject': dictevent.get('stId'), 'predicate': 'has_event', 'object': child.get('stId')}
+            pred = 'http://purl.obolibrary.org/obo/RO_0002410' # causally_related_to
+            dictedge = {'subject': dictevent.get('stId'), 'predicate': pred, 'object': child.get('stId')}
             listret.append(dictedge)
             # Obtain hierarchy list for child node.
             listchildhierarchy = gethierarchyedges(dictevent=child, taxon=taxon)
@@ -75,6 +72,12 @@ def gethierarchyedges(dictevent:dict, taxon: str)->list:
             listret = listret + listchildhierarchy
 
     return listret
+
+def getresponsejson(url: str) -> str:
+    response = requests.get(url)
+    if response.status_code != 200:
+        response.raise_for_status()
+    return response.json()
 
 def getspeciesedges(base_url: str, species_id:str) -> list:
 
@@ -86,7 +89,7 @@ def getspeciesedges(base_url: str, species_id:str) -> list:
        TopLevelPathway
        -- Pathway
           -- Reaction or Blackbox Event
-    2. Property
+    2. Property - i.e., associations such as species; GO annotations; and participants
 
     Hierarchical edges:
     The eventsHierarchy endpoint of the Reactome Content Services API returns for a species a list of "tree structures", or
@@ -94,57 +97,134 @@ def getspeciesedges(base_url: str, species_id:str) -> list:
     object, itself a list of PathwayBrowernode objects. Translating an event hierarchy requires recursion through the generations of PathwayBrowserNode objects.
 
     :param base_url: base URL for Reactome Content Services API
-    :param speciesid: NCBI Taxon ID for a species.
+    :param species_id: NCBI Taxon ID for a species.
     :return: list of edge assertions for the species.
     """
     # Get hierarchical data for the species from the Reactome Content Service API.
     url = base_url + f'eventsHierarchy/{species_id}?pathwaysOnly=false&resource=TOTAL&interactors=false&importableOnly=false'
-    response = requests.get(url)
-    if response.status_code != 200:
-        response.raise_for_status()
-
-    listevent = response.json()
+    listevent = getresponsejson(url)
     listedges = []
 
+    ulog.print_and_logger_info('Building hierarchy edges...')
     # Traverse the event hierarchy, starting at the level of TopLevelPathway.
     for dictevent in listevent:
         # Build hierarchical edges for each top level event. Merge lists instead of appending them.
         listedges = listedges + gethierarchyedges(dictevent=dictevent,taxon=species_id)
 
     # Add property edges.
-    listedges = listedges + getpropertyedges(listhierarchyedges=listedges, species_id=species_id)
+    ulog.print_and_logger_info('Building property edges...')
+    listedges = listedges + getpropertyedges(listhierarchyedges=listedges, base_url=base_url, species_id=species_id)
     return listedges
 
-def getpropertyedges(listhierarchyedges:list, species_id: str) -> list:
+def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) -> list:
     """
-    Builds property assertions for Reactome events
-    :param listhierachyedges: a list of Reactome events from the event hierarchy for a species
+    Builds property assertions for Reactome events, including:
+    1. taxon
+
+    :param listhierarchyedges: a list of Reactome events from the event hierarchy for a species
     :param species_id: NCBI Taxon code for the species
+    :param base_url: base URL for Reactome Content Services API
     :return:
     """
     listpropertyedges = []
 
-    for event in listhierarchyedges:
+    idebug = 0
+    for event in tqdm(listhierarchyedges):
+        idebug = idebug + 1
+        if idebug == 20:
+            break
         # Each list element is a dictionary with schema
         # {
         #   'subject': <Reactome stable identifier>,
-        #   'predicate': <relationship>,
-        #   'object': <Reactome stable identifier>
-        # ?
+        #   'predicate': <relationship>, preferably one defined in Relations Ontology
+        #   'object':
+        #       <Reactome stable identifier> for hierarchical edges
+        #       <code for an object in a vocabulary--e.g., GO; UniProtKB; CHEBI; Reactome>
+        # }
 
-        # Assert species for event.
+        subj = event.get('subject')
+
+        # SPECIES
         pred = 'http://purl.obolibrary.org/obo/RO_0002162'  # in_taxon
-        dictedge = {'subject': event.get('subject'), 'predicate': pred, 'object': f'NCIT:{species_id}'}
-        listpropertyedges.append(dictedge)
+        listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': f'NCIT:{species_id}'})
+
+        # Call the https://reactome.org/ContentService/data/query/enhanced endpoint.
+        url = base_url + f'query/enhanced/{event.get("subject")}'
+        queryjson = getresponsejson(url)
+
+        # GO biological process
+        # Per the Gene Ontology Annotation (GOA) documentation, the default relationship for the Biological Process
+        # aspect of GO is "involved_in".
+        pred = 'http://purl.obolibrary.org/obo/RO_0002331' # involved_in
+        go_biological_process = queryjson.get('goBiologicalProcess')
+        if go_biological_process is not None:
+            obj = 'GO:' + go_biological_process.get('accession')
+            listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': obj})
+
+        # compartment (GO cellular component)
+        # Per GOA, the default relationship for the Cellular Component aspect is "part_of".
+        pred = 'http://purl.obolibrary.org/obo/BFO_0000050' #part_of
+        compartment = queryjson.get('compartment')
+        if compartment is not None:
+            for c in compartment:
+                obj = 'GO:' + c.get('accession')
+                listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': obj})
+
+        # preceding events
+        pred = 'http://purl.obolibrary.org/obo/BFO_0000062' # preceded_by
+        preceding_event = queryjson.get('precedingEvent')
+        if preceding_event is not None:
+            for p in preceding_event:
+                obj = p.get('stId')
+                listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': obj})
+
+        # List of Physical Entity participant edges.
+        # In the Reactome event hierarchy, reactions have physical entities; however, the Content Services API
+        # is recursive--i.e., it returns for an event the physical entities for all events that have a causal
+        # relationship with the event. To prevent duplication from recursion, only link physical entities to
+        # reactions.
+        type = queryjson.get('schemaClass')
+        if type in ['Reaction','BlackBoxEvent']:
+            # Merge the participant edge list with the edge list instead of appending it.
+            listpropertyedges = listpropertyedges + getparticipantedges(base_url=base_url, event_id=subj)
+
 
     return listpropertyedges
 
-def getallspeciesedges(cfg: uconfig.ubkgConfigParser, owlnets_dir: str) -> pd.DataFrame:
+def getparticipantedges(base_url: str, event_id: str) -> list:
+    """
+    Builds a list of edges that describe the "participants" in a Reactome event--proteins or chemicals.
+
+    Skip the intermediate levels of Reactome complexes (or "Physical entities") and go down
+    to the gene product (UniProtKB) or molecule (CHEBI) ("Reference entities").
+
+    :param base_url: base URL for Reactome Content Services API
+    :param event_id: Reactome stable ID for a event.
+    :return: list of assertion dictionaries, as described in getpropertyedges
+    """
+    # Call the referenceEntities endpoint.
+    url = base_url + f'participants/{event_id}/referenceEntities'
+    participantjson = getresponsejson(url)
+
+    listedges = []
+    if participantjson is not None:
+        for p in participantjson:
+            pred = 'http://purl.obolibrary.org/obo/RO_0000057' # has_participant
+            classname = p.get('ReferenceGeneProduct')
+            if classname == 'ReferenceGeneProduct':
+                # The SAB for UniProt in UBKG is UNIPROTKB.
+                sab = 'UNIPROTKB'
+            else:
+                sab = p.get('databaseName').upper()
+            obj = f'{sab}:{p.get("identifier")}'
+            listedges.append({'subject': event_id, 'predicate': pred, 'object': obj})
+    return listedges
+
+def getallspeciesedges(cfg: uconfig.ubkgConfigParser) -> pd.DataFrame:
     """
     Build edges for a set of specified species.
 
     :param cfg: application configuration file, which includes a list of species
-    :param owlnets_dir: directory in which to write OWLNETS edge and node files
     :return: a dataframe representing edge assertions
     """
 
@@ -180,15 +260,21 @@ owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(sectio
 # Get Reactome source files.
 if args.skipbuild:
     # Read previously downloaded file.
-    #filepath = os.path.join(os.path.join(owlnets_dir, 'UNIPROTKB_all.tsv'))
-    #dfUNIPROT = uextract.read_csv_with_progress_bar(filepath, sep='\t')
-    #dfUNIPROT = dfUNIPROT.replace(np.nan, '', regex=True)
+    # filepath = os.path.join(os.path.join(owlnets_dir, 'UNIPROTKB_all.tsv'))
+    # dfUNIPROT = uextract.read_csv_with_progress_bar(filepath, sep='\t')
+    # dfUNIPROT = dfUNIPROT.replace(np.nan, '', regex=True)
     print('skipping')
 else:
-    #Build the edges for the specified set of species
-    dfeventedges = getallspeciesedges(cfg=config, owlnets_dir=owlnets_dir)
-    ftest = os.path.join(owlnets_dir, 'hierarchy_edges.csv')
+    # Build the edges for the specified set of species.
+    # Because the Reactome model employs a hiearchical pathway model based on reactions, there will be significant
+    # duplication in edges. For example, a reaction can be part of multiple pathways, so edges associated with a
+    # particular reaction will be built for the reaction for every pathway that has the reaction as an event. The
+    # UBKG generation framework script will drop duplicate edges before appending to the ontology CSVs.
+    dfeventedges = getallspeciesedges(cfg=config)
+    ftest = os.path.join(owlnets_dir, 'edges.csv')
     dfeventedges.to_csv(ftest)
+
+
 
 print('DEBUG: exit')
 exit(1)
