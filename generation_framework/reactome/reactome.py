@@ -51,20 +51,34 @@ def geteventtype(eventtype: str) -> str:
     """
     return ''
 
-def gethierarchyedges(dictevent:dict, taxon: str)->list:
+def getcodefromvalueset(val: str, df_vs:pd.DataFrame) -> str:
+    """
+    Obtains a code from the REACTOME_VS valueset.
+    :param val: Value corresponding to a potential node_label of the code in the REACTOME_VS valueset.
+    :param df_vis: REACTOME_VS valueset
+    :return:
+    """
+
+    if df_vs.loc[df_vs['node_label'] == val, 'node_id'].shape[0] > 0:
+        return str(df_vs.loc[df_vs['node_label'] == val, 'node_id'].iat[0])
+
+
+def gethierarchyedges(dictevent:dict, taxon: str, df_vs: pd.DataFrame)->list:
     """
     Builds a list of hierarchical assertions for a PathwayBrowserNode object ("node"), recursing through the node's
     nested child nodes.
 
     :param dictevent: dictionary representing PathwayBrowserNode
     :param taxon: NCBI taxon id for species
+    :param df_vs: valueset from REACTOME_VS ingestion
     :return: list of hierarchical assertions.
     """
     listret = []
 
     # Assert class ("isa" edge) for the node in the hierarchy.
-    # TO DO: valueset of parent codes for event types--e.g., REACTOME:xxxxx for 'TopLevelPathway'
-    dictedge = {'subject': dictevent.get('stId'), 'predicate': 'isa', 'object': dictevent.get('type')}
+    dictedge = {'subject': dictevent.get('stId'),
+                'predicate': 'isa',
+                'object': getcodefromvalueset(val=dictevent.get('type'),df_vs=df_vs)}
 
     listret.append(dictedge)
     # Build assertions for child nodes.
@@ -76,7 +90,7 @@ def gethierarchyedges(dictevent:dict, taxon: str)->list:
             dictedge = {'subject': dictevent.get('stId'), 'predicate': pred, 'object': child.get('stId')}
             listret.append(dictedge)
             # Obtain hierarchy list for child node.
-            listchildhierarchy = gethierarchyedges(dictevent=child, taxon=taxon)
+            listchildhierarchy = gethierarchyedges(dictevent=child, taxon=taxon, df_vs=df_vs)
             # Merge the child list to the parent list, instead of appending it.
             listret = listret + listchildhierarchy
 
@@ -88,7 +102,7 @@ def getresponsejson(url: str) -> str:
         response.raise_for_status()
     return response.json()
 
-def getspeciesedges(base_url: str, species_id:str) -> list:
+def getspeciesedges(base_url: str, species_id:str, df_vs:pd.DataFrame) -> list:
 
     """
     Builds a set of edge assertions for a species.
@@ -107,6 +121,7 @@ def getspeciesedges(base_url: str, species_id:str) -> list:
 
     :param base_url: base URL for Reactome Content Services API
     :param species_id: NCBI Taxon ID for a species.
+    :param df_vs: valueset from REACTOME_VS ingestion.
     :return: list of edge assertions for the species.
     """
     # Get hierarchical data for the species from the Reactome Content Service API.
@@ -118,7 +133,7 @@ def getspeciesedges(base_url: str, species_id:str) -> list:
     # Traverse the event hierarchy, starting at the level of TopLevelPathway.
     for dictevent in listevent:
         # Build hierarchical edges for each top level event. Merge lists instead of appending them.
-        listedges = listedges + gethierarchyedges(dictevent=dictevent,taxon=species_id)
+        listedges = listedges + gethierarchyedges(dictevent=dictevent,taxon=species_id, df_vs=df_vs)
 
     # Add property edges.
     ulog.print_and_logger_info('Building property edges...')
@@ -137,14 +152,14 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     """
     listpropertyedges = []
 
-    idebug = 0
-    print('DEBUG: only the first few events')
+    #idebug = 0
+    #print('DEBUG: only the first few events')
 
     for event in tqdm(listhierarchyedges):
 
-        idebug = idebug + 1
-        if idebug == 20:
-            break
+        #idebug = idebug + 1
+        #if idebug == 20:
+            #break
 
         # Each list element is a dictionary with schema
         # {
@@ -233,11 +248,13 @@ def getparticipantedges(base_url: str, event_id: str) -> list:
             listedges.append({'subject': event_id, 'predicate': pred, 'object': obj})
     return listedges
 
-def getallspeciesedges(cfg: uconfig.ubkgConfigParser) -> pd.DataFrame:
+def getallspeciesedges(cfg: uconfig.ubkgConfigParser, df_vs: pd.DataFrame) -> pd.DataFrame:
     """
     Build edges for a set of specified species.
 
     :param cfg: application configuration object, which includes a list of species
+    :param df_vs: DataFrame of the REACTOME_VS valueset.
+
     :return: a dataframe representing edge assertions
     """
 
@@ -249,7 +266,7 @@ def getallspeciesedges(cfg: uconfig.ubkgConfigParser) -> pd.DataFrame:
         species_id = cfg.get_value(section='Species', key=species)
         ulog.print_and_logger_info(f'Building edges for species={species_id} ({species})...')
         # Add the list of assertions for the species. Merge lists instead of append.
-        listallspeciesedges = listallspeciesedges + getspeciesedges(base_url=base_url, species_id=species_id)
+        listallspeciesedges = listallspeciesedges + getspeciesedges(base_url=base_url, species_id=species_id, df_vs=df_vs)
 
     # Convert list of assertions to a DataFrame.
     dfret = pd.DataFrame(listallspeciesedges)
@@ -280,13 +297,13 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
     base_url = cfg.get_value(section='URL', key='base_url')
     listnodes = []
 
-    idebug = 0
-    print('DEBUG: only the first few nodes')
+    #idebug = 0
+    #print('DEBUG: only the first few nodes')
 
     for node_id in tqdm(listreactomeids):
-        idebug = idebug + 1
-        if idebug == 21:
-            break
+        #idebug = idebug + 1
+        #if idebug == 21:
+            #break
 
         url = base_url + f'query/enhanced/{node_id}'
         queryjson = getresponsejson(url)
@@ -303,6 +320,23 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
     dfret = pd.DataFrame(listnodes)
     return dfret
 
+def getvs(path: str) -> pd.DataFrame:
+
+    # Responses from the Reactome Content Services API have values that have been encoded as nodes in the REACTOME_VS
+    # set of assertions.
+    # Load the nodes file related to the prior ingestion.
+
+    nodefile = os.path.join(path, 'OWLNETS_node_metadata.txt')
+
+    try:
+        return uextract.read_csv_with_progress_bar(nodefile, sep='\t')
+    except FileNotFoundError:
+        ulog.print_and_logger_info('REACTOME depends on the prior ingestion of information '
+                                   'from the REACTOME_VS SAB. Run .build_csv.sh for REACTOME_VS prior '
+                                   'to running it for REACTOME.')
+        exit(1)
+
+
 # -----------------------------
 # MAIN
 
@@ -317,6 +351,7 @@ config = uconfig.ubkgConfigParser(cfgfile)
 # The config file should contain absolute paths to the directories.
 owl_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owl_dir'))
 owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owlnets_dir'))
+vs_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='vs_dir'))
 
 # Get Reactome source files.
 if args.skipbuild:
@@ -326,12 +361,16 @@ if args.skipbuild:
     fnode = os.path.join(os.path.join(owlnets_dir, 'edges.tsv'))
     dfnodes = uextract.read_csv_with_progress_bar(fnode, sep='\t')
 else:
+
+    # Obtain the REACTOME_VS valueset.
+    df_vs = getvs(vs_dir)
+
     # Build the edges for the specified set of species.
     # Because the Reactome model employs a hiearchical pathway model based on reactions, there will be significant
     # duplication in edges. A reaction can be part of multiple pathways, so edges associated with a
     # particular reaction will be built for the reaction for every pathway that has the reaction as an event. The
     # UBKG generation framework script will drop duplicate edges before appending to the ontology CSVs.
-    dfedges = getallspeciesedges(cfg=config)
+    dfedges = getallspeciesedges(cfg=config, df_vs=df_vs)
 
     # Build the nodes file, using the edge DataFrame.
     dfnodes = getnodesfromedges(cfg=config, df=dfedges)
@@ -344,6 +383,3 @@ dfedges.to_csv(fout,sep='\t')
 # Write nodes to file.
 fout = os.path.join(owlnets_dir, 'nodes.tsv')
 dfnodes.to_csv(fout, sep='\t')
-
-print('DEBUG: exit')
-exit(1)
