@@ -131,7 +131,7 @@ def getspeciesedges(base_url: str, species_id:str, df_vs:pd.DataFrame) -> list:
 
     ulog.print_and_logger_info('Building hierarchy edges...')
     # Traverse the event hierarchy, starting at the level of TopLevelPathway.
-    for dictevent in listevent:
+    for dictevent in tqdm(listevent):
         # Build hierarchical edges for each top level event. Merge lists instead of appending them.
         listedges = listedges + gethierarchyedges(dictevent=dictevent,taxon=species_id, df_vs=df_vs)
 
@@ -144,6 +144,10 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     """
     Builds property assertions for Reactome events, including:
     1. taxon
+    2. GO cellular component (also described as "compartment" in the Reactome data model
+    3. GO biological process
+    4. preceding events
+    5. physical entities (proteins or chemicals)
 
     :param listhierarchyedges: a list of Reactome events from the event hierarchy for a species
     :param species_id: NCBI Taxon code for the species
@@ -152,14 +156,19 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     """
     listpropertyedges = []
 
-    #idebug = 0
-    #print('DEBUG: only the first few events')
+    # Obtain a unique list of Reactome identifiers.
+    dfedges=pd.DataFrame(listhierarchyedges)
+    listuniqueids = dfedges['subject'].drop_duplicates().to_list()
 
-    for event in tqdm(listhierarchyedges):
+    # idebug = 0
+    # print('DEBUG: only the first few events')
 
-        #idebug = idebug + 1
-        #if idebug == 20:
-            #break
+    ulog.print_and_logger_info('Edges for species, GO, preceding events...')
+    for id in tqdm(listuniqueids):
+
+        # idebug = idebug + 1
+        # if idebug == 21:
+            # break
 
         # Each list element is a dictionary with schema
         # {
@@ -170,14 +179,12 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
         #       <code for an object in a vocabulary--e.g., GO; UniProtKB; CHEBI; Reactome>
         # }
 
-        subj = event.get('subject')
-
         # SPECIES
         pred = 'http://purl.obolibrary.org/obo/RO_0002162'  # in_taxon
-        listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': f'NCIT:{species_id}'})
+        listpropertyedges.append({'subject': id, 'predicate': pred, 'object': f'NCIT:{species_id}'})
 
         # Call the https://reactome.org/ContentService/data/query/enhanced endpoint.
-        url = base_url + f'query/enhanced/{event.get("subject")}'
+        url = base_url + f'query/enhanced/{id}'
         queryjson = getresponsejson(url)
 
         # GO biological process
@@ -187,7 +194,7 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
         go_biological_process = queryjson.get('goBiologicalProcess')
         if go_biological_process is not None:
             obj = 'GO:' + go_biological_process.get('accession')
-            listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': obj})
+            listpropertyedges.append({'subject': id, 'predicate': pred, 'object': obj})
 
         # compartment (GO cellular component)
         # Per GOA, the default relationship for the Cellular Component aspect is "part_of".
@@ -196,7 +203,7 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
         if compartment is not None:
             for c in compartment:
                 obj = 'GO:' + c.get('accession')
-                listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': obj})
+                listpropertyedges.append({'subject': id, 'predicate': pred, 'object': obj})
 
         # preceding events
         pred = 'http://purl.obolibrary.org/obo/BFO_0000062' # preceded_by
@@ -204,17 +211,25 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
         if preceding_event is not None:
             for p in preceding_event:
                 obj = p.get('stId')
-                listpropertyedges.append({'subject': subj, 'predicate': pred, 'object': obj})
+                listpropertyedges.append({'subject': id, 'predicate': pred, 'object': obj})
 
-        # List of Physical Entity participant edges.
-        # In the Reactome event hierarchy, reactions have physical entities; however, the Content Services API
-        # is recursive--i.e., it returns for an event the physical entities for all events that have a causal
-        # relationship with the event. To prevent duplication from recursion, only link physical entities to
-        # reactions.
-        eventtype = queryjson.get('schemaClass')
-        if eventtype in ['Reaction','BlackBoxEvent']:
-            # Merge the participant edge list with the edge list instead of appending it.
-            listpropertyedges = listpropertyedges + getparticipantedges(base_url=base_url, event_id=subj)
+    # List of Physical Entity participant edges.
+    # In the Reactome event hierarchy, Reactions and BlackBoxEvents have physical entities;
+    # however, the Content Services API is recursive--i.e., it returns for an event the physical entities for all
+    # events that have a causal relationship with the event.
+    # To prevent duplication from recursion, only link physical entities to reactions.
+    dfreactions = dfedges[dfedges['object'].isin(['REACTOME_VS:C0004','REACTOME_VS:C0005'])]
+    listreactionids = dfreactions['subject'].drop_duplicates().to_list()
+    ulog.print_and_logger_info('Physical Entity edges...')
+    # idebug2 = 0
+    # print('DEBUG: only first few physical entities')
+    for rid in listreactionids:
+        # idebug2 = idebug2 + 1
+        #if idebug2 == 21:
+            # break
+
+        # Merge the participant edge list with the edge list instead of appending it.
+        listpropertyedges = listpropertyedges + getparticipantedges(base_url=base_url, event_id=id)
 
 
     return listpropertyedges
@@ -297,13 +312,13 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
     base_url = cfg.get_value(section='URL', key='base_url')
     listnodes = []
 
-    #idebug = 0
-    #print('DEBUG: only the first few nodes')
+    # idebug = 0
+    # print('DEBUG: only the first few nodes')
 
     for node_id in tqdm(listreactomeids):
-        #idebug = idebug + 1
-        #if idebug == 21:
-            #break
+        # idebug = idebug + 1
+        # if idebug == 21:
+            # break
 
         url = base_url + f'query/enhanced/{node_id}'
         queryjson = getresponsejson(url)
@@ -383,3 +398,5 @@ dfedges.to_csv(fout,sep='\t')
 # Write nodes to file.
 fout = os.path.join(owlnets_dir, 'nodes.tsv')
 dfnodes.to_csv(fout, sep='\t')
+print ('DEBUG: EXIT')
+exit(1)
