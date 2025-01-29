@@ -184,6 +184,10 @@ def codeReplacements(x: pd.Series, ingestSAB: str):
     # MSIGDB - restore underscores.
     ret = np.where(x.str.contains('MSIGDB'), x.str.replace('MSIGDB ', 'MSIGDB:').str.replace(' ', '_'), ret)
 
+    # January 2025
+    # REACTOME - restore underscores.
+    ret = np.where(x.str.contains('REACTOME'), x.str.replace('REACTOME ', 'REACTOME:').str.replace(' ', '_'), ret)
+
     # MAY 2023
     # HPO
     # If expected format (HPO HP:code) was used, revert to avoid duplication.

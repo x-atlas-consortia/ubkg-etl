@@ -1,0 +1,24 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+28 January 2025
+
+UPDATES
+
+General
+No updates
+
+Base context
+
+No updates
+
+Context-specific
+
+The HuBMAP and SenNet SimpleKnowledge application ontologies were updated to reflect changes to assay classifications
+(https://github.com/x-atlas-consortia/dev-assay-class-api/pull/28).
+
