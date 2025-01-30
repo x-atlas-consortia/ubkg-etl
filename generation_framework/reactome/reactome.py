@@ -329,7 +329,8 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
         listnodes.append({'node_id':node_id,
                           'node_namespace': 'REACTOME',
                           'node_label': node_label,
-                          'node_definition': node_definition})
+                          'node_definition': node_definition,
+                          'node_dbxref':''})
 
     dfret = pd.DataFrame(listnodes)
     return dfret
@@ -391,11 +392,12 @@ else:
 
 
 # Write edges to file.
+dfedges = dfedges[['subject','predicate','object']]
 fout = os.path.join(owlnets_dir, 'edges.tsv')
-dfedges.to_csv(fout,sep='\t')
+dfedges.to_csv(fout,sep='\t', index=False)
 
 # Write nodes to file.
+dfnodes = dfnodes[['node_id','node_namespace','node_label','node_definition', 'node_dbxref']]
 fout = os.path.join(owlnets_dir, 'nodes.tsv')
-dfnodes.to_csv(fout, sep='\t')
-print ('DEBUG: EXIT')
+dfnodes.to_csv(fout, sep='\t', index=False)
 exit(1)
