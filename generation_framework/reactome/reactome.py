@@ -45,19 +45,12 @@ def getargs() -> argparse.Namespace:
 
     return argsret
 
-def geteventtype(eventtype: str) -> str:
-    """
-    Obtains a code for a Reactome event type from the custom REACTOME_VS valueset.
-    :param eventtype:
-    """
-    return ''
-
 def getcodefromvalueset(val: str, df_vs:pd.DataFrame) -> str:
     """
     Obtains a code from the REACTOME_VS valueset.
     :param val: Value corresponding to a potential node_label of the code in the REACTOME_VS valueset.
     :param df_vis: REACTOME_VS valueset
-    :return:
+    :return: code from the valueset.
     """
 
     if df_vs.loc[df_vs['node_label'] == val, 'node_id'].shape[0] > 0:
@@ -66,10 +59,10 @@ def getcodefromvalueset(val: str, df_vs:pd.DataFrame) -> str:
 
 def gethierarchyedges(dictevent:dict, taxon: str, df_vs: pd.DataFrame)->list:
     """
-    Builds a list of hierarchical assertions for a PathwayBrowserNode object ("node"), recursing through the node's
-    nested child nodes.
+    Builds a list of hierarchical assertions for an Reactome event (a PathwayBrowserNode object or "node"),
+    recursing through the node's nested child nodes.
 
-    :param dictevent: dictionary representing PathwayBrowserNode
+    :param dictevent: dictionary representing an event
     :param taxon: NCBI taxon id for species
     :param df_vs: valueset from REACTOME_VS ingestion
     :return: list of hierarchical assertions.
@@ -106,8 +99,8 @@ def getspeciesedges(base_url: str, species_id:str, df_vs:pd.DataFrame) -> list:
     1. Hierarchical - i.e., those that describe the Reactome "event hierarchy":
        TopLevelPathway
        -- Pathway
-          -- Reaction or Blackbox Event
-    2. Property - i.e., associations such as species; GO annotations; and participants
+          -- ReactionTypeEvent (e.g., Reaction)
+    2. Property - i.e., associations between events and information such as species; GO annotations; and participants
 
     Hierarchical edges:
     The eventsHierarchy endpoint of the Reactome Content Services API returns for a species a list of "tree structures", or
@@ -142,7 +135,7 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     2. GO cellular component (also described as "compartment" in the Reactome data model
     3. GO biological process
     4. preceding events
-    5. physical entities (proteins or chemicals)
+    5. physical entities (proteins, chemicals, transcripts)
 
     :param listhierarchyedges: a list of Reactome events from the event hierarchy for a species
     :param species_id: NCBI Taxon code for the species
@@ -213,7 +206,7 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     # In the Reactome event hierarchy, Events that are subclasses of ReactionTypeEvents have physical entities;
     # however, the Content Services API is recursive--i.e., it returns for an event the physical entities for all
     # events that have a causal relationship with the event.
-    # To prevent duplication from recursion, only link physical entities to reactions.
+    # To prevent duplication from recursion, only link physical entities to subclasses of ReactionTypeEvents.
     dfreactions = dfedges[dfedges['object'].isin(['REACTOME_VS:C0006', #BlackBoxEvent
                                                   'REACTOME_VS:C0007', #CellDevelopmentStep
                                                   'REACTOME_VS:C0008', #Depolymerization
@@ -240,7 +233,7 @@ def getparticipantedges(base_url: str, event_id: str) -> list:
     Builds a list of edges that describe the "participants" in a Reactome event--proteins or chemicals.
 
     Skip the intermediate levels of Reactome complexes (or "Physical entities") and go down
-    to the gene product (UniProtKB) or molecule (CHEBI) ("Reference entities").
+    to the gene product (UniProtKB) or molecule (CHEBI, ENSEMBL) ("Reference entities").
 
     :param base_url: base URL for Reactome Content Services API
     :param event_id: Reactome stable ID for an event.
@@ -291,10 +284,11 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
     Builds a set of unique nodes.
 
     :param cfg: application configuration object
-    :param df: DataFrame of assertions
+    :param df: DataFrame of assertions. This should be the DataFrame that corresponds to the edge file.
     :return: DataFrame of node information
     """
 
+    # Algorithm:
     # Get unique list of Reactome stable IDs for nodes.
     # For each node in the list,
     #    - Call Reactome Content Services API query/advanced endpoint to obtain a set of information on the node.
@@ -307,6 +301,9 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
 
     # node_id	node_namespace	node_label	node_definition	node_synonyms	node_dbxrefs
     ulog.print_and_logger_info('Building nodes...')
+
+    # Because the set of assertions in the input DataFrame includes those of the Reactome event hierarchy,
+    # all relevant Reactome stable IDs should be in the "subject" column.
     listreactomeids = df['subject'].drop_duplicates().to_list()
     base_url = cfg.get_value(section='URL', key='base_url')
     listnodes = []
@@ -317,14 +314,17 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
         #idebug = idebug + 1
         #if idebug == 21:
             #break
-        # Remove the REACTOME SAB.
+
+        # Remove the REACTOME SAB from the ID.
         url = base_url + f'query/enhanced/{node_id.replace("REACTOME:", "")}'
         queryjson = uextract.getresponsejson(url)
         node_label = queryjson.get('displayName','')
         summation = queryjson.get('summation')
         node_definition = ''
         if summation is not None:
-            node_definition = summation[0].get('text','')
+            # The 'text' field contains too much data to be read into a column in a DataFrame.
+            # Use the excerpted field 'displayName'.
+            node_definition = summation[0].get('displayName','')
 
         listnodes.append({'node_id':node_id,
                           'node_namespace': 'REACTOME',
@@ -369,35 +369,24 @@ owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(sectio
 vs_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='vs_dir'))
 
 # Get Reactome source files.
-if args.skipbuild:
-    # Read previously built files.
-    fedge = os.path.join(os.path.join(owlnets_dir, 'edges.tsv'))
-    dfedges = uextract.read_csv_with_progress_bar(fedge, sep='\t')
-    fnode = os.path.join(os.path.join(owlnets_dir, 'edges.tsv'))
-    dfnodes = uextract.read_csv_with_progress_bar(fnode, sep='\t')
-else:
+if not args.skipbuild:
 
     # Obtain the REACTOME_VS valueset.
     df_vs = getvs(vs_dir)
 
     # Build the edges for the specified set of species.
-    # Because the Reactome model employs a hiearchical pathway model based on reactions, there will be significant
-    # duplication in edges. A reaction can be part of multiple pathways, so edges associated with a
-    # particular reaction will be built for the reaction for every pathway that has the reaction as an event. The
-    # UBKG generation framework script will drop duplicate edges before appending to the ontology CSVs.
     dfedges = getallspeciesedges(cfg=config, df_vs=df_vs)
 
     # Build the nodes file, using the edge DataFrame.
     dfnodes = getnodesfromedges(cfg=config, df=dfedges)
 
+    # Write edges to file.
+    dfedges = dfedges[['subject', 'predicate', 'object']]
+    fout = os.path.join(owlnets_dir, 'edges.tsv')
+    dfedges.to_csv(fout, sep='\t', index=False)
 
-# Write edges to file.
-dfedges = dfedges[['subject','predicate','object']]
-fout = os.path.join(owlnets_dir, 'edges.tsv')
-dfedges.to_csv(fout,sep='\t', index=False)
+    # Write nodes to file.
+    dfnodes = dfnodes[['node_id', 'node_namespace', 'node_label', 'node_definition', 'node_dbxref']]
+    fout = os.path.join(owlnets_dir, 'nodes.tsv')
+    dfnodes.to_csv(fout, sep='\t', index=False)
 
-# Write nodes to file.
-dfnodes = dfnodes[['node_id','node_namespace','node_label','node_definition', 'node_dbxref']]
-fout = os.path.join(owlnets_dir, 'nodes.tsv')
-dfnodes.to_csv(fout, sep='\t', index=False)
-exit(1)
