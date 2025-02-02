@@ -319,12 +319,13 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
         url = base_url + f'query/enhanced/{node_id.replace("REACTOME:", "")}'
         queryjson = uextract.getresponsejson(url)
         node_label = queryjson.get('displayName','')
-        summation = queryjson.get('summation')
+        #summation = queryjson.get('summation')
         node_definition = ''
-        if summation is not None:
+
+        #if summation is not None:
             # The 'text' field contains too much data to be read into a column in a DataFrame.
             # Use the excerpted field 'displayName'.
-            node_definition = summation[0].get('displayName','')
+            #node_definition = summation[0].get('displayName','')
 
         listnodes.append({'node_id':node_id,
                           'node_namespace': 'REACTOME',
@@ -376,6 +377,8 @@ if not args.skipbuild:
 
     # Build the edges for the specified set of species.
     dfedges = getallspeciesedges(cfg=config, df_vs=df_vs)
+    #fedge = os.path.join(owlnets_dir, 'edges.tsv')
+    #dfedges = uextract.read_csv_with_progress_bar(fedge, sep='\t')
 
     # Build the nodes file, using the edge DataFrame.
     dfnodes = getnodesfromedges(cfg=config, df=dfedges)
@@ -389,4 +392,3 @@ if not args.skipbuild:
     dfnodes = dfnodes[['node_id', 'node_namespace', 'node_label', 'node_definition', 'node_dbxref']]
     fout = os.path.join(owlnets_dir, 'nodes.tsv')
     dfnodes.to_csv(fout, sep='\t', index=False)
-
