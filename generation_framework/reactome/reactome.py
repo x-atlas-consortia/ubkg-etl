@@ -149,12 +149,8 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     listuniqueids = dfedges['subject'].drop_duplicates().to_list()
 
     ulog.print_and_logger_info('Edges for species, GO, preceding events...')
-    #idebug = 0
-    for id in tqdm(listuniqueids):
 
-        #idebug = idebug + 1
-        #if idebug == 21:
-            #break
+    for id in tqdm(listuniqueids):
 
         # Each list element is a dictionary with schema
         # {
@@ -167,7 +163,7 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
 
         # SPECIES
         pred = 'http://purl.obolibrary.org/obo/RO_0002162'  # in_taxon
-        listpropertyedges.append({'subject': id, 'predicate': pred, 'object': f'NCIT:{species_id}'})
+        listpropertyedges.append({'subject': id, 'predicate': pred, 'object': f'NCBI:{species_id}'})
 
         # Call the https://reactome.org/ContentService/data/query/enhanced endpoint.
         # Remove the SAB from the code for the event.
@@ -218,11 +214,7 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
     listreactionids = dfreactions['subject'].to_list()
     ulog.print_and_logger_info('Physical Entity edges...')
 
-    #idebug = 0
     for rid in tqdm(listreactionids):
-        #idebug = idebug + 1
-        #if idebug == 21:
-            #break
         # Merge the participant edge list with the edge list instead of appending it.
         listpropertyedges = listpropertyedges + getparticipantedges(base_url=base_url, event_id=rid)
 
@@ -308,12 +300,7 @@ def getnodesfromedges(cfg: uconfig.ubkgConfigParser, df:pd.DataFrame) -> pd.Data
     base_url = cfg.get_value(section='URL', key='base_url')
     listnodes = []
 
-    #idebug = 0
     for node_id in tqdm(listreactomeids):
-
-        #idebug = idebug + 1
-        #if idebug == 21:
-            #break
 
         # Remove the REACTOME SAB from the ID.
         url = base_url + f'query/enhanced/{node_id.replace("REACTOME:", "")}'
@@ -377,8 +364,6 @@ if not args.skipbuild:
 
     # Build the edges for the specified set of species.
     dfedges = getallspeciesedges(cfg=config, df_vs=df_vs)
-    #fedge = os.path.join(owlnets_dir, 'edges.tsv')
-    #dfedges = uextract.read_csv_with_progress_bar(fedge, sep='\t')
 
     # Build the nodes file, using the edge DataFrame.
     dfnodes = getnodesfromedges(cfg=config, df=dfedges)
