@@ -360,8 +360,12 @@
     "home_url": "https://github.com/obophenotype/provisional_cell_ontology",
     "comment": "Provisional Cell Ontology"
   },
+  "REACTOME_VS": {
+    "comment": "Reactome valueset, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py REACTOME_VS"
+  },
   "REACTOME": {
-    "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py REACTOME",
+    "execute": "./reactome/reactome.py",
     "comment": "Reactome"
   },
   "DGN": {

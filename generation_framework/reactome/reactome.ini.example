@@ -1,0 +1,19 @@
+# Reactome configuration
+[Directories]
+# Absolute Path in the local repo
+owl_dir=generation_framework/owl/REACTOME
+# Absolute Path in the local repo
+owlnets_dir=generation_framework/owlnets_output/REACTOME
+# Absolute path to the REACTOME_VS valueset
+vs_dir=generation_framework/owlnets_output/REACTOME_VS
+
+[Species]
+# NCBI Taxon IDs for species used in calls to the Reactome Content Services API
+human=9606
+#mouse=10090
+#rat=10116
+
+[URL]
+# URLs to the Reactome Content Services API
+base_url=https://reactome.org/ContentService/data/
+url_events=https://reactome.org/ContentService/data/eventsHierarchy/${Species:human}?pathwaysOnly=false&resource=TOTAL&interactors=false&importableOnly=false

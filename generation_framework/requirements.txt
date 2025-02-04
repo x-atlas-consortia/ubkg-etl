@@ -30,6 +30,9 @@ networkx==2.8
 # For reading YAML
 pyyaml==6.0
 
+# For flattening JSON recursively
+flatten-json==0.1.14
+
 # Dependencies without references in code. Kept for archival.
 # setuptools~=65.3.0
 # SQLAlchemy==1.4.44
