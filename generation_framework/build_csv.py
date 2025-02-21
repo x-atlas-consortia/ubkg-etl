@@ -289,6 +289,7 @@ start_time = time.time()
 ulog.print_and_logger_info(f"Processing Ontologies: {', '.join(ontology_names)}")
 
 for ontology_name in ontology_names:
+    ulog.print_and_logger_info('*********************************************')
     ulog.print_and_logger_info(f"Ontology: {ontology_name}")
     ontology_record = ontologies[ontology_name]
 
