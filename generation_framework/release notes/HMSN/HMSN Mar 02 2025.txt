@@ -1,0 +1,25 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+02 March 2025
+
+UPDATES
+
+General
+No updates
+
+Base context
+
+No updates
+
+Context-specific
+
+1. Changes to HUBMAP and SENNET for dir_schema for assay classification C202050 (DCWG xenium).
+2. Added the REACTOME_VS dataset which, required by the REACTOME dataset, which is missing from the
+February 18 2025 release.
+
