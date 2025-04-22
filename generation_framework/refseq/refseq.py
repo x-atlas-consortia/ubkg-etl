@@ -158,7 +158,11 @@ def getrefseqsummaries(apikey: str, outdir: str, start: int, chunk: int) -> pd.D
             responsesummary.raise_for_status()
 
         # Obtain gene summary information for the chunk of uids.
-        responsesummaryjson = responsesummary.json()
+        try:
+            # EUtilities appears to return errors in responses with 200 error codes.
+            responsesummaryjson = responsesummary.json()
+        except Exception as e:
+            pass
 
         if responsesummaryjson is None:
             ulog.print_and_logger_info('Empty response from API in response to URL:')

@@ -1,0 +1,24 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/Sennet
+
+RELEASE DATE
+March 20 2025
+
+UPDATES
+
+General
+No updates
+
+Base context
+1. The base context content was refreshed from new downloads of source files, calls to APIs, etc.
+2. UNIPROTKB now includes GO annotations for proteins.
+3. REACTOME is now a part of the base context. The REACTOME content is based on a new ETL script
+   that calls the Reactome Content Services API.
+
+HuBMAP/SenNet context
+HUBMAP and SENNET SABs updated for CyTOF and AB-PAS Histology
+
