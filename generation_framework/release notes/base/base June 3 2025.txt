@@ -1,0 +1,20 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+base
+
+RELEASE DATE
+03 June 2025
+
+UPDATES
+
+General
+No updates
+
+Base context
+1. The base context content was refreshed from new downloads of source files, calls to APIs, etc.
+2. UNIPROTKB - expanded to include mouse.
+3. REACTOME - expanded to include mouse.
+

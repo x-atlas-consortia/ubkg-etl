@@ -176,8 +176,9 @@ def getpropertyedges(listhierarchyedges:list, base_url: str, species_id: str) ->
         pred = 'http://purl.obolibrary.org/obo/RO_0002331' # involved_in
         go_biological_process = queryjson.get('goBiologicalProcess')
         if go_biological_process is not None:
-            obj = 'GO:' + go_biological_process.get('accession')
-            listpropertyedges.append({'subject': id, 'predicate': pred, 'object': obj})
+            if isinstance(go_biological_process, dict):
+                obj = 'GO:' + go_biological_process.get('accession')
+                listpropertyedges.append({'subject': id, 'predicate': pred, 'object': obj})
 
         # compartment (GO cellular component)
         # Per GOA, the default relationship for the Cellular Component aspect is "part_of".
