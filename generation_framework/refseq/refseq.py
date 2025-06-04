@@ -127,12 +127,13 @@ def getrefseqsummaries(apikey: str, outdir: str, start: int, chunk: int) -> pd.D
 
         ulog.print_and_logger_info('-- Getting list of uuids...')
         # Call esearch to obtain list of UIDs.
-        responsesearch = requests.get(urlsearch, headers=headers)
-        if responsesearch.status_code != 200:
-            responsesearch.raise_for_status()
+        #responsesearch = requests.get(urlsearch, headers=headers)
+        responsesearch = uextract.getresponsejson(urlsearch)
+        #if responsesearch.status_code != 200:
+            #responsesearch.raise_for_status()
 
         # Obtain information from response.
-        responsesearchjson = responsesearch.json()
+        responsesearchjson = responsesearch
         esearchresult = responsesearchjson.get('esearchresult')
 
         # Total count of UIDs. This is the same for each call.
@@ -152,15 +153,16 @@ def getrefseqsummaries(apikey: str, outdir: str, start: int, chunk: int) -> pd.D
 
         urlsummary = f'{baseurl}{esummary}'
         ulog.print_and_logger_info('-- Getting summary information for set of uuids...')
-        responsesummary = requests.get(urlsummary, headers=headers)
+        #responsesummary = requests.get(urlsummary, headers=headers)
+        responsesummary = uextract.getresponsejson(urlsummary)
 
-        if responsesummary.status_code != 200:
-            responsesummary.raise_for_status()
+        #if responsesummary.status_code != 200:
+            #responsesummary.raise_for_status()
 
         # Obtain gene summary information for the chunk of uids.
         try:
             # EUtilities appears to return errors in responses with 200 error codes.
-            responsesummaryjson = responsesummary.json()
+            responsesummaryjson = responsesummary
         except Exception as e:
             pass
 
