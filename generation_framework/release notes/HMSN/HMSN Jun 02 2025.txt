@@ -1,0 +1,24 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+02 June 2025
+
+UPDATES
+
+General
+No updates
+
+Base context
+
+No updates
+
+Context-specific
+
+Change to assay classifications for HuBMAP and SenNet:
+1. Light sheet
+2. Stereo-seq

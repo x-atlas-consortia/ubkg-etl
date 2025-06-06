@@ -1,0 +1,24 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+16 May 2025
+
+UPDATES
+
+General
+No updates
+
+Base context
+
+No updates
+
+Context-specific
+
+Changes to HUBMAP and SENNET:
+1. remove CyCiF
+2. add derived Visium with probes

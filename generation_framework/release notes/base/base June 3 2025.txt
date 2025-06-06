@@ -17,4 +17,5 @@ Base context
 1. The base context content was refreshed from new downloads of source files, calls to APIs, etc.
 2. UNIPROTKB - expanded to include mouse.
 3. REACTOME - expanded to include mouse.
+4. UMLS NOCODE code nodes were removed.
 
