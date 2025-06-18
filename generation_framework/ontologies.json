@@ -231,7 +231,7 @@
   "PGO": {
     "home_url": "https://bioportal.bioontology.org/ontologies/pseudo/?p=summary",
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py PGO",
-    "comment": "Pseudogene"
+    "comment": "Pseudogene - The XRDF file was converted to UBKG Edges/Nodes format"
   },
   "GENCODE_VS": {
     "comment": "GenCode application ontology, obtained from input spreadsheet in SimpleKnowledge format",

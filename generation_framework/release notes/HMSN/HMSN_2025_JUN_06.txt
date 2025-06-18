@@ -1,0 +1,22 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+06 June 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+The HuBMAP/SenNet context is now based on the June 3, 2025 release of the UBKG base context.
+Consult the release notes for that release at https://github.com/x-atlas-consortia/ubkg-etl/blob/main/generation_framework/release%20notes/base/base%20June%203%202025.txt
+
+---Context-specific---
+1. The "rui_supported" property for the Left Lung and Right Lung organs was changed from "false" to "true".
+2. The CEDAR SAB was refreshed with new edge and node files from Stanford.
