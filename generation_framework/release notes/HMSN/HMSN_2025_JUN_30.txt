@@ -1,0 +1,21 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+30 June 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+1. The HRA SAB data was refreshed to match the latest release of the HRA.
+2. The Pan Organ Azimuth-CL annotation mappings (PAZ) SAB was added.

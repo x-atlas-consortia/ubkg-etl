@@ -391,5 +391,9 @@
   "DCT": {
     "comment": "DeepCellType-CL mappings, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py DCT"
+  },
+  "PAZ": {
+    "comment": "Pan Organ Azimuth-CL mappngs, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py PAZ"
   }
 }
