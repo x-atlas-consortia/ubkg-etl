@@ -1728,7 +1728,7 @@ uclean.remove_duplicates(csvpath=csv_path('TUIs.csv'))
 # QC reporting, Workflow point 3
 # Statistics on final ontology CSVs
 # Comparisons of dbxrefs with CODEs.csv.
-ulog.print_and_logger_info('QC reporting: ontology CSV statistics')
-CODEs = uextract.read_csv_with_progress_bar(path=csv_path("CODEs.csv"))
+#ulog.print_and_logger_info('QC reporting: ontology CSV statistics')
+#CODEs = uextract.read_csv_with_progress_bar(path=csv_path("CODEs.csv"))
 #ubkg_report.CODEs = CODEs
 #ubkg_report.report_ontology_csv_statistics()
