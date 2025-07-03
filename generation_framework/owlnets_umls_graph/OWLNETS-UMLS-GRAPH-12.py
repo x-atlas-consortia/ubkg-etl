@@ -1064,7 +1064,7 @@ edgelist = edgelist.merge(objnode, how='left', left_on='object', right_on='objec
 edgelist = edgelist[['subject', 'CUI1', 'relation_label', 'object', 'CUI2', 'inverse', 'evidence_class']]
 
 # Report on object nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
-#objnode3 = edgelist[edgelist['CUI2'] == '']
+objnode3 = edgelist[edgelist['CUI2'] == '']
 #ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
 
 # July 2023 - Remove type 3 object nodes.
