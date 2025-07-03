@@ -57,7 +57,7 @@ sys.path.append(fpath)
 import ubkg_parsetools as uparse
 import ubkg_extract as uextract
 import ubkg_logging as ulog
-import ubkg_reporting as ureport
+#import ubkg_reporting as ureport
 import ubkg_clean_csv as uclean
 
 
@@ -225,8 +225,8 @@ OWL_SAB = sys.argv[3].upper()
 TQDM_THRESHOLD = 100000
 
 # Start QC report.
-qcpath = owlnets_path('ubkg_qc.txt')
-ubkg_report = ureport.UbkgReport(path=qcpath, sab=OWL_SAB)
+#qcpath = owlnets_path('ubkg_qc.txt')
+#ubkg_report = ureport.UbkgReport(path=qcpath, sab=OWL_SAB)
 
 pd.set_option('display.max_colwidth', None)
 
@@ -643,11 +643,11 @@ node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'], OWL
 
 # --------------------------------------------------
 # QC REPORTING, workflow point 1 - after nodes and edges have been harmonized.
-ulog.print_and_logger_info('QC report: writing statistics on nodes and edges after reading and parsing.')
-ubkg_report.edgelist = edgelist
-ubkg_report.node_metadata = node_metadata
-ubkg_report.report_file_statistics()
-ubkg_report.report_edge_node_statistics()
+#ulog.print_and_logger_info('QC report: writing statistics on nodes and edges after reading and parsing.')
+#ubkg_report.edgelist = edgelist
+#ubkg_report.node_metadata = node_metadata
+#ubkg_report.report_file_statistics()
+#ubkg_report.report_edge_node_statistics()
 # --------------------------------------------------
 
 # NODE SYNONYMS
@@ -734,9 +734,9 @@ explode_dbxrefs['nodeXrefCodes'] = explode_dbxrefs['node_dbxrefs'].str.split(':'
 
 # --------------------------------------------------
 # QC REPORTING, workflow point 2 - after dbxrefs are processed
-ulog.print_and_logger_info('QC report: writing statistics on nodes after dbxref expansion and parsing.')
-ubkg_report.explode_dbxrefs = explode_dbxrefs
-ubkg_report.report_dbxref_statistics()
+#ulog.print_and_logger_info('QC report: writing statistics on nodes after dbxref expansion and parsing.')
+#ubkg_report.explode_dbxrefs = explode_dbxrefs
+#ubkg_report.report_dbxref_statistics()
 # --------------------------------------------------
 
 
@@ -1021,8 +1021,8 @@ edgelist = edgelist.merge(subjnode, how='left', left_on='subject', right_on='sub
 edgelist = edgelist[['subject', 'CUI1', 'relation_label', 'object', 'inverse', 'evidence_class']]
 
 # Report on subject nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
-subjnode3 = edgelist[edgelist['CUI1'] == '']
-ubkg_report.report_missing_node(nodetype='subject', dfmissing=subjnode3)
+#subjnode3 = edgelist[edgelist['CUI1'] == '']
+#ubkg_report.report_missing_node(nodetype='subject', dfmissing=subjnode3)
 
 # July 2023- remove type 3 nodes.
 edgelist = edgelist.dropna(subset=['CUI1'])
@@ -1064,8 +1064,8 @@ edgelist = edgelist.merge(objnode, how='left', left_on='object', right_on='objec
 edgelist = edgelist[['subject', 'CUI1', 'relation_label', 'object', 'CUI2', 'inverse', 'evidence_class']]
 
 # Report on object nodes that were neither in node_metadata nor CUI-CODEs--i.e., type 3.
-objnode3 = edgelist[edgelist['CUI2'] == '']
-ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
+#objnode3 = edgelist[edgelist['CUI2'] == '']
+#ubkg_report.report_missing_node(nodetype='object', dfmissing=objnode3)
 
 # July 2023 - Remove type 3 object nodes.
 edgelist = edgelist.dropna(subset=['CUI2'])
@@ -1730,5 +1730,5 @@ uclean.remove_duplicates(csvpath=csv_path('TUIs.csv'))
 # Comparisons of dbxrefs with CODEs.csv.
 ulog.print_and_logger_info('QC reporting: ontology CSV statistics')
 CODEs = uextract.read_csv_with_progress_bar(path=csv_path("CODEs.csv"))
-ubkg_report.CODEs = CODEs
-ubkg_report.report_ontology_csv_statistics()
+#ubkg_report.CODEs = CODEs
+#ubkg_report.report_ontology_csv_statistics()
