@@ -1,0 +1,25 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+July 09 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+Changes made to assay classification hierarchy:
+
+1. Updates CosMx to CosMx Transcriptomics
+2. Adds a new dataset "CosMx Proteomics"
+3. Adds a new dataset "FACS"
+4. Adds back dataset, "CyCIF"

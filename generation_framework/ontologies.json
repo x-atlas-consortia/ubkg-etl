@@ -395,5 +395,15 @@
   "PAZ": {
     "comment": "Pan Organ Azimuth-CL mappngs, obtained from input spreadsheet in SimpleKnowledge format",
     "execute": "./skowlnets/skowlnets.py PAZ"
+  },
+  "EMAPA": {
+    "comment": "Mouse Developmental Anatomy Ontology",
+    "owl_url": "http://purl.obolibrary.org/obo/emapa.owl",
+    "home_url": "https://obofoundry.org/ontology/emapa.html"
+  },
+  "UBERONEMAPA": {
+    "comment": "UBERON Anatomical Bridging Ontology to EMAPA",
+    "owl_url": "http://purl.obolibrary.org/obo/uberon/bridge/uberon-bridge-to-emapa.owl",
+    "home_url": "https://uberon.github.io/downloads.html"
   }
 }
