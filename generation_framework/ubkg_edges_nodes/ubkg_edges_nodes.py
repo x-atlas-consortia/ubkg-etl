@@ -26,7 +26,6 @@ import ubkg_subprocess as usub
 # Extracting files
 import ubkg_extract as uextract
 
-
 class RawTextArgumentDefaultsHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
     argparse.RawTextHelpFormatter
@@ -40,15 +39,19 @@ def containsEdgeNodeFiles(path: str) -> bool:
     # 1. Edges/nodes files
     # 2. An OWL file
 
-    isedge = False
+    filelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv', 'OWLNETS_node_metadata.tsv',
+                'OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv', 'OWLNETS_edgelist.tsv']
+
     for f in os.listdir(path):
         fpath = os.path.join(path, f)
         if os.path.isfile(fpath):
-            dfTest = pd.read_csv(os.path.join(frompath, f), sep='\t', nrows=5)
-            if 'subject' in dfTest.columns or 'node_id' in dfTest.columns or 'relation_id' in dfTest.columns:
-                isedge = True
+            # JULY 2025 exclude irrelevant files such as .DS_Store file.
+            if f in filelist:
+                dfTest = pd.read_csv(fpath, sep='\t', nrows=5)
+                if 'subject' in dfTest.columns or 'node_id' in dfTest.columns: #or 'relation_id' in dfTest.columns:
+                    return True
 
-    return isedge
+    return False
 
 
 def getOWLfilename(path: str) -> str:
