@@ -1,0 +1,44 @@
+Data Distillery
+Changes made to source files for July 2025 release
+
+Alan Simmons
+
+Globus reorganization
+
+As of July 2025, source files for Data Distillery SABs that use the UBKG Edge Node format are stored in
+a folder in the Globus collection named HuBMAP Data.
+
+Folder path: https://app.globus.org/file-manager?origin_id=24c2ee95-146d-4513-a1b3-ac0bfdb7856f&origin_path=%2Fprojects%2Fdata-distillery%2F
+
+Source files for each SAB were moved into subfolders with names that correspond to the original file dates.
+
+HSCLO
+
+There are two versions of the node file for HSCLO--one with strings like "chr1" in the value column,
+and one without strings. The UBKG import process assumes that the values in theh value column of the node file
+are of float (numeric) data type and so will not accept the version of the HSCLO node file with string values.
+
+The version of the node file with string values is kept for archival, but should not be used for ingestion.
+
+GTEXCOEXP
+
+There are two versions of the GTEXCOEXP SAB source:
+1. A "Complete" version
+2. A "Condensed" version
+
+The Data Distillery uses the "Complete" version.
+
+LINCS
+
+Edge and node files in UBKG Edge Node format must be Text-Separated Variable (TSV) files.
+Files can have either TSV or TXT file extensions. In particular, the UKBG ETL will fail to ingest CSVs.
+
+During the July 2025 ingestion, I determined that the edge file for LINCS was actually a
+Comma-Separated Variable (CSV) file. Before ingesting LINCS, I converted the CSV file to a true
+TSV file.
+
+MW
+
+The UBKG ETL expects edge and node files to be named in a certain way. During the July 2025 ingestion,
+I discovered that the node file for MW was misspelled (OWLNETS_node_metada.tsv).
+
