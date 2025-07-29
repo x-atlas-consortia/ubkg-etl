@@ -1,0 +1,34 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+July 28 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+Changes made to assay classification hierarchy:
+
+1. Updates the contains_full_genetic_sequences attribute for the following assay classifications:
+
+   a. Visium with probe
+   b. Xenium
+   c. dbit-seq
+   d. cosmx transcriptomics
+   e. cosmx proteomics
+
+2. New assay classifications
+
+   a. derived Xenium
+   b. Olink
+   c. SeqScope
