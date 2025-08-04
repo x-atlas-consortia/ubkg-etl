@@ -245,7 +245,7 @@ ulog.print_and_logger_info('READING DATA FILES (edges, nodes, relations)...')
 nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv', 'OWLNETS_node_metadata.tsv']
 nodepath = identify_source_file(nodefilelist)
 
-
+# JAS AUG 2025 - add optional columns submitter_first_name, subitter_last_name, submitter_email.
 # JAS 6 JAN 2023 add optional columns (value, lowerbound, upperbound, unit) for UBKG edges/nodes files.
 # JAS 6 JAN 2023 skip bad rows. (There is at least one in line 6814 of the node_metadata file generated from EFO.)
 ulog.print_and_logger_info('-- Reading nodes file...')
@@ -258,6 +258,11 @@ if 'value' not in node_metadata.columns:
     node_metadata['lowerbound'] = np.nan
     node_metadata['upperbound'] = np.nan
     node_metadata['unit'] = np.nan
+
+if 'submitter_first_name' not in node_metadata.columns:
+    node_metadata['submitter_first_name'] = np.nan
+    node_metadata['submitter_last_name'] = np.nan
+    node_metadata['submitter_email'] = np.nan
 
 # June 2023
 # The following fields are not technically required in the node file. For example, if a set of assertions
@@ -279,7 +284,8 @@ for node in node_optional_fields:
 
 
 node_metadata = node_metadata[['node_id', 'node_label', 'node_definition', 'node_synonyms',
-                               'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit']]
+                               'node_dbxrefs', 'value', 'lowerbound', 'upperbound', 'unit',
+                               'submitter_first_name','submitter_last_name','submitter_email']]
 
 ulog.print_and_logger_info('---- Dropping duplicate nodes...')
 # Replace 'None' with nan
@@ -1160,15 +1166,17 @@ del edgelist
 
 ulog.print_and_logger_info('-- Appending to CODEs.csv...')
 
+# JAS AUG 2025 - added submitter_first_name, submitter_last_name, submitter_email
 # JAS 6 JAN 2023 Add value, lowerbound, upperbound, unit column to file.
-# ulog.print_and_logger_info('---- Adding value, lowerbound, upperbound, unit columns to CODES.csv...')
+# ulog.print_and_logger_info('---- Adding value, lowerbound, upperbound, unit, and submitter columns to CODES.csv...')
 fcsv = csv_path('CODEs.csv')
 # value, lowerbound, and upperbound should be numbers.
-new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit']
+new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit',
+                      'submitter_first_name','submitter_last_name','submitter_email']
 uextract.update_columns_to_csv_header(file=fcsv, new_columns=new_header_columns, fill=True)
 
 # JAS 6 JAN 2023 add value, lowerbound, upperbound, unit
-newCODEs = node_metadata[['node_id', 'SAB', 'CODE', 'CUI_CODEs', 'value', 'lowerbound', 'upperbound', 'unit']]
+newCODEs = node_metadata[['node_id', 'SAB', 'CODE', 'CUI_CODEs', 'value', 'lowerbound', 'upperbound', 'unit','submitter_first_name','submitter_last_name','submitter_email']]
 
 newCODEs = newCODEs[newCODEs['CUI_CODEs'].isnull()]
 newCODEs = newCODEs.drop(columns=['CUI_CODEs'])
