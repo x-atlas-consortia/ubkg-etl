@@ -188,6 +188,7 @@ def codeReplacements(x: pd.Series, ingestSAB: str):
     # REACTOME - restore underscores.
     ret = np.where(x.str.contains('REACTOME'), x.str.replace('REACTOME ', 'REACTOME:').str.replace(' ', '_'), ret)
 
+
     # MAY 2023
     # HPO
     # If expected format (HPO HP:code) was used, revert to avoid duplication.
@@ -281,6 +282,11 @@ def codeReplacements(x: pd.Series, ingestSAB: str):
     # JANUARY 2024 - GENCODE_VS
     # Restore the underscore.
     ret = np.where(x.str.contains('GENCODE_VS'),x.str.replace('GENCODE:VS', 'GENCODE_VS'), ret)
+
+    # AUGUST 2025 - SENOTYPE_VS
+    # Restore the underscore.
+    ret = np.where(x.str.contains('SENOTYPE_VS'), x.str.replace('SENOTYPE:VS', 'SENOTYPE_VS'), ret)
+
     # ---------------
     # FINAL PROCESSING
 

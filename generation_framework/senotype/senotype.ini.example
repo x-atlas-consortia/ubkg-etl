@@ -1,0 +1,14 @@
+# Senotype configuration
+
+[Directories]
+# Absolute Path in the local repo to which to download source files
+owl_dir=generation_framework/owl/SENOTYPE
+# Absolute Path in the local repo to which to store edge and node file
+owlnets_dir=generation_framework/owlnets_output/SENOTYPE
+
+[URL]
+# url for GitHub folder for Senotype JSON repository
+url=https://api.github.com/repos/sennetconsortium/senlib/contents/senotypes
+
+[token]
+sennet=token

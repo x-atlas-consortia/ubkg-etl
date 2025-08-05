@@ -65,7 +65,9 @@ csvdir = config.get_value(section='Directory', key='csvdir')
 #--- ADDING columns
 fcsv = csv_path(path=csvdir, file='CODEs.csv')
 # value, lowerbound, and upperbound should be numbers.
-new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit']
+# AUG 2025 - submitter values
+new_header_columns = ['CodeID:ID', 'SAB', 'CODE', 'value:float', 'lowerbound:float', 'upperbound:float', 'unit',
+                      'firstname','lastname','email']
 uextract.update_columns_to_csv_header(fcsv, new_header_columns, fill=True)
 
 fcsv = csv_path(path=csvdir, file='CUI-CUIs.csv')

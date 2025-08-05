@@ -20,6 +20,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 import json
+import requests
 
 
 # The following allows for an absolute import from an adjacent script directory--i.e., up and over instead of down.
@@ -94,6 +95,9 @@ def write_edgefile(owl_dir: str, owlnets_dir: str):
                     # subject
                     subject = data.get('senotype')
                     subjcode = subject.get('code')
+                    # senotype
+                    subject = data.get('senotype')
+                    subjcode = subject.get('code')
 
                     assertions = data.get('assertions')
                     for assertion in tqdm(assertions):
@@ -150,11 +154,31 @@ def getrridtitle(rrid:str) -> str:
             ret = hitshits.get('_source').get('item').get('description')
     return ret
 
-def write_nodefile(owl_dir: str, owlnets_dir: str):
+def getdataset(id: str, token: str)-> str:
+    """Obtains information on a SenNet dataset.
+    :param id: SenNet ID
+    :token: SenNet Globus token
+    """
+    url = f'https://entity.api.sennetconsortium.org/entities/{id}'
+    ret = ''
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "*/*",
+        "Authorization": f"Bearer {token}"
+    }
+    response = requests.get(url=url, headers=headers)
+    if response.status_code == 200:
+        respjson = response.json()
+        ret = respjson.get('title')
+
+    return ret
+
+def write_nodefile(owl_dir: str, owlnets_dir: str, token: str):
     """
     Builds a node file of unique nodes from a collection of JSON files.
     :param owl_dir: location of the collection of JSON files
     :param owlnets_dir: output location
+    :param token: SenNet group token
     :return:
     """
 
@@ -204,9 +228,9 @@ def write_nodefile(owl_dir: str, owlnets_dir: str):
                             'lowerbound': lowerbound,
                             'upperbound': upperbound,
                             'unit': unit,
-                            'submitter_first_name': submitter_first_name,
-                            'submitter_last_name': submitter_last_name,
-                            'submitter_email': submitter_email}
+                            'firstname': submitter_first_name,
+                            'lastname': submitter_last_name,
+                            'email': submitter_email}
                 listnode.append(dictnode)
 
                 # Find SENOTYPE nodes in assertions
@@ -224,6 +248,9 @@ def write_nodefile(owl_dir: str, owlnets_dir: str):
                             node_label = getpmidtitle(pmid=node_id)
                         elif predicate == 'has_origin':
                             node_label = getrridtitle(rrid=node_id)
+                        elif predicate == 'has_dataset':
+                            node_label = getdataset(id=node_id, token=token)
+
                         else:
                             node_label = object.get('term','')
                         node_definition = ''
@@ -248,9 +275,9 @@ def write_nodefile(owl_dir: str, owlnets_dir: str):
                                     'lowerbound': lowerbound,
                                     'upperbound': upperbound,
                                     'unit': unit,
-                                    'submitter_first_name': submitter_first_name,
-                                    'submitter_last_name': submitter_last_name,
-                                    'submitter_email': submitter_email}
+                                    'firstname': submitter_first_name,
+                                    'lastname': submitter_last_name,
+                                    'email': submitter_email}
                         listnode.append(dictnode)
 
         dfnode = pd.DataFrame(listnode)
@@ -263,7 +290,6 @@ def write_nodefile(owl_dir: str, owlnets_dir: str):
     except Exception as e:
         print(f"An error occurred in write_nodefile: {e}")
         exit(1)
-
 
 # -----------------------------------------
 # START
@@ -279,6 +305,7 @@ config = uconfig.ubkgConfigParser(cfgfile)
 owl_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owl_dir'))
 owlnets_dir = os.path.join(os.path.dirname(os.getcwd()), config.get_value(section='Directories', key='owlnets_dir'))
 github_url = config.get_value(section='URL', key='url')
+token= config.get_value(section='token', key='sennet')
 
 if args.skipbuild:
     print('Skipping build of edge and node files.')
@@ -287,7 +314,8 @@ else:
     getsenotypejsons(github_url=github_url, target_dir=owl_dir)
     # Build and write edge and node file.
     write_edgefile(owl_dir=owl_dir, owlnets_dir=owlnets_dir)
-    write_nodefile(owl_dir=owl_dir, owlnets_dir=owlnets_dir)
+    write_nodefile(owl_dir=owl_dir, owlnets_dir=owlnets_dir, token=token)
 
+exit(1)
 
 
