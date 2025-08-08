@@ -286,7 +286,6 @@ def update_columns_to_csv_header(file: str, new_columns: list, fill: bool = Fals
                 for fillcols in range(fillcols):
                     newline = newline + ','
 
-        print(newline)
         # Update progress bar.
         pbar.update(sys.getsizeof(line)-sys.getsizeof('\n'))
 

@@ -94,10 +94,12 @@ def write_edgefile(owl_dir: str, owlnets_dir: str):
 
                     # subject
                     subject = data.get('senotype')
-                    subjcode = subject.get('code')
                     # senotype
                     subject = data.get('senotype')
                     subjcode = subject.get('code')
+
+                    # Write an isa assertion for the senotype node
+                    out.write(subjcode + '\t' + 'isa' + '\t' + 'SENOTYPE_VS:C00001' + '\n')
 
                     assertions = data.get('assertions')
                     for assertion in tqdm(assertions):
@@ -111,7 +113,12 @@ def write_edgefile(owl_dir: str, owlnets_dir: str):
                         # object
                         objects = assertion.get('objects')
                         for o in objects:
-                            objcode = o.get('code')
+                            if predicatestring == 'has_context':
+                                # Prepare a context-specific code by concatenating the subject and the
+                                # context.
+                                objcode = f'{subjcode}{o.get("term").replace(" ", "")}'
+                            else:
+                                objcode = o.get('code')
                             # Write an assertion per unique set of subject, predicate, object
                             out.write(subjcode + '\t' + predicatestring + '\t' + objcode + '\n')
 
@@ -201,24 +208,25 @@ def write_nodefile(owl_dir: str, owlnets_dir: str, token: str):
             # Parse file to build nodes.
             with open(file_path, 'r') as f:
                 data = json.load(f)
-                # The Senotype node gets the properties of the submitter.
+
                 subject = data.get('senotype')
-                node_id = subject.get('code')
+                subj_node_id = subject.get('code')
                 node_namespace = ''
                 node_label = subject.get('term','')
-                node_definition = ''
+                node_definition = subject.get('definition','')
                 node_synonyms = ''
                 node_dbxrefs = ''
                 value = ''
                 lowerbound = ''
                 upperbound = ''
                 unit = ''
+                # The Senotype node gets the properties of the submitter.
                 submitter = data.get('submitter')
                 submitter_name = submitter.get('name')
                 submitter_first_name = submitter_name.get('first','')
                 submitter_last_name = submitter_name.get('last','')
                 submitter_email = submitter.get('email','')
-                dictnode = {'node_id': node_id,
+                dictnode = {'node_id': subj_node_id,
                             'node_namespace': node_namespace,
                             'node_label': node_label,
                             'node_definition': node_definition,
@@ -233,7 +241,7 @@ def write_nodefile(owl_dir: str, owlnets_dir: str, token: str):
                             'email': submitter_email}
                 listnode.append(dictnode)
 
-                # Find SENOTYPE nodes in assertions
+                # Find object nodes from assertions.
                 assertions = data.get('assertions')
                 for assertion in assertions:
                     pred = assertion.get('predicate')
@@ -250,18 +258,23 @@ def write_nodefile(owl_dir: str, owlnets_dir: str, token: str):
                             node_label = getrridtitle(rrid=node_id)
                         elif predicate == 'has_dataset':
                             node_label = getdataset(id=node_id, token=token)
-
+                            node_id = f'SENNET_PROVENANCE:{node_id}'
+                        elif predicate == 'has_context':
+                            # Build a context-specific node_id by concatenating the subject code and the term
+                            node_id = f'{subj_node_id}{object.get("term").replace(" ","")}'
+                            node_label = object.get("term")
+                            node_dbxrefs = object.get('dbxref')
+                            # value, lowerbound, upperbound, and unit will only be defined for objects of
+                            # has_context assertions
+                            value = str(object.get('value', ''))
+                            lowerbound = str(object.get('lowerbound', ''))
+                            upperbound = str(object.get('upperbound', ''))
+                            unit = object.get('unit', '')
                         else:
                             node_label = object.get('term','')
+                            node_dbxrefs = ''
                         node_definition = ''
                         node_synonyms = ''
-                        node_dbxrefs = ''
-                        # value, lowerbound, upperbound, and unit will only be defined for objects of
-                        # has_context assertions
-                        value = str(object.get('value',''))
-                        lowerbound = str(object.get('lowerbound',''))
-                        upperbound = str(object.get('upperbound',''))
-                        unit = object.get('unit','')
                         submitter_first_name = ''
                         submitter_last_name = ''
                         submitter_email = ''
@@ -315,7 +328,3 @@ else:
     # Build and write edge and node file.
     write_edgefile(owl_dir=owl_dir, owlnets_dir=owlnets_dir)
     write_nodefile(owl_dir=owl_dir, owlnets_dir=owlnets_dir, token=token)
-
-exit(1)
-
-

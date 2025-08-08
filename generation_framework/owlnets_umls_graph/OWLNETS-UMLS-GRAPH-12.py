@@ -1178,6 +1178,7 @@ uextract.update_columns_to_csv_header(file=fcsv, new_columns=new_header_columns,
 # JAS 6 JAN 2023 add value, lowerbound, upperbound, unit
 newCODEs = node_metadata[['node_id', 'SAB', 'CODE', 'CUI_CODEs', 'value', 'lowerbound', 'upperbound', 'unit',
                           'firstname','lastname','email']]
+print(newCODEs)
 
 newCODEs = newCODEs[newCODEs['CUI_CODEs'].isnull()]
 newCODEs = newCODEs.drop(columns=['CUI_CODEs'])
