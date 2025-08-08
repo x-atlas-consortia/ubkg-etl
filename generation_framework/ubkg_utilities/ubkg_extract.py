@@ -35,6 +35,24 @@ def download_file_from_github(share_url: str, download_full_path: str):
 
     return
 
+def download_github_directory_content(url:str, download_full_path: str):
+    """
+    Downloads the contents of the specified path in a GitHub repo
+    :param url: url for path in GitHub
+    :param download_full_path: path to which to download file
+    """
+
+    response = requests.get(url)
+    response.raise_for_status()  # Raise an exception for bad status codes
+    contents = response.json()
+
+    files = []
+    for item in contents:
+        if item['type'] == 'file':
+            rawurl = item['download_url']
+            path_with_name = f'{download_full_path}/{item["name"]}'
+            download_file_from_github(share_url=rawurl, download_full_path=path_with_name)
+
 def download_file_from_google_drive(share_url: str, download_full_path: str):
 
     # Downloads a file from Google Drive.
@@ -44,6 +62,17 @@ def download_file_from_google_drive(share_url: str, download_full_path: str):
     gdown.download(share_url, output=download_full_path, fuzzy=True)
     return
 
+def download_folder_from_google_drive(folder_url: str, download_full_path: str):
+
+    """
+    Downloads a folder from Google Drive.
+    :param folder_url: URL of the Google folder
+    :param download_full_path: local directory to which to download.
+
+    """
+    ulog.print_and_logger_info(f'Downloading folder {folder_url} to {download_full_path}')
+    gdown.download_folder(url=folder_url, output=download_full_path)
+    return
 
 def download_file(url: str, download_full_path: str, encoding: str = 'UTF-8', contentType: str = '', chunk_size: int = 1024):
 
@@ -257,7 +286,6 @@ def update_columns_to_csv_header(file: str, new_columns: list, fill: bool = Fals
                 for fillcols in range(fillcols):
                     newline = newline + ','
 
-        print(newline)
         # Update progress bar.
         pbar.update(sys.getsizeof(line)-sys.getsizeof('\n'))
 

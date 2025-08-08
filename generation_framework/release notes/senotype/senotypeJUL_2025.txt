@@ -1,0 +1,20 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+UBKG CONTEXT
+Senotype
+
+RELEASE DATE
+August 2025
+
+UPDATES
+
+General
+
+Initial version of Senotype UBKG context that combines the base UBKG context with SENOTYPE_VS and SENOTYPE.
+
+Specific
+1. New SABs:
+   a. SENOTYPE_VS
+   b. SENOTYPE
+

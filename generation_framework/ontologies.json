@@ -405,5 +405,13 @@
     "comment": "UBERON Anatomical Bridging Ontology to EMAPA",
     "owl_url": "http://purl.obolibrary.org/obo/uberon/bridge/uberon-bridge-to-emapa.owl",
     "home_url": "https://uberon.github.io/downloads.html"
+  },
+  "SENOTYPE_VS": {
+    "comment": "Senotype Library valueset, obtained from input spreadsheet in SimpleKnowledge format",
+    "execute": "./skowlnets/skowlnets.py SENOTYPE_VS"
+  },
+  "SENOTYPE": {
+    "comment": "Senotype import.",
+    "execute": "./senotype/senotype.py"
   }
 }
