@@ -1178,7 +1178,6 @@ uextract.update_columns_to_csv_header(file=fcsv, new_columns=new_header_columns,
 # JAS 6 JAN 2023 add value, lowerbound, upperbound, unit
 newCODEs = node_metadata[['node_id', 'SAB', 'CODE', 'CUI_CODEs', 'value', 'lowerbound', 'upperbound', 'unit',
                           'firstname','lastname','email']]
-print(newCODEs)
 
 newCODEs = newCODEs[newCODEs['CUI_CODEs'].isnull()]
 newCODEs = newCODEs.drop(columns=['CUI_CODEs'])
@@ -1187,13 +1186,13 @@ newCODEs = newCODEs.rename({'node_id': 'CodeID:ID'}, axis=1)
 # JAS 6 JAN 2023 add subset to ignore optional columns. Add fillna to remove NaNs from optional columns.
 subset = ['CodeID:ID', 'SAB', 'CODE']
 newCODEs = newCODEs.dropna(subset=subset).drop_duplicates(subset=subset).reset_index(drop=True).fillna('')
+
 # write/append - comment out during development
 ulog.print_and_logger_info('---- Appending...')
 if newCODEs.shape[0] > TQDM_THRESHOLD:
     uextract.to_csv_with_progress_bar(df=newCODEs, path=csv_path('CODEs.csv'), mode='a', header=False, index=False)
 else:
-    newCODEs.to_csv(csv_path('CODEs.csv'), mode='a', header=False, index=False)
-
+   newCODEs.to_csv(csv_path('CODEs.csv'), mode='a', header=False, index=False)
 
 del newCODEs
 
