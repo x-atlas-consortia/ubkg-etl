@@ -1,0 +1,52 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+UBKG CONTEXT
+Data Distillery
+
+RELEASE DATE
+AUGUST 29 2025
+
+UPDATES
+
+General
+
+1. The UBKGSOURCES SAB was updated to reflect new versions and download dates of SABs. To view version information on
+   a particular SAB, execute the sources endpoint of the ubkg-api.
+2. A fulltext index was created for Term nodes to support fuzzy text searches.
+
+Base context
+
+1. The UMLS content (part of the base UBKG context) was updated to reflect the UMLS 2025AA release.
+2. The base context content was refreshed from new downloads of source files, calls to APIs, etc.
+3. UNIPROTKB
+   a. UNIPROTKB now includes GO annotations for proteins.
+
+       The three GO columns in the UniProtKB stream download correspond to values from the three
+       Gene Ontology Annotation (GOA) ontologies.
+       (The GOA itself has a higher resolution for the Cellular Component aspect, but UniProtKB
+       groups annotations only at the level of aspect.)
+       UniprotKB Aspect code   Description         default relation    Relations Ontology
+       p                       Biological Process  involved_in         http://purl.obolibrary.org/obo/RO_0002331
+       c                       Cellular Component  part_of             http://purl.obolibrary.org/obo/BFO_0000050
+       f                       Molecular Function  enables             http://purl.obolibrary.org/obo/RO_0002327
+
+   b. The UNIPROTKB content in UBKG was expanded to include mouse proteins.
+4. REACTOME
+   a. The REACTOME ingestion was significantly refactored so that the UBKG both aligns with the REACTOME pathway
+      event model and contains accurate information regarding reaction participants. For details of the schema
+      of REACTOME data in the UBKG, refer to
+      https://github.com/x-atlas-consortia/ubkg-etl/blob/main/generation_framework/reactome/README.md
+   b. The REACTOME content in UBKG was expanded to include mouse pathways.
+5. UMLS NOCODE code nodes were removed from the UBKG. The UMLS uses codes with ID NOCODE as placeholders for
+   codes mapped to Metatheaurus concepts that are not mapped to a code in any of the UMLS source vocabularies.
+   Six NOCODE codes in the UBKG are linked to over 542,000 Concept nodes.
+
+Specific
+1. New SABs:
+   a. EMAPA - Mouse Developmental Anatomy Ontology
+   b. EMAP-UBERON
+2. Updated SABs:
+   a. GTEXEXP
+   b. GTEXEQTL
+   c. BIOMARKER
