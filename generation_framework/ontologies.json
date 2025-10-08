@@ -203,10 +203,6 @@
     "comment": "LINCS data in edges/nodes format",
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py LINCS"
   },
-  "AZ": {
-    "comment": "Azimuth annotations, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py AZ"
-  },
   "GTEXEXP": {
     "comment": "GTEXEXP data in edges/nodes format",
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py GTEXEXP"
@@ -384,18 +380,6 @@
     "execute": "./ubkg_edges_nodes/ubkg_edges_nodes.py OTG",
     "comment": "Open Target Genomics"
   },
-  "STELLAR": {
-    "comment": "STELLAR-CL mappings, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py STELLAR"
-  },
-  "DCT": {
-    "comment": "DeepCellType-CL mappings, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py DCT"
-  },
-  "PAZ": {
-    "comment": "Pan Organ Azimuth-CL mappngs, obtained from input spreadsheet in SimpleKnowledge format",
-    "execute": "./skowlnets/skowlnets.py PAZ"
-  },
   "EMAPA": {
     "comment": "Mouse Developmental Anatomy Ontology",
     "owl_url": "http://purl.obolibrary.org/obo/emapa.owl",
@@ -413,5 +397,25 @@
   "SENOTYPE": {
     "comment": "Senotype import.",
     "execute": "./senotype/senotype.py"
+  },
+  "AZ": {
+    "comment": "Azimuth annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
+    "execute": "./hra_digital_objects/hra_do.py AZ"
+  },
+  "PAZ": {
+    "comment": "Pan-orgn Azimuth annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
+    "execute": "./hra_digital_objects/hra_do.py PAZ"
+  },
+  "STELLAR": {
+    "comment": "STELLAR annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
+    "execute": "./hra_digital_objects/hra_do.py STELLAR"
+  },
+  "DCT": {
+    "comment": "DeepCellType annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
+    "execute": "./hra_digital_objects/hra_do.py DCT"
+  },
+  "RIBCA": {
+    "comment": "RIBCA annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
+    "execute": "./hra_digital_objects/hra_do.py RIBCA"
   }
 }
