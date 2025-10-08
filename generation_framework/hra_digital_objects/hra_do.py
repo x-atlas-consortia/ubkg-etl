@@ -287,5 +287,5 @@ dforgan = encode_organ_level_nodes(df=df_crosswalk, parents=parents, sab=args.sa
 # Generate the OWLNETS files.
 write_nodes_file(df=df_crosswalk, owlnets_dir=owlnets_dir, parents=parents, dforgan=dforgan, sab=args.sab)
 write_edges_file(df=df_crosswalk,owlnets_dir=owlnets_dir,parents=parents, dforgan=dforgan, sab=args.sab)
-exit(1)
+
 
