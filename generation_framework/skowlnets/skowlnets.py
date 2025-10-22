@@ -104,7 +104,7 @@ def write_edges_file(df: pd.DataFrame, owlnets_dir: str):
         # relationships between the concept in the "code" cell and the concepts in the relationship
         # cell.
 
-        for index, row in df_sk.iterrows():
+        for index, row in df_crosswalk.iterrows():
 
             if index >= 0:  # non-header
                 subject = str(row['code'])
@@ -119,7 +119,7 @@ def write_edges_file(df: pd.DataFrame, owlnets_dir: str):
 
                     else:
                         # custom relationship (predicate)
-                        colhead = df_sk.columns[col]
+                        colhead = df_crosswalk.columns[col]
                         predicate_uri = colhead
 
                     # Obtain codes in the proposed ontology for object concepts involved
@@ -134,7 +134,7 @@ def write_edges_file(df: pd.DataFrame, owlnets_dir: str):
                             else:
                                 # Match object terms with their respective codes (Column A),
                                 # which will result in a dataframe of one row.
-                                match = df_sk[df_sk['term'] == obj]
+                                match = df_crosswalk[df_crosswalk['term'] == obj]
                                 if match.size == 0:
                                     err = 'Error: row for \'' + subject + '\' indicates relationship \'' + predicate_uri
                                     err = err + '\' with node \'' + obj + '\', but this node is not defined in the \'term\' '
@@ -164,7 +164,7 @@ def write_nodes_file(df: pd.DataFrame, owlnets_dir: str):
         out.write(
             'node_id' + '\t' + 'node_namespace' + '\t' + 'node_label' + '\t' + 'node_definition' + '\t' + 'node_synonyms' + '\t' + 'node_dbxrefs' + '\n')
 
-        for index, row in df_sk.iterrows():
+        for index, row in df_crosswalk.iterrows():
             if index >= 0:  # non-header
                 node_id = str(row['code'])
                 node_namespace = ''
@@ -219,8 +219,8 @@ def write_relations_file(df: pd.DataFrame, owlnets_dir: str):
         # subClassOf relationships to establish the polyhierarchy.
 
         # Establish the remaining custom relationships.
-        for col in range(6, len(df_sk.columns)):
-            colhead = df_sk.columns[col]
+        for col in range(6, len(df_crosswalk.columns)):
+            colhead = df_crosswalk.columns[col]
 
             if colhead != 'dbxrefs':
                 # predicate_uri = colhead[colhead.find('(')+1:colhead.find(')')]
@@ -271,9 +271,9 @@ else:
     sk_file=download_source_file(cfg=skowlnets_config,sab=args.sab,owl_dir=owl_dir,owlnets_dir=owlnets_dir)
 
 # Load SimpleKnowledge spreadsheet into a DataFrame.
-df_sk = pd.read_excel(sk_file)
+df_crosswalk = pd.read_excel(sk_file)
 
 # Generate the OWLNETS files.
-write_edges_file(df=df_sk,owlnets_dir=owlnets_dir)
-write_nodes_file(df=df_sk,owlnets_dir=owlnets_dir)
-write_relations_file(df=df_sk,owlnets_dir=owlnets_dir)
+write_edges_file(df=df_crosswalk,owlnets_dir=owlnets_dir)
+write_nodes_file(df=df_crosswalk,owlnets_dir=owlnets_dir)
+write_relations_file(df=df_crosswalk,owlnets_dir=owlnets_dir)

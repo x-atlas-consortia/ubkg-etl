@@ -1,0 +1,23 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+October 10, 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+1. The "dataset modality" hierarchy was added to SENNET.
+2. The ingestion of cell type annotation mappings to Cell Ontology for Azimuth, Pan-Human Azimuth (PAZ), STELLAR, and
+   DeepCellType were converted to use crosswalk CSVs maintained by the Human Reference Atlas.
+3. The RIBCA cell type annotation mapping was added../
