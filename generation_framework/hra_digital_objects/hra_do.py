@@ -131,7 +131,7 @@ def write_edges_file(df: pd.DataFrame, parents: dict, dforgan: pd.DataFrame, owl
         for index, row in df_crosswalk.iterrows():
 
             if index >= 0:  # non-header
-                if row['Annotation_Label_ID'] is np.nan:
+                if row['Annotation_Label_ID'] is np.nan or row['Organ_ID'] is np.nan:
                     continue
 
                 # cell type - is a -> cell type parent
@@ -192,7 +192,7 @@ def write_nodes_file(df: pd.DataFrame, owlnets_dir: str, parents: dict, dforgan:
             node_label = f"{sab}_{row['Organ_Level']}"
             node_dbxrefs = row['Organ_ID']
             out.write(
-                node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t' + node_synonyms + '\t' + node_dbxrefs + '\n')
+                str(node_id) + '\t' + node_namespace + '\t' + str(node_label) + '\t' + str(node_definition) + '\t' + str(node_synonyms) + '\t' + str(node_dbxrefs) + '\n')
 
         # Define data nodes
         for index, row in df_crosswalk.iterrows():
@@ -205,7 +205,7 @@ def write_nodes_file(df: pd.DataFrame, owlnets_dir: str, parents: dict, dforgan:
                 node_id = str(row['Annotation_Label_ID'].strip())
 
                 # Unique term concatenates SAB + organ level + annotation label
-                node_label = f"{sab}_{row['Organ_Level'].strip()}_{row['Annotation_Label'].strip()}"
+                node_label = f"{sab}_{str(row['Organ_Level']).strip()}_{str(row['Annotation_Label']).strip()}"
 
                 node_synonyms = row['Annotation_Label'].strip()
                 # The synonym field is an optional pipe-delimited list of string values.
