@@ -417,5 +417,9 @@
   "RIBCA": {
     "comment": "RIBCA annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
     "execute": "./hra_digital_objects/hra_do.py RIBCA"
+  },
+  "VCCF": {
+    "comment": "VCCF annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
+    "execute": "./hra_digital_objects/hra_do.py VCCF"
   }
 }

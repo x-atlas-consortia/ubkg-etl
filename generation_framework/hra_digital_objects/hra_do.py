@@ -254,7 +254,7 @@ if args.skipbuild:
     crosswalk_file = os.path.join(owl_dir,f'{args.sab}_crosswalk.csv')
 
 else:
-    # Download the SimpleKnowledge spreadsheet.
+    # Download the HRA digital object spreadsheet.
     crosswalk_file=download_source_file(cfg=cfg,sab=args.sab,owl_dir=owl_dir,owlnets_dir=owlnets_dir)
 
 # Load cell annotation crosswalk spreadsheet into a DataFrame.

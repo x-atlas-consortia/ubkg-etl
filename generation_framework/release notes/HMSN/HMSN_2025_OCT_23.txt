@@ -6,7 +6,7 @@ UBKG CONTEXT
 HuBMAP/SenNet
 
 RELEASE DATE
-October 22, 2025
+October 23, 2025
 
 UPDATES
 
@@ -17,4 +17,5 @@ No updates
 No updates
 
 ---Context-specific---
-The 4i assay classification was added.
+1. The 4i assay classification was added.
+2. The VCCF cell type annotation was ingested from the HRA annotation crosswalk.
