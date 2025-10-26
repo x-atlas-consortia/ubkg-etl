@@ -421,5 +421,9 @@
   "VCCF": {
     "comment": "VCCF annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
     "execute": "./hra_digital_objects/hra_do.py VCCF"
+  },
+  "FTU2D": {
+    "comment": "Human Reference Atlas 2D Functional Tissue Unit (FTU) ontology",
+    "execute": "./ftu2d/ftu2d.py FTU2D"
   }
 }
