@@ -143,7 +143,6 @@ def write_edges_file(df: pd.DataFrame, parents: dict, owlnets_dir: str, sab:str)
                 # Use the row number (index) for the first matching row.
                 organ_node_num = int(df.index[df.organ_label == organ_label][0])
                 organ_node_id = f'{sab}:{str(int(organ_parent_node_num) + int(organ_node_num) + 1)}'
-                print(organ_label, organ_node_id)
                 subj = organ_node_id
                 obj = organ_parent_node_id
                 out.write(subj + '\t' + predicate_uri + '\t' + str(obj) + '\n')
