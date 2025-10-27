@@ -251,7 +251,8 @@ owl_dir = os.path.join(os.path.dirname(os.getcwd()),cfg.get_value(section='Direc
 owlnets_dir = os.path.join(os.path.dirname(os.getcwd()),cfg.get_value(section='Directories',key='owlnets_dir'),args.sab)
 
 if args.skipbuild:
-    crosswalk_file = os.path.join(owl_dir,f'{args.sab}_crosswalk.csv')
+    crosswalk_file = cfg.get_value(section='URL',key=args.sab).split('/')[-1]
+    crosswalk_file = os.path.join(owl_dir,crosswalk_file)
 
 else:
     # Download the HRA digital object spreadsheet.
