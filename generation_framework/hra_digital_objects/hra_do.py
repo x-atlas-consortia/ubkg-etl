@@ -121,11 +121,19 @@ def write_edges_file(df: pd.DataFrame, parents: dict, dforgan: pd.DataFrame, owl
         subject = parents['cell_annotation_parent_node']['code']
         out.write(subject + '\t' + predicate_uri + '\t' + str(objcode) + '\n')
 
-        # organ nodes to organ parent
+        # organ nodes relationships:
+        # 1. isa to organ node parent.
+        # 2. part_of to UBERON code.
         objcode = parents['organ_level_parent_node']['code']
+        predicate_part_of = 'part_of'
+
         for index, row in dforgan.iterrows():
+            # isa
             subject = row['Organ_AZ_code']
             out.write(subject + '\t' + predicate_uri + '\t' + str(objcode) + '\n')
+            # part_of
+            uberon = row['Organ_ID']
+            out.write(subject + '\t' + predicate_part_of + '\t' + str(uberon) + '\n')
 
         # cell type annotation assertions
         for index, row in df_crosswalk.iterrows():
@@ -186,11 +194,13 @@ def write_nodes_file(df: pd.DataFrame, owlnets_dir: str, parents: dict, dforgan:
         out.write(
             node_id + '\t' + node_namespace + '\t' + node_label + '\t' + node_definition + '\t' + node_synonyms + '\t' + node_dbxrefs + '\n')
 
-        # Define organ level nodes
+        # Define organ level nodes.
+        # Organ level corresponds to a part of an organ. An organ level compose the entirety of the organ.
         for index, row in dforgan.iterrows():
             node_id = row['Organ_AZ_code']
             node_label = f"{sab}_{row['Organ_Level']}"
-            node_dbxrefs = row['Organ_ID']
+            node_dbxrefs = ''
+            #node_dbxrefs = row['Organ_ID']
             out.write(
                 str(node_id) + '\t' + node_namespace + '\t' + str(node_label) + '\t' + str(node_definition) + '\t' + str(node_synonyms) + '\t' + str(node_dbxrefs) + '\n')
 

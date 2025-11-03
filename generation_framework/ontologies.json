@@ -410,9 +410,9 @@
     "comment": "STELLAR annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
     "execute": "./hra_digital_objects/hra_do.py STELLAR"
   },
-  "DCT": {
+  "DCTH": {
     "comment": "DeepCellType annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",
-    "execute": "./hra_digital_objects/hra_do.py DCT"
+    "execute": "./hra_digital_objects/hra_do.py DCTH"
   },
   "RIBCA": {
     "comment": "RIBCA annotations, obtained from the crosswalk CSV maintained by the Human Reference Atlas",

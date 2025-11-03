@@ -1,0 +1,23 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+October 29, 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+1. A new ETL for the HRA 2D Functional Tissue Unit ontology (sab=FTU2D) was developed and the FTU2D ontology
+   was ingested.
+2. SAB errors in the ETL for the DeepCellTypes cell type annotation (DCTH) were corrected and the DCTH ontology
+   was ingested.
