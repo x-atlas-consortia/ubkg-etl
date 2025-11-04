@@ -1,0 +1,22 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+November 3, 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+The ETL for the cell type annotation ontologies ingested via the HRA Digital Objects was changed.
+The "organ level" codes now assert "part_of" relationships with UBERON codes instead of cross-referencing the codes.
+This eliminates issues related to cross-referencing.
