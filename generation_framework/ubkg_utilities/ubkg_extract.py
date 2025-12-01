@@ -313,21 +313,29 @@ def getresponsejson(url: str) -> str:
     # A backoff factor of 2, which results in exponential increases in delays before each attempt.
     # Retry for scenarios such as Service Unavailable or Too Many Requests that often are returned in case
     # of an overloaded server.
+
+    retry = Retry(
+        total=6,
+        backoff_factor=2,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=['GET']  # Explicitly state methods (for urllib3 >=1.26.0)
+    )
+
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount('https://', adapter)
+
     try:
-        retry = Retry(
-            total=5,
-            backoff_factor=2,
-            status_forcelist=[429, 500, 502, 503, 504]
-        )
+        response = session.get(url=url, timeout=180)
+        response.raise_for_status()  # Raise error for HTTP problems
+        return response.json()
 
-        adapter = HTTPAdapter(max_retries=retry)
+    except requests.exceptions.RequestException as e:
+        print(f'Error during GET request on {url}: {e}')
+        exit(1)
 
-        session = requests.Session()
-        session.mount('https://', adapter)
-        #r = session.get('https://httpbin.org/status/502', timeout=180)
-        r = session.get(url=url, timeout=180)
-        return r.json()
+    except ValueError as e:
 
-    except Exception as e:
-        r.raise_for_status()
+        print(f'Error decoding JSON: {e}')
+        exit(1)
 

@@ -154,6 +154,11 @@
     "home_url": "https://obofoundry.org/ontology/mondo.html",
     "comment": "The Mondo Disease Ontology (MONDO): a global community effort to harmonize multiple disease resources to yield a coherent merged ontology"
   },
+  "MONDO_SIMPLE": {
+    "owl_url": "http://purl.obolibrary.org/obo/mondo/mondo-simple.owl",
+    "home_url": "https://obofoundry.org/ontology/mondo.html",
+    "comment": "The Mondo Disease Ontology (MONDO): a global community effort to harmonize multiple disease resources to yield a coherent merged ontology"
+  },
   "EFO": {
     "owl_url": "https://data.bioontology.org/ontologies/EFO/submissions/262/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb",
     "home_url": "https://bioportal.bioontology.org/ontologies/EFO",
