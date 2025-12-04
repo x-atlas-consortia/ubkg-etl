@@ -1,0 +1,32 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+December 2, 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+The base context content was refreshed from new downloads of source data, starting
+with the 2025AB release of the UMLS.
+
+---Context-specific---
+1. Updated downloads of:
+   a. HRAVS
+   b. AZ
+   c. STELLAR
+   d. DCTH
+   e. PAZ
+   f. RIBCA
+   g. VCCF
+   h. FTU2D
+2. Update to HUBMAP and SENNET: changed descriptions for assays:
+   a. derived salmon_sn_rnaseq_10x (C200630)
+   b. derived salmon_sn_rnaseq_10x json-based (C202000)

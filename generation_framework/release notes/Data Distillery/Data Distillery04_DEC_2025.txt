@@ -1,0 +1,33 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+UBKG CONTEXT
+Data Distillery
+
+RELEASE DATE
+December 4, 2025
+
+UPDATES
+
+General
+Base context
+1. This release is the second biannual update of 2025.
+   The base context content was refreshed from new downloads of source data, starting
+   with the 2025AB release of the UMLS.
+2. The MONDO source owl was changed from the pan-species version (http://purl.obolibrary.org/obo/mondo.owl)
+   to the "MONDO simple release" version (http://purl.obolibrary.org/obo/mondo/mondo-simple.owl). This was
+   to limit MONDO data to human genes (https://github.com/x-atlas-consortia/ubkg-etl/issues/216).
+
+Context specific
+
+Data imported from the HuBMAP/SenNet context.
+
+New SABs:
+1. DCTH - DeepCellType for HuBMAP cell type annotations mapped to Cell Ontology codes
+2. RIBCA - RIBCA cell type annotations mapped to Cell Ontology codes
+3. VCCF - VCCF cell type annotations mapped to Cell Ontology codes
+4. FTU2D - 2D Functional Tissue Units from HRA
+
+Revised SABs:
+1. AZ, STELLAR, PAS - cell type annotations mapped to Cell Ontology codes
+
