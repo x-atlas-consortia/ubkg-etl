@@ -1,0 +1,26 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+December 12, 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+1. Updated downloads of:
+   a. HRA
+   b. HRAVS
+
+2. Update to HUBMAP and SENNET: new assay classifications
+   a. Raman imaging
+   b. STARmap
