@@ -24,5 +24,6 @@ No updates
 2. Update to HUBMAP and SENNET: new assay classifications
    a. Raman imaging
    b. STARmap
+   c. 10x flex
 
 3. Update to SENNET: dataset modalities for new assay classifications
