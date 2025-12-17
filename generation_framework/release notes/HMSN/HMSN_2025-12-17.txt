@@ -1,0 +1,21 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+December 17, 2025
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+1. Update to 10x Flex assay classification: contains_full_genetic_sequences
+
