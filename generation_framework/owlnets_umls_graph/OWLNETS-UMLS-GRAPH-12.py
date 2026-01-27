@@ -434,7 +434,7 @@ if relations_file_exists:
     edgelist = edgelist[['subject', 'predicate', 'object', 'relation_label', 'evidence_class']].rename(
         columns={"relation_label": "relation_label_from_file"})
 else:
-    edgelist['relation_label_from_file'] = np.NaN
+    edgelist['relation_label_from_file'] = np.nan
 
 # del relations
 

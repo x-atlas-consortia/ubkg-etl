@@ -6,13 +6,13 @@ argparse==1.4.0
 pandas==2.3.0
 numpy==2.1.0
 # to download data from online sources
-requests~=2.26.0
+requests~=2.32.5
 # to work with Excel spreadsheets
-openpyxl==3.0.10
+openpyxl==3.1.5
 
 # ------
 # PheKnowLator package and its dependencies
-pkt_kg==3.0.0
+pkt_kg==3.1.2
 ray==2.53.0
 rdflib==7.5.0
 lxml==6.0.2
@@ -31,4 +31,7 @@ pyyaml==6.0.3
 
 # For flattening JSON recursively
 flatten-json==0.1.14
+
+# Logging
+python-json-logger==4.0.0
 

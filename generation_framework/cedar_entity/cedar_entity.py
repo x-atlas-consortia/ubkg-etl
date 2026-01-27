@@ -119,8 +119,8 @@ with open(edgelist_path, 'a') as out:
             out.write(f'{subject}\t{predicate}\t{obj}\n')
         else:
             obj = dftest.iloc[0]['hubmap']
-            if obj is not np.NaN:
+            if obj is not np.nan:
                 out.write(f'{subject}\t{predicate}\t{obj}\n')
             obj = dftest.iloc[0]['sennet']
-            if obj is not np.NaN:
+            if obj is not np.nan:
                 out.write(f'{subject}\t{predicate}\t{obj}\n')
