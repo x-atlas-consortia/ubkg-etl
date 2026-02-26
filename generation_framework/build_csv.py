@@ -298,6 +298,12 @@ for ontology_name in ontology_names:
         owl_sab: str = ontology_record['sab'].upper()
     working_owlnets_dir: str = os.path.join(args.owlnets_dir, owl_sab)
 
+    working_owl_dir: str = os.path.join(args.owl_dir, owl_sab)
+
+    # Create output folders for source files. Use the existing OWL and OWLNETS folder structure.
+    os.system(f'mkdir -p {working_owl_dir}')
+    os.system(f'mkdir -p {working_owlnets_dir}')
+
     if 'execute' not in ontology_record and args.skipBuild is not True:
         owl_url = ontology_record['owl_url']
         ulog.print_and_logger_info(f"Processing OWL file: {owl_url}")

@@ -1,0 +1,21 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+February 26, 2026
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+Added Intervertebral Disc to organs.
+
