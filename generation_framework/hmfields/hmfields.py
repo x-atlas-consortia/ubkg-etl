@@ -117,6 +117,7 @@ def build_node_list(sab: str, yaml_dict_field_nodes: dict, parent_node_idx: int,
         # Field type
         # Cross-references are to XSD type codes from CEDAR. Identifying these codes require special treatment.
         type_xref = build_type_xref(urlbase=urlbase)
+
     elif node_type == 'assay':
         assayclass_xref = build_assayclass_xref(urlbase=urlbase)
 
@@ -418,6 +419,7 @@ def build_assayclass_xref(urlbase: str) -> list:
     for assayclass in assay_classifications:
         dict_assayclass = {}
         # Get the code for the assayclass
+
 
         assaytype_term = assayclass['value']['assaytype']
         assaytype_code = get_codeids_for_term_sab_type(term_string=assaytype_term, sab='HUBMAP',
