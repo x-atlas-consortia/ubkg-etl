@@ -692,6 +692,10 @@ ulog.print_and_logger_info('-- Preparing cross-references: splitting and formatt
 # e.g., node1 / SAB1:Code1|SAB2:Code2 => node 1 / SAB1 Code1|SAB2 Code2
 
 # JULY 2023 - Deprecated replacement of colons with spaces. *COLON* IS THE SAB-CODE DELIMITER.
+# MAY 8 2026 - to address Future Warnings about casting.
+# The node_synonyms is mostly NaNs, with a few string values, so Pandas implicitly casts as
+# float64. Cast as object first.
+node_metadata["node_dbxrefs"] = node_metadata["node_dbxrefs"].astype(object)
 node_metadata.loc[node_metadata['node_dbxrefs'].notna(), 'node_dbxrefs'] = \
     node_metadata[node_metadata['node_dbxrefs'].notna()]['node_dbxrefs'].astype('str').str.upper()#.str.replace(':', ' ')
 
