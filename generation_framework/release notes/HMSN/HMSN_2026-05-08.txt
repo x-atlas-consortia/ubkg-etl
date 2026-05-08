@@ -18,3 +18,4 @@ No updates
 
 ---Context-specific---
 1. Changed spelling of Seq-Scope.
+2. Minor change related to casting for synonyms.
