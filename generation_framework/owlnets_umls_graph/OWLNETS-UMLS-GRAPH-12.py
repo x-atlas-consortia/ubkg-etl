@@ -663,6 +663,15 @@ node_metadata['node_id'] = uparse.codeReplacements(node_metadata['node_id'], OWL
 # Split the delimited string into a list. Each list element will become a separate Term node with a relationship
 # type SY with the node code.
 ulog.print_and_logger_info('-- Preparing synonyms...')
+mask = node_metadata["node_synonyms"].notna()
+
+# MAY 8 2026 - to address Future Warnings about casting.
+# The node_synonyms is mostly NaNs, with a few string values, so Pandas implicitly casts as
+# float64. Cast as object first.
+node_metadata["node_synonyms"] = node_metadata["node_synonyms"].astype(object)
+node_metadata.loc[mask, "node_synonyms"] = (
+    node_metadata.loc[mask, "node_synonyms"].astype(str).str.split("|")
+)
 node_metadata.loc[node_metadata['node_synonyms'].notna(), 'node_synonyms'] = \
     node_metadata[node_metadata['node_synonyms'].notna()]['node_synonyms'].astype('str').str.split('|')
 
