@@ -1,0 +1,21 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+May 11, 2026
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+1. Seq-Scope mapped to Spatial Transcriptomics modality.
+2. New "General Histology" assay classification.

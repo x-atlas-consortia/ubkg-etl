@@ -901,7 +901,10 @@ node_metadata['cuis'] = node_metadata[['nodeCUIs', 'CUI_CODEs', 'XrefCUIs', 'bas
 # remove nan, flatten, and remove duplicates - retains order of elements which is key to consistency
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for i in x if i == i])
 node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: [i for row in x for i in row])
-node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).apply(list)
+#node_metadata['cuis'] = node_metadata['cuis'].apply(lambda x: pd.unique(x)).apply(list)
+node_metadata['cuis'] = node_metadata['cuis'].apply(
+    lambda x: list(dict.fromkeys(x)) if isinstance(x, list) else x
+)
 
 
 # JAS 27 MAR 2023
