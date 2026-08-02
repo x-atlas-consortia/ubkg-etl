@@ -242,7 +242,7 @@ ulog.print_and_logger_info('READING DATA FILES (edges, nodes, relations)...')
 # 1. OWLNETS
 # 2. UBKG edge/nodes
 
-nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv', 'OWLNETS_node_metadata.tsv']
+nodefilelist = ['OWLNETS_node_metadata.txt', 'nodes.txt', 'nodes.tsv', 'OWLNETS_node_metadata.tsv','jkg_node.tsv']
 nodepath = identify_source_file(nodefilelist)
 
 # JAS AUG 2025 add submitter properties.
@@ -362,7 +362,7 @@ else:
 # 2. UBKG edge/nodes
 
 ulog.print_and_logger_info('-- Reading edge file...')
-edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv', 'OWLNETS_edgelist.tsv']
+edgefilelist = ['OWLNETS_edgelist.txt', 'edges.txt', 'edges.tsv', 'OWLNETS_edgelist.tsv','jkg_edge.tsv']
 edgepath = identify_source_file(edgefilelist)
 
 ulog.print_and_logger_info('---- Dropping duplicates, empty rows, and self-referential edges...')

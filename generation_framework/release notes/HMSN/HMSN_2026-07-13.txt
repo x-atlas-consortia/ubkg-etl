@@ -1,0 +1,23 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+July 13, 2026
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+1. Renal Pelvis removed from organ list.
+2. Organoid mapped to NCI:C172259
+3. Dataset type/modality/analyte hierarchy revised.
+4. Paired-Tag assay.
