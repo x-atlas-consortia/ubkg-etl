@@ -1,0 +1,20 @@
+UNIFIED BIOMEDICAL KNOWLEDGE GRAPH
+RELEASE NOTES
+
+
+UBKG CONTEXT
+HuBMAP/SenNet
+
+RELEASE DATE
+August 18, 2026
+
+UPDATES
+
+---General---
+No updates
+
+---Base context---
+No updates
+
+---Context-specific---
+HUBMAP, SENNET - bronchus terms and cross-references changed.
